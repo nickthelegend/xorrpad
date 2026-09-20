@@ -1,0 +1,140 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>xorr-pad — setup</title>
+<style>
+  :root {
+    --bg:#000; --surface:#0C0C0D; --surface-alt:#141516; --control:#1B1C1E;
+    --ink:#FFF; --ink-2:rgba(255,255,255,.72); --ink-3:rgba(255,255,255,.52);
+    --up:#2BD87A; --up-ink:#04160C; --down:#FF453A; --line:rgba(255,255,255,.10);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display:grid; place-items:center; padding:32px;
+    -webkit-font-smoothing:antialiased;
+  }
+  main { width:100%; max-width:520px; }
+  h1 { font-size:21px; font-weight:600; letter-spacing:-.01em; margin:0 0 6px; }
+  .sub { color:var(--ink-3); margin:0 0 26px; font-size:13px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  label { display:block; margin:0 0 18px; }
+  .k { display:block; font-size:12px; color:var(--ink-2); margin-bottom:7px; font-weight:500; }
+  .hint { display:block; font-size:11.5px; color:var(--ink-3); margin-top:6px; line-height:1.5; }
+  input, select {
+    width:100%; background:var(--control); color:var(--ink); font:inherit;
+    border:1px solid var(--line); border-radius:9px; padding:10px 12px; outline:none;
+  }
+  input:focus, select:focus { border-color:rgba(43,216,122,.55); }
+  input::placeholder { color:rgba(255,255,255,.28); }
+  .row { display:flex; gap:10px; align-items:center; margin-top:4px; }
+  button {
+    background:var(--up); color:var(--up-ink); font:inherit; font-weight:600;
+    border:0; border-radius:9px; padding:10px 18px; cursor:pointer;
+  }
+  button.ghost { background:var(--control); color:var(--ink-2); font-weight:500; }
+  button:disabled { opacity:.5; cursor:default; }
+  #msg { margin-top:14px; font-size:12.5px; min-height:18px; }
+  #msg.bad { color:var(--down); }
+  #msg.good { color:var(--up); }
+  a { color:var(--ink-2); }
+</style>
+
+<main>
+  <h1>Set up xorr-pad</h1>
+  <p class="sub">
+    Stored in this app's own config directory, readable only by you. Nothing is
+    sent anywhere.
+  </p>
+
+  <div class="card">
+    <label>
+      <span class="k">Deepgram API key</span>
+      <input id="deepgram" type="password" autocomplete="off" spellcheck="false"
+             placeholder="required for the mic and the spoken replies">
+      <span class="hint">
+        Speech in and out. Without it the desk still trades — every key, every
+        verdict, every fill — but the mic key and spoken answers do not work.
+        Free key at <a href="https://console.deepgram.com" target="_blank" rel="noreferrer">console.deepgram.com</a>.
+      </span>
+    </label>
+
+    <label>
+      <span class="k">Pad token</span>
+      <input id="token" autocomplete="off" spellcheck="false" value="xorrpad-dev">
+      <span class="hint">
+        The shared secret the physical pad sends on every request. Type the same
+        value into the pad's captive portal. Leave it as-is if you have no pad.
+      </span>
+    </label>
+
+    <label>
+      <span class="k">Chain</span>
+      <select id="chainMode">
+        <option value="fork">Base mainnet fork — real contracts, no real money</option>
+        <option value="mainnet">Base mainnet — real money</option>
+      </select>
+      <span class="hint">
+        Mainnet additionally needs <code>AGENT_PRIVATE_KEY</code> set in the
+        environment, and it will refuse to start without one. Automation never
+        fires on mainnet; every trade waits for a physical ✓.
+      </span>
+    </label>
+
+    <div class="row">
+      <button id="save">Save and open the desk</button>
+      <button id="skip" class="ghost">Skip for now</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const msg = $("msg");
+
+  async function save() {
+    $("save").disabled = true;
+    msg.className = ""; msg.textContent = "Saving…";
+    try {
+      const r = await fetch("/setup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          deepgram: $("deepgram").value,
+          token: $("token").value,
+          chainMode: $("chainMode").value,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+      msg.className = "good";
+      msg.textContent = "Saved " + j.saved.join(", ") + ". Opening the desk…";
+      // Redirect with the token the SERVER says is in force, never the field.
+      // Leaving the field blank means "keep the current one", and using the
+      // blank here opened the desk at ?token= — every pane empty, locked out.
+      const tok = j.token || $("token").value;
+      // The key is live immediately — credentials are read at call time, so no
+      // restart is needed.
+      setTimeout(() => { location.href = "/?token=" + encodeURIComponent(tok); }, 700);
+    } catch (e) {
+      msg.className = "bad";
+      msg.textContent = String(e.message || e);
+      $("save").disabled = false;
+    }
+  }
+
+  $("save").addEventListener("click", save);
+  $("skip").addEventListener("click", async () => {
+    // Same trap as Save: a blank field must not become the URL's token.
+    let tok = $("token").value;
+    if (!tok) {
+      try { tok = (await (await fetch("/setup", { method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ chainMode: $("chainMode").value }) })).json()).token || ""; } catch { /* keep blank */ }
+    }
+    location.href = "/?token=" + encodeURIComponent(tok);
+  });
+  $("deepgram").addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+</script>

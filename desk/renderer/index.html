@@ -1,0 +1,1682 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>xorr-pad</title>
+<!-- Without this a phone renders the page at a 980px virtual viewport and
+     scales it down, so the breakpoints below NEVER fire and the pad arrives as
+     an unreadable sliver. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Inter, self-hosted and subset. Weights are selected by FAMILY, never by
+   `font-weight` against a single face — a synthesised bold thickens stems
+   unevenly and throws off the negative tracking the display sizes rely on.
+   A readout whose type fails to arrive on venue wi-fi is one nobody trusts.
+   ───────────────────────────────────────────────────────────────────────── */
+@font-face{font-family:Inter;src:url(/fonts/inter-400.woff2)format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/inter-500.woff2)format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/inter-600.woff2)format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:Inter;src:url(/fonts/inter-700.woff2)format("woff2");font-weight:700;font-display:swap}
+
+:root{
+  /* Surfaces. `--bg` is true black, never a dark grey. */
+  --bg:#000000; --surface:#0C0C0D; --surface-alt:#141516; --control:#1B1C1E;
+  --control-press:#252629; --bubble:#111214;
+
+  /* The ink ramp on black.
+     The source design system runs down to 28% white. Composited onto a true
+     black ground that is 2.6:1 — the ramp is built for a phone held close, and
+     measured here .38 reads 3.39:1 and .45 reads 4.41:1, both under AA for text
+     at these sizes. Anything that carries WORDS therefore stops at .50, which
+     is 5.28:1; the dimmer steps below it are for glyphs and dots only. */
+  --ink:#FFFFFF; --ink70:rgba(255,255,255,.7); --ink65:rgba(255,255,255,.65);
+  --ink55:rgba(255,255,255,.56); --ink50:rgba(255,255,255,.52);
+  --ink45:rgba(255,255,255,.52); --ink40:rgba(255,255,255,.5);
+  --ink38:rgba(255,255,255,.5);  --ink30:rgba(255,255,255,.3);
+
+  /* Hairlines. Cards get a 1px border instead of an elevation. */
+  --hair:rgba(255,255,255,.05); --hair-strong:rgba(255,255,255,.055);
+  --card-border:rgba(255,255,255,.06); --input-border:rgba(255,255,255,.07);
+  --ghost-border:rgba(255,255,255,.09);
+
+  /* Semantic — P&L ONLY. Green and red mean profit and loss. They are never
+     selection, focus, branding or emphasis. Selection is white-on-dark;
+     reaching for --up to show that something is chosen is a bug. */
+  --up:#2BD87A; --up-bg:rgba(43,216,122,.14); --up-ink:#04160C;
+  --down:#FF453A; --down-bg:rgba(255,69,58,.14);
+  --warn:#E8C64A; --warn-bg:rgba(232,198,74,.14);
+  /* The destructive FILL, not the P&L red. White on #EF3B36 measures 3.93:1 and
+     fails AA at button size; this is the same hue taken down until it passes at
+     5.0:1. --down stays as it is: it is text on black, where it reads 6.2:1. */
+  --danger:#D32B26;
+
+  --r-sq:12px; --r-tile:16px; --r-note:18px; --r-card:20px;
+  --r-panel:22px; --r-panel-lg:24px; --r-sheet:30px; --r-full:9999px;
+  --gutter:20px;
+}
+
+*{box-sizing:border-box}
+/* A <button> takes the UA's own colour, not the page's. Without this the agent
+   card's name and status rendered rgb(0,0,0) on a #0C0C0D card — invisible. */
+button,input,select,textarea{color:inherit;font:inherit}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:Inter,-apple-system,system-ui,sans-serif;
+  font-feature-settings:"tnum" 1,"cv05" 1;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+::selection{background:var(--ink);color:#000}
+::-webkit-scrollbar{width:0;height:0}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:6px}
+
+/* ── the app shell ──────────────────────────────────────────────────────
+   A desktop application: a fixed navigation rail beside a content region that
+   takes the rest of the window. The rail is always visible because supervising
+   agents means being one click from the kill switch, wherever you are. */
+#app{
+  height:100%; display:grid; grid-template-columns:236px 1fr;
+  background:var(--bg);
+}
+
+#rail{
+  border-right:1px solid var(--hair-strong);
+  display:flex; flex-direction:column; padding:20px 14px 16px;
+  min-height:0;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 20px}
+.brand .bmark{width:26px;height:26px;border-radius:8px;flex:none;
+  background:radial-gradient(circle at 32% 26%,#5B93FF,#1B44CE 74%)}
+.brand .bname{font-size:15px;font-weight:700;letter-spacing:-.2px}
+/* 11px is the floor for functional text; 10px fails on high-DPI and small
+   viewports, and being on a design ramp does not launder that. */
+.brand .bsub{font-size:11px;font-weight:600;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--ink38);display:block;margin-top:1px}
+
+#nav{display:flex;flex-direction:column;gap:2px}
+#nav button{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:0 12px;height:40px;border:0;border-radius:10px;cursor:pointer;
+  background:transparent;color:var(--ink50);
+  font-family:inherit;font-size:13.5px;font-weight:600;text-align:left;
+  transition:background .15s,color .15s;position:relative;
+}
+#nav button:hover{background:var(--control);color:var(--ink70)}
+#nav button[aria-selected="true"]{background:var(--control);color:var(--ink)}
+#nav svg{width:18px;height:18px;flex:none}
+#nav .dot{width:6px;height:6px;border-radius:var(--r-full);background:var(--ink30);margin-left:auto}
+#nav .dot.on{background:var(--up)}
+
+/* The rail's foot: chain, wallet and the kill switch, always in reach. */
+.railfoot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);
+  display:flex;flex-direction:column;gap:8px}
+.railstat{display:flex;align-items:baseline;gap:8px;padding:0 8px;
+  font-size:11px;font-weight:500;color:var(--ink38)}
+.railstat b{margin-left:auto;font-weight:600;color:var(--ink65);
+  font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+#railkill{width:100%;height:40px;border:0;border-radius:10px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:600;
+  background:var(--control);color:var(--ink);transition:background .15s}
+#railkill:hover{background:var(--control-press)}
+#railkill.armed{background:var(--danger);color:#fff}
+#railkill.armed:hover{background:#B92420}
+
+/* Content region */
+#main{display:flex;flex-direction:column;min-width:0;min-height:0}
+#topbar{flex:none;min-height:62px;display:flex;align-items:center;gap:14px;
+  padding:12px 28px;border-bottom:1px solid var(--hair-strong)}
+h1{margin:0;font-size:19px;font-weight:700;line-height:23px;letter-spacing:-.2px}
+#topsub{font-size:12.5px;color:var(--ink38);margin-left:2px}
+.livedot{width:6px;height:6px;border-radius:var(--r-full);background:var(--ink30);flex:none}
+.livedot.on{background:var(--up)}
+#topright{margin-left:auto;display:flex;align-items:center;gap:14px}
+.budget{display:flex;align-items:center;gap:10px}
+.budget .bl{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink38)}
+.budget .bt{width:120px;height:6px;border-radius:var(--r-full);background:var(--control);overflow:hidden}
+.budget .bf{height:100%;background:var(--ink70);border-radius:var(--r-full);transition:width .18s}
+.budget .bf.hot{background:var(--warn)}
+.budget .bv{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink65)}
+
+/* The scroll region takes flex:1 — never a trailing spacer, which collects
+   leftover height and leaves a visible hole. */
+#scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:22px 28px 40px}
+.pane{display:none}
+.pane.on{display:block}
+.wrap{max-width:1180px}
+
+/* Multi-column content. Panels sit side by side and top-align: a short card
+   next to a long one must not stretch to match it. */
+.cols{display:grid;gap:16px;align-items:start}
+.cols.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cols.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cols.side{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+@media (max-width:1080px){ .cols.three{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:900px){
+  #app{grid-template-columns:64px 1fr}
+  .brand .btext,#nav button span:not(.dot),.railstat{display:none}
+  #nav button{justify-content:center;padding:0}
+  .cols.two,.cols.three,.cols.side{grid-template-columns:minmax(0,1fr)}
+  #scroll,#topbar{padding-left:18px;padding-right:18px}
+  /* The title and the day's budget cannot both fit; the budget is the one that
+     has a home elsewhere. Leaving it pushed the document 56px wider than the
+     window and put a horizontal scrollbar under the whole app. */
+  #topsub{display:none}
+}
+@media (max-width:760px){ .budget{display:none} }
+
+/* ── primitives ─────────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--r-panel);padding:16px;margin-bottom:12px}
+.card.tight{padding:14px}
+
+.eyebrow{font-size:11px;font-weight:600;line-height:13px;letter-spacing:1.32px;
+  text-transform:uppercase;color:var(--ink45)}
+
+/* Section head with a chevron, the way the app names a list you can open. */
+.shead{display:flex;align-items:baseline;gap:6px;margin:20px 0 10px}
+.shead h2{margin:0;font-size:16px;font-weight:600;line-height:19px}
+.shead .chev{color:var(--ink38);font-size:15px;line-height:19px}
+.shead .aside{margin-left:auto;font-size:12.5px;font-weight:400;color:var(--ink45)}
+
+/* Hairline list row. The most-used element in the app. */
+.lrow{display:flex;align-items:center;gap:12px;min-height:56px;
+  border-bottom:1px solid var(--hair);padding:8px 0}
+.lrow:last-child{border-bottom:0}
+.lrow .mark{width:34px;height:34px;flex:none;border-radius:var(--r-full);
+  display:grid;place-items:center;font-size:14px;font-weight:700;color:rgba(0,0,0,.62)}
+.lrow .lmain{min-width:0;display:flex;flex-direction:column;gap:2px}
+.lrow .lp{font-size:15px;font-weight:600;line-height:20px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Prose and row detail are sized for a desk, not a phone held at arm's length.
+   The 11.5px the source design system specifies is right on a handset and too
+   small here — labels keep their small sizes, things you actually read do not. */
+.lrow .ls{font-size:12.5px;font-weight:400;line-height:18px;color:var(--ink45)}
+.lrow .lval{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:2px;flex:none}
+.lrow .lv{font-size:15px;font-weight:700;line-height:20px}
+.lrow .ld{font-size:12.5px;font-weight:500;line-height:18px;color:var(--ink45)}
+.up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--ink38)}
+
+/* Note strip — wherever an agent explains itself. The dot encodes the class:
+   green acted, amber adjusted risk, red blocked. */
+.note{display:flex;gap:10px;background:var(--surface);border-radius:var(--r-note);
+  padding:13px;margin-bottom:8px}
+.note .nd{width:8px;height:8px;border-radius:var(--r-full);flex:none;margin-top:6px;background:var(--up)}
+.note .nd.warn{background:var(--warn)} .note .nd.block{background:var(--down)}
+.note .nt{font-size:13px;font-weight:400;line-height:1.55;color:var(--ink55)}
+.note .nt b{color:var(--ink70);font-weight:600}
+
+/* Pill row — scrolls, never shrinks to fit. */
+.pills{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.pill{flex:none;height:34px;padding:0 14px;border-radius:20px;border:0;cursor:pointer;
+  background:var(--surface-alt);color:var(--ink50);
+  font-family:inherit;font-size:13px;font-weight:600;transition:background .15s,color .15s}
+.pill[aria-pressed="true"]{background:var(--ink);color:#0B0B0B}
+
+/* Buttons. One primary per screen. */
+.btn{width:100%;height:54px;border:0;border-radius:var(--r-sheet);cursor:pointer;
+  font-family:inherit;font-size:15.5px;font-weight:600;transition:background .15s,opacity .15s}
+.btn.primary{background:var(--ink);color:#000}
+.btn.primary:hover{background:rgba(255,255,255,.88)}
+.btn.secondary{background:var(--control);color:var(--ink)}
+.btn.secondary:hover{background:var(--control-press)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--ghost-border);color:var(--ink65);height:48px}
+.btn.ghost:hover{background:var(--control)}
+.btn:disabled{background:var(--control);color:rgba(255,255,255,.35);cursor:default}
+.btnrow{display:flex;gap:10px}
+.btnrow .btn{flex:1} .btnrow .btn.wide{flex:1.3}
+
+/* Stepper. Fixed min-width on the value or the row jitters as digits change. */
+.stepper{display:flex;align-items:center;gap:10px;justify-content:center}
+.stepper button{width:26px;height:26px;border:0;border-radius:var(--r-full);
+  background:var(--control);color:var(--ink);font-size:15px;line-height:1;cursor:pointer;
+  font-family:inherit;display:grid;place-items:center;padding:0}
+.stepper button:hover{background:var(--control-press)}
+.stepper .val{min-width:88px;text-align:center;font-size:22px;font-weight:700;letter-spacing:-.4px}
+
+/* ── the agent orb ──────────────────────────────────────────────────────
+   radial-gradient with an off-centre origin: that is the specular highlight
+   and it must not move. */
+.orbwrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.orb{border-radius:var(--r-full);position:relative;flex:none;
+  background:radial-gradient(circle at 32% 26%,var(--c1),var(--c2) 74%)}
+.orb .spec{position:absolute;top:17%;left:24%;width:28%;height:16%;border-radius:var(--r-full);
+  background:rgba(255,255,255,.55);filter:blur(3px)}
+.orb .eye{position:absolute;top:36%;width:16%;height:23%;border-radius:var(--r-full);
+  background:#0B0B0B;opacity:.88}
+.orb .eye.l{left:26%} .orb .eye.r{right:26%}
+.orb .smile{position:absolute;top:59%;left:50%;transform:translateX(-50%);
+  width:29%;height:13%;border-radius:0 0 999px 999px;background:#0B0B0B;opacity:.88}
+.orbname{font-size:12.5px;font-weight:600;line-height:16px;text-align:center}
+.orbstatus{font-size:10.5px;font-weight:600;line-height:13px}
+.orbstatus.active{color:var(--up)} .orbstatus.paused{color:var(--ink40)}
+
+/* On a desk there is room to lay them out; a horizontally scrolling strip
+   clipped the last card mid-name and looked like a rendering fault. */
+.agentrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.agentcard{width:100%;background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--r-card);padding:16px 10px 13px;cursor:pointer;
+  transition:border-color .15s,background .15s}
+.agentcard:hover{background:var(--surface-alt)}
+.agentcard[aria-pressed="true"]{border-color:var(--ink55)}
+
+/* ── the verdict ────────────────────────────────────────────────────────
+   The loudest block on the surface, and the numbered reasons under it are
+   the point: the remembered facts the decision rests on, cited. */
+.verdict{background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--r-panel);padding:18px;margin-bottom:12px}
+.vhead{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.vact{font-size:30px;font-weight:700;line-height:35px;letter-spacing:-1px}
+.vact.exec{color:var(--ink)} .vact.rej{color:var(--down)}
+.vsize{font-size:18px;font-weight:700;color:var(--ink55);letter-spacing:-.4px}
+.vorder{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--ink45);text-align:right}
+.fnote{display:flex;gap:10px;padding:7px 0}
+.fnref{width:18px;height:18px;flex:none;border-radius:6px;background:var(--control);
+  color:var(--ink50);font-size:10px;font-weight:700;display:grid;place-items:center;margin-top:2px}
+.fnote span:last-child{font-size:13.5px;font-weight:400;line-height:20px;color:var(--ink65)}
+.working{display:block;text-align:center;padding:16px 0;font-size:13px;font-weight:600;color:var(--ink45)}
+
+/* Data rows inside cards. */
+.krow{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.krow:last-child{border-bottom:0}
+.krow .k{font-size:13.5px;font-weight:400;color:var(--ink45)}
+.krow .v{margin-left:auto;font-size:13.5px;font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;max-width:66%}
+
+/* Banner: the one place bad news lands. */
+#authbar{background:var(--warn-bg);border:1px solid rgba(232,198,74,.28);color:var(--warn);
+  border-radius:var(--r-tile);padding:12px 14px;margin-bottom:12px;
+  font-size:12.5px;font-weight:500;line-height:18px}
+
+/* Scan table */
+.trow{display:grid;grid-template-columns:1fr 3.6ch 5.4ch 4.6ch 5.2ch;gap:8px;
+  padding:9px 0;border-bottom:1px solid var(--hair);
+  font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right;align-items:center}
+.trow span:first-child{text-align:left;font-weight:600}
+.trow.thead{color:var(--ink38);font-size:10px;font-weight:600;letter-spacing:.9px;text-transform:uppercase}
+.trow .neg{color:var(--down)}
+/* The tag carries state — "in hand", the asset class — so it has to be read,
+   not merely noticed. ink45 on a 7% fill measured 3.6:1. */
+.tag{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:5px;
+  background:rgba(255,255,255,.1);color:var(--ink70);
+  font-size:9.5px;font-weight:700;letter-spacing:.855px;text-transform:uppercase}
+
+/* Store browser tiers */
+/* Tiers are independent blocks. Left to span the window each row put its key
+   and its value a thousand pixels apart with nothing between them. */
+#store{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:0 26px;align-items:start}
+.grp{margin-bottom:16px;break-inside:avoid}
+.grp h3{margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:1.32px;
+  text-transform:uppercase;color:var(--ink45)}
+.linkbtn{background:none;border:0;color:var(--ink50);font-family:inherit;
+  font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;padding:0}
+.linkbtn:hover{color:var(--ink)}
+
+input[type="datetime-local"]{
+  flex:1;min-width:0;height:44px;padding:0 12px;border-radius:var(--r-sq);
+  background:var(--bubble);border:1px solid var(--input-border);color:var(--ink);
+  font-family:inherit;font-size:13px;font-weight:500}
+
+/* ── the tab bar ────────────────────────────────────────────────────────
+   Agents sits centre because agent supervision, not order entry, is what
+   this product is for. */
+nav{flex:none;display:flex;padding:8px 8px 20px;border-top:1px solid var(--hair-strong);
+  background:var(--bg)}
+nav button{flex:1;background:none;border:0;cursor:pointer;padding:6px 4px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  color:var(--ink30);font-family:inherit;transition:color .15s;position:relative}
+nav button[aria-selected="true"]{color:var(--ink)}
+nav svg{width:21px;height:21px;display:block}
+nav .tl{font-size:9.5px;font-weight:600;letter-spacing:.285px}
+nav .dot{position:absolute;top:2px;right:calc(50% - 14px);width:6px;height:6px;
+  border-radius:var(--r-full);background:var(--ink30)}
+nav .dot.on{background:var(--up)}
+
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* The pad's setup code. Shown on demand rather than always: it carries the pad
+   token, and the desk is often on a screen other people can see. */
+#padcode{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;z-index:60}
+/* An id selector outranks the UA stylesheet's [hidden]{display:none}, so the
+   display:grid above left this panel permanently open across the whole app —
+   over the portfolio, on first load, with the pad token on show. Restore it. */
+#padcode[hidden]{display:none}
+.padcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;width:330px;text-align:center}
+.padhead{font-size:15px;font-weight:600;margin-bottom:14px}
+.padsvg{background:#fff;border-radius:10px;padding:8px;display:inline-block;line-height:0}
+.padsvg svg{width:230px;height:230px;display:block}
+.padwhy{font-size:11.5px;color:var(--ink45);margin:13px 0 12px;line-height:1.55}
+.padkv{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:5px 0;border-top:1px solid var(--line)}
+.padkv span{color:var(--ink45)}
+.padkv b{font-weight:500;word-break:break-all;text-align:right}
+.padclose{margin-top:14px;width:100%;background:var(--control);color:var(--ink);border:0;border-radius:9px;padding:9px;font:inherit;font-weight:500;cursor:pointer}
+#railpad{width:100%;background:var(--control);color:var(--ink);border:0;border-radius:9px;padding:8px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:8px}
+</style>
+
+<div id="app">
+  <aside id="rail">
+    <div class="brand">
+      <span class="bmark"></span>
+      <span class="btext"><span class="bname">xorr&#8209;pad</span>
+        <span class="bsub">agent desk</span></span>
+    </div>
+    <div id="nav" role="tablist"></div>
+    <div class="railfoot">
+      <div class="railstat">chain <b id="railchain">&mdash;</b></div>
+      <div class="railstat">block <b id="railblock">&mdash;</b></div>
+      <div class="railstat">wallet <b id="railaddr">&mdash;</b></div>
+      <button id="railpad" onclick="togglePadCode()">Connect the pad</button>
+      <button id="railkill" onclick="killToggle()">Stop all trading</button>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <span class="livedot" id="livedot"></span>
+      <h1 id="title">Portfolio</h1>
+      <span id="topsub"></span>
+      <span id="topright"></span>
+    </div>
+    <div id="scroll">
+    <div id="authbar" hidden></div>
+
+    <!-- ══ HOME ══ -->
+    <section class="pane on" id="p-home"><div class="wrap">
+      <div style="padding:2px 0 20px">
+        <div class="eyebrow" style="margin-bottom:8px">Total value</div>
+        <div id="hero" style="font-size:46px;font-weight:700;line-height:53px;letter-spacing:-1.4px">—</div>
+        <div id="herosub" style="margin-top:6px;font-size:13.5px;font-weight:500;color:var(--ink45)">reading balances…</div>
+      </div>
+
+      <div class="cols side">
+        <div>
+          <div class="card" id="daycard"></div>
+          <div class="shead" style="margin-top:22px"><h2>Agents</h2><span class="chev">›</span>
+            <span class="aside" id="agentcount"></span></div>
+          <div class="agentrow" id="orbs"></div>
+          <div id="briefwrap" style="margin-top:16px"></div>
+          <div class="shead"><h2>Recent activity</h2><span class="aside">every press, from anywhere</span></div>
+          <div id="homelog"></div>
+        </div>
+        <div>
+          <div class="shead" style="margin-top:0"><h2>Coins</h2><span class="chev">›</span>
+            <span class="aside" id="coincount"></span></div>
+          <div id="pf"></div>
+        </div>
+      </div>
+    </div></section>
+
+    <!-- ══ MARKETS ══ -->
+    <section class="pane" id="p-markets"><div class="wrap">
+     <div class="cols side">
+      <div>
+       <div id="mkts"></div>
+       <div class="shead"><h2>Stocks</h2><span class="aside" id="eqsub">tokenized equities on Base</span></div>
+       <div id="equities"></div>
+       <div class="note" id="eqnote" hidden><span class="nd warn"></span><span class="nt" id="eqwhy"></span></div>
+       <div class="note" style="margin-top:14px"><span class="nd block"></span>
+         <span class="nt" id="delisted"></span></div>
+      </div>
+      <div>
+       <div class="shead" style="margin-top:0"><h2>The book</h2><span class="aside">six measured strategies</span></div>
+       <div class="card" id="bookcard">
+         <div id="scanhead" style="font-size:12.5px;line-height:18px;color:var(--ink55)"></div>
+         <button class="btn ghost" style="margin-top:12px" id="runbook" onclick="press('scan')">Run the book across all six</button>
+       </div>
+       <div id="scan"></div>
+      <div class="note"><span class="nd warn"></span><span class="nt">
+        <b>Measured, not profitable.</b> These edges are real and published with their
+        t‑statistics. None has been shown to make money net of fees: the source engine's
+        live book was +$4.32 gross and −$23.07 net over 30 trades, the loss entirely fees.</span></div>
+      </div>
+     </div>
+    </div></section>
+
+    <!-- ══ AGENTS ══ -->
+    <section class="pane" id="p-agents"><div class="wrap">
+     <div class="cols side">
+      <div>
+      <div class="shead" style="margin-top:0"><h2>Hire an agent</h2><span class="aside">one holds the baton</span></div>
+      <div id="agentgrid" class="cols three"></div>
+
+      <div class="shead"><h2>Voice</h2><span class="aside">say an order</span></div>
+      <button class="btn secondary" id="micbtn" onclick="micToggle()">Hold a conversation</button>
+      <div class="note" style="margin-top:10px"><span class="nd"></span><span class="nt">
+        A spoken order goes through the same gate as a key press: it arrives as a decision
+        waiting on a ✓, never as a fill.</span></div>
+
+      <div class="shead"><h2>Kill switch</h2><span class="aside" id="armlabel"></span></div>
+      <button class="btn danger" id="killbtn" onclick="killToggle()">Stop all trading</button>
+      <div class="note" style="margin-top:10px"><span class="nd block"></span><span class="nt" id="killnote"></span></div>
+      </div>
+      <div>
+        <div class="shead" style="margin-top:0"><h2>Activity</h2><span class="aside">what the pad did</span></div>
+        <div id="log"></div>
+      </div>
+     </div>
+    </div></section>
+
+    <!-- ══ TRADE ══ -->
+    <section class="pane" id="p-trade"><div class="wrap">
+     <div class="cols side">
+      <div>
+      <div class="shead" style="margin-top:0"><h2>The ticket</h2><span class="aside">choose, size, propose</span></div>
+      <div class="pills" id="tradepills"></div>
+      <div class="card" style="margin-top:6px">
+        <div class="eyebrow" style="text-align:center;margin-bottom:12px">Trade size</div>
+        <div class="stepper" id="sizes"></div>
+      </div>
+      <!-- Propose, then decide. The pair that raises a decision sits above the
+           card that answers it; the other way round read as two rival rows. -->
+      <div class="btnrow" style="margin:4px 0 0">
+        <button class="btn secondary" onclick="press('sell')">Sell</button>
+        <button class="btn secondary wide" onclick="press('buy')">Buy</button>
+      </div>
+      <div class="card" id="inhand" style="margin-top:16px"></div>
+      </div>
+      <div>
+        <div class="shead" style="margin-top:0"><h2>The decision</h2><span class="aside">and what it rests on</span></div>
+        <div id="sig"></div>
+        <div class="shead"><h2>On this market</h2><span class="aside" id="mktjrnlsub"></span></div>
+        <div id="mktjrnl"></div>
+      </div>
+     </div>
+    </div></section>
+
+    <!-- ══ MEMORY ══ -->
+    <section class="pane" id="p-memory"><div class="wrap">
+     <div class="cols side">
+      <div>
+      <div class="note" id="briefnote" hidden><span class="nd"></span><span class="nt" id="briefing"></span></div>
+      <div class="card" id="contra" hidden></div>
+      <div class="card" id="cost" hidden></div>
+
+      <div class="shead" style="margin-top:0"><h2>Time machine</h2><span class="aside">replay the journal</span></div>
+      <div class="card">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input id="ttin" type="datetime-local" step="1" aria-label="replay at" max="">
+          <button class="btn secondary" style="height:44px;width:auto;padding:0 16px;flex:none" onclick="replay()">Replay</button>
+          <button class="btn secondary" style="height:44px;width:auto;padding:0 16px;flex:none" onclick="replayNow()">Now</button>
+        </div>
+        <button class="btn ghost" onclick="decay()">Retire rules nothing has needed</button>
+      </div>
+      <div class="card" id="ttout" hidden></div>
+
+      <div class="note" style="margin-top:16px"><span class="nd warn"></span><span class="nt">
+        <b>Wiping is the demo.</b> Delete the store and the agent forgets its limits, its
+        positions and every rule you taught it — then press the same key and watch the
+        verdict change.</span></div>
+      <button class="btn danger" style="margin-top:10px" onclick="wipe()">Wipe memory</button>
+      <button class="btn secondary" style="margin-top:10px" id="reteach" hidden onclick="reteach()">Re‑teach its limits</button>
+      </div>
+      <div>
+        <div class="shead" style="margin-top:0"><h2>The store</h2><span class="aside">tier by tier</span></div>
+        <div id="store"></div>
+      </div>
+     </div>
+    </div></section>
+  </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="padcode" hidden onclick="if(event.target===this)togglePadCode()">
+  <div class="padcard">
+    <div class="padhead">Connect the pad</div>
+    <div class="padsvg" id="padsvg"></div>
+    <div class="padwhy">Scan this with a phone, then paste both halves into the
+      pad's captive portal (<b>xorr&#8209;pad&#8209;setup</b>). They are separated
+      by a <code>|</code>.</div>
+    <div class="padkv"><span>backend</span><b id="padurl">&mdash;</b></div>
+    <div class="padkv"><span>token</span><b id="padtok">&mdash;</b></div>
+    <button class="padclose" onclick="togglePadCode()">Close</button>
+  </div>
+</div>
+
+<script>
+// No default. A missing token has to look like a missing token, not silently
+// work because a well-known one was baked into the page.
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
+const H = {"content-type":"application/json","authorization":"Bearer "+TOKEN};
+const CLASS_LABEL = {crypto:"crypto", forex:"forex", defi:"defi", ai:"ai agents"};
+let MARKETS = {}, activeMarket = "ETH", lastPrices = {}, lastScanAt = null;
+let pending = null, armed = true, agentNow = "momentum";
+const el = (id) => document.getElementById(id);
+
+/* ── agent identity ────────────────────────────────────────────────────────
+   Each agent owns a gradient and keeps it everywhere it appears. The
+   off-centre origin in the CSS is the specular highlight; these are only the
+   two stops. */
+const AGENTS = [
+  { id:"momentum",  name:"Momentum Scout", c1:"#5B93FF", c2:"#1B44CE" },
+  { id:"risk",      name:"Drawdown Guard", c1:"#B58CFF", c2:"#7A45E0" },
+  { id:"yield",     name:"Yield Keeper",   c1:"#49E39B", c2:"#12A45F" },
+  { id:"dca",       name:"Earnings Desk",  c1:"#F0BE55", c2:"#C98518" },
+  { id:"grid",      name:"Grid Strategist",c1:"#C79BFF", c2:"#7B3FE4" },
+  { id:"rebalance", name:"Rebalancer",     c1:"#5AD9E8", c2:"#1580A8" },
+];
+const agentOf = (id) => AGENTS.find(a => a.id === id) || AGENTS[0];
+
+/** A mark for an instrument. Colour is fixed per symbol so a row is
+ *  recognisable before the label is read. */
+const MARKS = {
+  ETH:{c1:"#7FA6FF",c2:"#2A4FD8"}, WETH:{c1:"#7FA6FF",c2:"#2A4FD8"},
+  cbBTC:{c1:"#F7A55C",c2:"#C4600F"}, USDC:{c1:"#5FC3F5",c2:"#1477B8"},
+  EURC:{c1:"#8FE0B4",c2:"#1E9660"}, AERO:{c1:"#7FE3F0",c2:"#128DA8"},
+  MORPHO:{c1:"#B8A0FF",c2:"#6A3FD0"}, VIRTUAL:{c1:"#F0A8D8",c2:"#B33B8E"},
+};
+/**
+ * Equity marks in each company's own colour. Drawn here rather than fetched:
+ * the fonts are self-hosted for venue wi-fi and a logo CDN would undo that,
+ * and shipping the actual wordmarks is someone else's trademark to license.
+ * A brand-coloured monogram is recognisable, offline and ours to ship.
+ */
+const STOCK_MARKS = {
+  NVDAc:{c1:"#A4E82B",c2:"#5C8F00"}, GOOGLc:{c1:"#6FA8FF",c2:"#1A56C4"},
+  AAPLc:{c1:"#C9D1D6",c2:"#6B7378"}, METAc:{c1:"#4A90FF",c2:"#0B44C4"},
+  AMZNc:{c1:"#FFB65C",c2:"#C46A00"}, MSFTc:{c1:"#FF7A5C",c2:"#C43A16"},
+  TSLAc:{c1:"#FF6B6B",c2:"#B3120F"},  MSTRc:{c1:"#FFB765",c2:"#C46A0A"},
+  SPCXc:{c1:"#5FA8E8",c2:"#0B4A82"},  SNDKc:{c1:"#FF7C6B",c2:"#B32410"},
+};
+const markOf = (sym) => STOCK_MARKS[sym] || MARKS[sym] || { c1:"#9AA3B2", c2:"#4A5261" };
+const markHtml = (sym) => { const m = markOf(sym);
+  // Tokenized equities carry a trailing "c" (AAPLc). The monogram is the
+  // company's initial, not the suffix.
+  const g = sym[0];
+  return `<div class="mark" style="background:radial-gradient(circle at 32% 26%,${m.c1},${m.c2} 74%)">${esc(g)}</div>`; };
+
+/** The orb. `face` draws the eyes and smile; `bloom` casts the agent's own c1. */
+function orb(a, size, {face=true, bloom=false}={}){
+  return `<div class="orb" style="width:${size}px;height:${size}px;--c1:${a.c1};--c2:${a.c2}` +
+    (bloom ? `;box-shadow:0 14px 40px ${a.c1}55` : ``) + `">` +
+    `<span class="spec"></span>` +
+    (face ? `<span class="eye l"></span><span class="eye r"></span><span class="smile"></span>` : ``) +
+    `</div>`;
+}
+
+/* ── tabs ─────────────────────────────────────────────────────────────────
+   Five destinations. The icons are 21px inline SVG on a 24-box, 1.8 stroke,
+   round cap and join, no fill — active and label share `currentColor`. */
+const TABS = [
+  { id:"home", label:"Portfolio", title:"Portfolio", sub:"what it holds and what it did",
+    d:`<path d="M3 10.5 L12 3.5 L21 10.5 V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9.5 21v-6h5v6"/>` },
+  { id:"markets", label:"Markets", title:"Markets", sub:"six, all on Base",
+    d:`<path d="M4 4v16h16"/><path d="M7.5 15.5 L11 11 L14 13.5 L19.5 7"/>` },
+  { id:"agents", label:"Agents", title:"Agents", sub:"one holds the baton", dot:true,
+    d:`<circle cx="12" cy="12" r="8.5"/><circle cx="9.3" cy="10.4" r="1.15" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.4" r="1.15" fill="currentColor" stroke="none"/><path d="M9.4 15.2a3.6 3.6 0 0 0 5.2 0"/>` },
+  { id:"trade", label:"Trade", title:"Trade", sub:"nothing fills without a ✓",
+    d:`<path d="M7 4v16"/><path d="M4 7.5 L7 4 L10 7.5"/><path d="M17 20V4"/><path d="M20 16.5 L17 20 L14 16.5"/>` },
+  { id:"memory", label:"Memory", title:"Memory", sub:"everything Sibyl is holding",
+    d:`<rect x="3" y="6.5" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><path d="M16.5 15h2"/>` },
+];
+let tab = "home";
+/**
+ * The nav is built ONCE and then patched in place.
+ *
+ * It used to re-render `#nav.innerHTML` on every 4-second refresh, which
+ * destroyed and recreated every button. A click that landed between mousedown
+ * and mouseup lost its element, so the browser never fired `click` — and the
+ * primary navigation silently ignored the press. It is the kind of fault that
+ * reads as "the app is laggy" rather than as a bug, because trying again works.
+ *
+ * Only two things actually change per tick: which tab is selected, and whether
+ * the armed dot is lit. Both are attributes.
+ */
+function drawTabs(){
+  const nav = el("nav");
+  if (!nav.firstChild) {
+    nav.innerHTML = TABS.map(t =>
+      `<button role="tab" data-tab="${t.id}" aria-selected="${t.id===tab}" onclick="pickTab('${t.id}')" title="${t.title}">` +
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ` +
+      `stroke-linecap="round" stroke-linejoin="round">${t.d}</svg>` +
+      `<span>${t.label}</span>` +
+      // The status dot rides the Agents row: the one always-visible signal that
+      // something is trading on the operator's behalf.
+      (t.dot ? `<span class="dot"></span>` : ``) +
+      `</button>`).join("");
+  }
+  for (const b of nav.children) {
+    b.setAttribute("aria-selected", String(b.dataset.tab === tab));
+    const dot = b.querySelector(".dot");
+    if (dot) dot.classList.toggle("on", !!armed);
+  }
+}
+function pickTab(id, fromHistory){
+  if (!TABS.some(t => t.id === id)) id = "home";
+  tab = id;
+  for (const t of TABS) el("p-"+t.id).classList.toggle("on", t.id===id);
+  const t = TABS.find(x=>x.id===id) || {};
+  el("title").textContent = t.title || "Portfolio";
+  el("topsub").textContent = t.sub || "";
+  el("scroll").scrollTop = 0;
+  drawTabs();
+  // Put the screen in the URL. Without this the address never changed, so the
+  // browser's Back threw the operator out of the app entirely rather than
+  // moving them one screen — and returning meant re-finding where they were.
+  // The token stays in the query string; the screen rides in the hash.
+  if (!fromHistory && location.hash !== "#/" + id)
+    history.pushState({ tab: id }, "", "#/" + id);
+}
+addEventListener("popstate", (e) => pickTab(e.state?.tab || hashTab(), true));
+function hashTab(){ return (location.hash || "").replace(/^#\//, "") || "home"; }
+
+/** One control, both directions: stop it, or put it back. */
+async function killToggle(){ armed ? press("kill") : arm(); }
+
+/* ── the deck, as controls rather than keys ───────────────────────────── */
+async function press(id){
+  // MIC is the one control the screen owns rather than forwards. The server's
+  // handler for it only ever replied {ok:true} — a no-op that reported success.
+  if (id === "mic") return micToggle();
+
+  // A confirmed swap signs, submits and waits for a mine — several seconds in
+  // which nothing changed and both buttons stayed live. It looked frozen, and
+  // a second ✓ was one click away. Say what is happening, take them out of play.
+  const confirmRow = el("sig").querySelector(".confirm");
+  if (confirmRow && (id === "yes" || id === "no"))
+    confirmRow.innerHTML = `<span class="working">${id === "yes"
+      ? "signing, submitting and waiting for the mine…" : "refusing…"}</span>`;
+
+  // The scan keys run the book server-side and hand back the result with the
+  // pending decision attached. Calling /scan as well would run it twice.
+  const scanning = (id === "scan" || id === "base");
+  if (scanning) { pickTab("markets"); el("scanhead").textContent = "scanning six markets…";
+    el("runbook").disabled = true; el("scan").innerHTML = ""; }
+  if (id === "buy" || id === "sell") pickTab("trade");
+
+  const r = await fetch("/key",{method:"POST",headers:H,body:JSON.stringify({id})})
+    .then(r=>r.json()).catch(e=>({ok:false,error:String(e.message||e)}));
+  if (scanning) el("runbook").disabled = false;
+  if (r.scan) drawScan(r.scan);
+  else if (scanning) el("scanhead").textContent = "scan failed" + (r.error?": "+r.error:"");
+  if(r.signal){ pending = r; render_signal(r); }
+  // Any error, however it arrives. Gating this on `ok===false` meant a 401 —
+  // which answers {error} with no `ok` field — rendered NOTHING at all.
+  // An error after the card was put into its in-flight state has to REPLACE it,
+  // not append to it: appending left "signing, submitting and waiting for the
+  // mine… nothing pending" on screen, which describes two different outcomes at
+  // once and neither of them truthfully.
+  if(r.error){
+    const row = el("sig").querySelector(".confirm");
+    if (row) row.outerHTML = note("block", esc(r.error));
+    else el("sig").innerHTML += note("block", esc(r.error));
+  }
+  if(r.fill) settle(`Filled ${qty(r.fill.received)} ${r.fill.receivedSymbol}`, "exec", r.fill.hash, r.fill);
+  else if(r.rejected) settle("Refused", "rej");
+  await refresh();
+}
+const note = (kind, html) => `<div class="note"><span class="nd ${kind}"></span><span class="nt">${html}</span></div>`;
+
+async function pickAgent(id){
+  await fetch("/key",{method:"POST",headers:H,body:JSON.stringify({id})}).then(r=>r.json()).catch(()=>null);
+  await refresh();
+}
+
+/* ── the microphone ──────────────────────────────────────────────────────
+   Click to start, click again to send. The server wants raw 16-bit PCM at
+   16 kHz mono — what Deepgram is asked for on the way back out — so the
+   browser resamples to that rather than shipping WebM it cannot read. */
+let micState = null;
+function micSay(html){ el("sig").innerHTML = html; if (tab !== "trade") pickTab("trade"); }
+
+async function micToggle(){
+  if (micState) return micStop();
+  // Say what is happening BEFORE awaiting permission. The prompt can sit
+  // unanswered as long as the user likes, and with nothing on screen the pad
+  // simply looked frozen — the worst reading of an app asked to listen.
+  micSay(`<div class="verdict"><div class="vhead"><span class="vact exec" style="font-size:20px">Asking for the microphone</span></div>` +
+    `<div class="fnote"><span class="fnref">—</span><span>Your browser is asking whether this page may listen. Allow it to carry on.</span></div></div>`);
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    // A refused or missing microphone is a normal outcome, not a crash.
+    micSay(`<div class="verdict"><div class="vhead"><span class="vact rej" style="font-size:20px">No microphone</span></div>` +
+      `<div class="fnote"><span class="fnref">!</span><span>${esc(
+        e && e.name === "NotAllowedError"
+          ? "The browser refused microphone access. Allow it for this page and press again."
+          : "No microphone is available to this window: " + String(e && e.message || e))}</span></div></div>`);
+    return;
+  }
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = ctx.createMediaStreamSource(stream);
+  // ScriptProcessor is deprecated but is the one path that needs no separate
+  // worklet file, which the CSP here would have to allow.
+  const node = ctx.createScriptProcessor(4096, 1, 1);
+  const chunks = [];
+  node.onaudioprocess = (ev) => chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+  src.connect(node); node.connect(ctx.destination);
+  micState = { stream, ctx, src, node, chunks };
+  el("micbtn").textContent = "Send what you said";
+  el("micbtn").className = "btn primary";
+  micSay(`<div class="verdict"><div class="vhead"><span class="vact exec" style="font-size:20px">Listening</span></div>` +
+    `<div class="fnote"><span class="fnref">—</span><span>Ask it something, or say an order like “buy fifty dollars of ETH”. Press again to send.</span></div></div>`);
+}
+
+async function micStop(){
+  const m = micState; micState = null;
+  el("micbtn").textContent = "Hold a conversation";
+  el("micbtn").className = "btn secondary";
+  m.node.onaudioprocess = null;
+  try { m.src.disconnect(); m.node.disconnect(); } catch {}
+  m.stream.getTracks().forEach(t => t.stop());
+  const rate = m.ctx.sampleRate;
+  await m.ctx.close().catch(()=>{});
+
+  const pcm = toPcm16(m.chunks, rate, 16000);
+  if (pcm.byteLength < 3200) {            // under 0.1s of audio is not a question
+    micSay(`<div class="verdict"><div class="vhead"><span class="vact rej" style="font-size:20px">Nothing recorded</span></div>` +
+      `<div class="fnote"><span class="fnref">!</span><span>That was too short to hear. Hold it open a little longer.</span></div></div>`);
+    return;
+  }
+  micSay(`<div class="verdict"><div class="vhead"><span class="vact exec" style="font-size:20px">Transcribing…</span></div></div>`);
+  try {
+    const r = await fetch("/voice", { method: "POST",
+      headers: { "authorization": "Bearer " + TOKEN, "content-type": "application/octet-stream" },
+      body: pcm });
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || ("voice " + r.status));
+    const heard = decodeURIComponent(r.headers.get("x-transcript") || "");
+    const said  = decodeURIComponent(r.headers.get("x-reply") || "");
+    const action = r.headers.get("x-action") || "ANSWER";
+    const audio = await r.arrayBuffer();
+    micSay(`<div class="verdict"><div class="vhead"><span class="vact ${action==="REJECT"?"rej":"exec"}" style="font-size:20px">` +
+      `${esc(action === "UNHEARD" ? "Didn’t catch that" : action === "ANSWER" ? "Answer" : action)}</span></div>` +
+      (heard ? `<div class="fnote"><span class="fnref">“</span><span>${esc(heard)}</span></div>` : "") +
+      `<div class="fnote"><span class="fnref">—</span><span>${esc(said)}</span></div></div>`);
+    playPcm(audio);
+    await refresh();
+    // A spoken order leaves a real decision waiting on a ✓, exactly as a key
+    // press would. Pick it up so Confirm/Refuse act on it.
+    const pd = await get("/pending");
+    if (pd?.pending) { pending = { signal: pd.signal, verdict: pd.verdict }; render_signal(pending); }
+  } catch (e) {
+    micSay(`<div class="verdict"><div class="vhead"><span class="vact rej" style="font-size:20px">Voice failed</span></div>` +
+      `<div class="fnote"><span class="fnref">!</span><span>${esc(String(e.message || e))}</span></div></div>`);
+  }
+}
+
+/** Float32 frames at the browser's rate -> mono 16-bit PCM at `out` Hz. */
+function toPcm16(chunks, from, out){
+  let n = 0; for (const c of chunks) n += c.length;
+  const flat = new Float32Array(n);
+  let o = 0; for (const c of chunks) { flat.set(c, o); o += c.length; }
+  const ratio = from / out;
+  const len = Math.floor(flat.length / ratio);
+  const pcm = new Int16Array(len);
+  for (let i = 0; i < len; i++) {
+    const s = Math.max(-1, Math.min(1, flat[Math.floor(i * ratio)] || 0));
+    pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return pcm.buffer;
+}
+/** The reply comes back as the same raw 16 kHz PCM, so play it directly. */
+function playPcm(buf){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const pcm = new Int16Array(buf);
+    const b = ctx.createBuffer(1, pcm.length, 16000);
+    const ch = b.getChannelData(0);
+    for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 0x8000;
+    const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start();
+    s.onended = () => ctx.close().catch(()=>{});
+  } catch {}
+}
+
+/* ── the verdict ───────────────────────────────────────────────────────── */
+function settle(msg, kind, hash, fill){
+  pending = null;
+  // WHERE it filled, not just that it did. With more than one router and best
+  // execution between them, "filled" alone leaves the operator unable to see
+  // which venue took the trade — or that the aggregator failed and the direct
+  // pool did the work instead. The route is read off the mined receipt, so
+  // this is what the chain says, not what the app intended.
+  // A router that could not be reached is a fact about execution quality, and
+  // it used to be invisible here. `fellBack` only covers the case where a
+  // router WON and then failed to build; when one fails at the quote instead,
+  // wonBy is null and fellBack is null, so both branches below were skipped and
+  // the card said a bare "route uniswap". That reads exactly like a fair
+  // comparison uniswap won, when in truth nothing else was standing.
+  const failedQuotes = (fill?.comparison?.quotes || []).filter((q) => q.error);
+  const compared = (fill?.comparison?.quotes || []).filter((q) => !q.error).length;
+  const route = fill?.route
+    ? `<div class="krow"><span class="k">route</span><span class="v">${esc(fill.route)}` +
+      (fill.comparison?.wonBy != null && !fill.fellBack
+        ? ` <span class="dim">· best of ${compared}, by ${fill.comparison.wonBy}%</span>`
+        : (compared === 1 && failedQuotes.length
+            ? ` <span class="dim">· sole quote</span>` : ``)) +
+      `</span></div>` +
+      failedQuotes.map((q) =>
+        `<div class="krow"><span class="k">not quoted</span><span class="v" style="font-size:11px">` +
+        `${esc(q.router)} — ${esc(String(q.error).slice(0, 90))}</span></div>`).join("") +
+      (fill.fellBack
+        ? `<div class="krow"><span class="k">fell back</span><span class="v" style="font-size:11px">` +
+          `from ${esc(fill.fellBack.from)} — ${esc(String(fill.fellBack.why).slice(0, 90))}</span></div>`
+        : ``)
+    : ``;
+  el("sig").innerHTML =
+    `<div class="verdict"><div class="vhead"><span class="vact ${kind}">${esc(msg)}</span></div>` +
+    route +
+    (hash?`<div class="krow"><span class="k">transaction</span><span class="v" style="font-size:11px">${esc(hash)}</span></div>`:"") +
+    `</div>`;
+}
+// The reasons are numbered footnotes against the verdict, because that is what
+// they are: the remembered facts the decision rests on, cited.
+function render_signal(r){
+  const v = r.verdict, ok = v.action==="EXECUTE";
+  el("sig").innerHTML =
+    `<div class="verdict">
+       <div class="vhead">
+         <span class="vact ${ok?'exec':'rej'}">${ok?"Execute":"Reject"}</span>
+         <span class="vsize">${dollars(v.sizeUsd)}</span>
+         <span class="vorder">${esc(r.signal.side)} ${esc(r.signal.symbol)}<br>${esc(r.signal.agent)}</span>
+       </div>` +
+    v.why.map((w,i)=>`<div class="fnote"><span class="fnref">${i+1}</span><span>${esc(w)}</span></div>`).join("") +
+    (ok?`<div class="confirm btnrow" style="margin-top:14px">
+         <button class="btn secondary" onclick="press('no')">Refuse</button>
+         <button class="btn primary wide" onclick="press('yes')">Confirm and execute</button></div>`:"") +
+    `</div>`;
+  if (tab !== "trade") pickTab("trade");
+}
+
+async function acceptRule(p){
+  await fetch("/reflect/accept",{method:"POST",headers:H,body:JSON.stringify({proposal:p})});
+  await refresh();
+}
+async function reteach(){
+  await fetch("/memory/seed",{method:"POST",headers:H,body:"{}"});
+  await refresh();
+}
+
+/* ── size, as a stepper ───────────────────────────────────────────────── */
+const SIZES = [10, 25, 50, 100];
+let sizeUsd = null;
+function drawSizes(active){
+  if (sizeUsd === active) return;
+  sizeUsd = active;
+  el("sizes").innerHTML =
+    `<button onclick="stepSize(-1)" aria-label="smaller">−</button>` +
+    `<span class="val">${dollars(active)}</span>` +
+    `<button onclick="stepSize(1)" aria-label="larger">+</button>`;
+}
+function stepSize(dir){
+  const i = SIZES.indexOf(sizeUsd);
+  const next = SIZES[Math.max(0, Math.min(SIZES.length-1, (i<0?2:i) + dir))];
+  if (next !== sizeUsd) setSize(next);
+}
+async function setSize(usd){
+  const r = await fetch("/size",{method:"POST",headers:H,body:JSON.stringify({usd})}).then(r=>r.json());
+  if (r.cappedBy) el("sig").innerHTML =
+    note("warn", `capped to ${dollars(r.sizeUsd)} by the remembered ${dollars(r.cappedBy)}/trade limit`);
+  await refresh();
+}
+
+/* ── the store, tier by tier ───────────────────────────────────────────── */
+let storeOpen = true;
+// The picker takes LOCAL time, so its max must be local too — an ISO/UTC value
+// here would let a user in a positive offset pick hours into their own future.
+function stampReplayMax(){
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const t = el("ttin");
+  if (t) t.max = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+stampReplayMax();
+setInterval(stampReplayMax, 30_000);
+
+function toggleStore(){ storeOpen = !storeOpen; drawStore(lastStore); }
+let lastStore = null;
+function drawStore(st){
+  lastStore = st;
+  if (!st) { el("store").innerHTML = ""; return; }
+  const kv = (k,v) => `<div class="krow"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`;
+  const parts = [];
+  /** One tier = one block, so a heading can never be separated from its rows. */
+  const group = (head, body) => `<div class="grp"><h3>${head}</h3>${body}</div>`;
+
+  for (const [cat, items] of Object.entries(st.entities || {})) {
+    parts.push(group(`entity / ${esc(cat)} — ${items.length}`, items.map(it => {
+      const b = it.body || {};
+      const detail = cat === "position" ? `${qty(b.qty)} @ ${money(b.avg_entry_usd)}`
+        : cat === "rule" ? esc(b.text || b.id || "")
+        : esc(JSON.stringify(b).slice(0, 90));
+      // Sibyl carries a lifecycle status on the entity itself. Showing it means
+      // a rule the store is holding but not enforcing is visible as such,
+      // instead of looking identical to one that is live.
+      const st = it.status ? ` <span class="tag">${esc(it.status)}</span>` : ``;
+      return `<div class="krow"><span class="k">${esc(it.name)}${st}</span><span class="v">${detail}</span></div>`;
+    }).join("")));
+  }
+  for (const [k, v] of Object.entries(st.references || {})) {
+    parts.push(group(`reference / ${esc(k)}`,
+      kv("per trade", money(v.max_trade_usd)) + kv("per day", money(v.max_day_usd)) +
+      `<div class="krow"><span class="k">allowlist</span><span class="v">${esc((v.allow||[]).join(" "))}</span></div>`));
+  }
+  for (const [k, v] of Object.entries(st.state || {})) {
+    parts.push(group(`state / ${esc(k)}`, Object.entries(v).map(([kk,vv]) => kv(kk, String(vv))).join("")));
+  }
+  // Closed positions get their own block, ahead of the general archive. They
+  // are the only record that a trade ever happened — the store archives them
+  // instead of deleting them precisely so the agent can answer "what did I used
+  // to hold?", and burying them in a mixed list with retired rules made that
+  // answer hard to find on the one screen that exists to show what it knows.
+  const arch = st.archived || [];
+  const closed = arch.filter(a => a.category === "position");
+  const otherArch = arch.filter(a => a.category !== "position");
+
+  if (closed.length) parts.push(group(`closed positions — ${closed.length}`, closed.map(a => {
+    const b = a.body || {};
+    const when = a.archived_at
+      ? new Date(a.archived_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "";
+    const held = Number.isFinite(b.qty) && Number.isFinite(b.avg_entry_usd)
+      ? `${qty(b.qty)} @ ${money(b.avg_entry_usd)}` : esc(a.reason || "closed");
+    return `<div class="krow"><span class="k">${esc(a.name)} <span class="dim">${esc(when)}</span></span>` +
+           `<span class="v">${held}</span></div>`;
+  }).join("")));
+
+  if (otherArch.length) parts.push(group(`archived — ${otherArch.length}`, otherArch.map(a =>
+    `<div class="krow"><span class="k">${esc(a.category)}/${esc(a.name)}</span>` +
+    `<span class="v dim" style="font-weight:400">${esc(a.reason || "")}</span></div>`).join("")));
+
+  const j = st.journal || [];
+  parts.push(group(`journal — ${j.length} event${j.length===1?"":"s"}` +
+    ` <button class="linkbtn" style="float:right" onclick="toggleStore()">${storeOpen?"hide":"show"}</button>`,
+    !storeOpen ? "" : j.map(e => {
+      const act = e.acted?.action || "—";
+      const sig = e.evaluated?.signal;
+      const what = sig ? `${sig.side} ${sig.symbol} $${sig.sizeUsd}`
+        : e.evaluated?.heard ? `heard "${String(e.evaluated.heard).slice(0,42)}"`
+        : e.evaluated?.proposal ? `rule ${e.evaluated.proposal.id}` : "";
+      return `<div class="krow"><span class="k">${esc(act)} <span class="dim">${esc(what)}</span></span>` +
+             `<span class="v dim" style="font-weight:400">${new Date(e.ts).toLocaleTimeString([], {hour12:false})}</span></div>`;
+    }).join("")));
+
+  const s2 = st.stats || {};
+  parts.push(group("store", kv("file", String(s2.db || "").split("/").pop() || "—") +
+    kv("size", `${Math.round((s2.size_bytes||0)/1024)} KB`) +
+    kv("tier", (s2.tier && s2.tier.tier) || "—")));
+
+  el("store").innerHTML = parts.join("");
+}
+
+async function arm(){ await fetch("/arm",{method:"POST",headers:H}); await refresh(); }
+
+function drawContradictions(cx){
+  const box = el("contra");
+  if (!cx?.findings?.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<h3 style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:1.32px;text-transform:uppercase;color:var(--warn)">` +
+    `${cx.findings.length} rule${cx.findings.length===1?"":"s"} cannot do what it claims</h3>` +
+    cx.findings.map(f => `<div class="fnote"><span class="fnref">${esc(f.kind[0].toUpperCase())}</span><span>${esc(f.text)}</span></div>`).join("");
+}
+
+function drawCost(d){
+  const box = el("cost");
+  if (!d || d.had === null) { box.hidden = true; return; }
+  box.hidden = false;
+  const ents = Object.entries(d.lost?.entities || {}).map(([k,v]) => `${v.length} ${k}${v.length===1?"":"s"} (${v.join(", ")})`);
+  const bits = [...ents];
+  if (d.lost?.references?.length) bits.push(`${d.lost.references.length} reference${d.lost.references.length===1?"":"s"} (${d.lost.references.join(", ")})`);
+  if (d.lost?.state?.length) bits.push(`${d.lost.state.length} state key${d.lost.state.length===1?"":"s"}`);
+  if (d.lost?.journal) bits.push(`${d.lost.journal} journal events`);
+  const when = d.at ? new Date(d.at).toLocaleTimeString([], {hour12:false}) : "";
+  box.innerHTML = `<h3 style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:1.32px;text-transform:uppercase;color:var(--down)">` +
+    `what the wipe cost${when ? ` — ${esc(when)}` : ""}</h3>` +
+    `<div style="font-size:12.5px;line-height:18px;color:var(--ink55)">It held ${d.had.journal} journal events and lost ${bits.join(", ") || "nothing"}.</div>`;
+}
+
+/** The temporal tier as a time machine: what it knew, at a moment you choose. */
+/**
+ * Show a message in the time-machine panel and KEEP it there.
+ *
+ * The refresh hides that panel whenever the last wipe is newer than
+ * `ttDrawnAt` (see the redraw), so anything written without stamping the clock
+ * is erased by the next poll a few seconds later. `showAt` and `decay` both
+ * stamp it; `replay`'s early returns did not, so "Pick a time first." appeared
+ * and then quietly vanished — the operator is told what to do and the
+ * instruction deletes itself while they are reading it.
+ */
+function ttSay(head, line){
+  const box = el("ttout");
+  box.hidden = false;
+  ttDrawnAt = Date.now();
+  box.innerHTML = ttHead(head) + `<div class="krow"><span class="k">${esc(line)}</span></div>`;
+}
+
+async function replay(){
+  const v = el("ttin").value;
+  if (!v) { ttSay("replay", "Pick a time first."); return; }
+  // The journal cannot describe a moment that has not happened. Replaying a
+  // future timestamp returns today's state — arithmetically right, since every
+  // event is before it — but the panel then says "what it knew at" a date in
+  // the future, which reads as a claim about knowledge nobody has. The picker
+  // carries a max so the browser refuses it, and this catches a typed one.
+  const when = new Date(v);
+  if (when.getTime() > Date.now()) {
+    ttSay("replay", "That is in the future — the journal only goes up to now.");
+    return;
+  }
+  await showAt(when.toISOString());
+}
+async function replayNow(){ await showAt(new Date().toISOString()); }
+const ttHead = (t) => `<h3 style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:1.32px;text-transform:uppercase;color:var(--ink45)">${esc(t)}</h3>`;
+
+let ttDrawnAt = 0;
+async function showAt(ts){
+  const r = await get("/memory/at?ts=" + encodeURIComponent(ts));
+  const box = el("ttout"); box.hidden = false; ttDrawnAt = Date.now();
+  if (!r || r.error) { box.innerHTML = ttHead("replay") + `<div class="krow"><span class="k">${esc(r?.error || "could not replay")}</span></div>`; return; }
+  const pos = Object.entries(r.positions || {});
+  // Echo the moment back in the operator's OWN timezone. `ts` is UTC, and the
+  // picker above it takes local time — so typing 00:10 and being told "what it
+  // knew at 18:40" reads as the app having replayed the wrong moment.
+  const shown = new Date(ts).toLocaleString(undefined,
+    { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  box.innerHTML = ttHead(`what it knew at ${shown}`) +
+    `<div class="krow"><span class="k">journal events replayed</span><span class="v">${r.replayed}</span></div>` +
+    `<div class="krow"><span class="k">executed by then</span><span class="v">${dollars(r.spent)}</span></div>` +
+    (pos.length
+      ? pos.map(([sym,p]) => `<div class="krow"><span class="k">held ${esc(sym)}</span><span class="v">${qty(p.qty)} @ ${money(p.avg_entry_usd)}</span></div>`).join("")
+      : `<div class="krow"><span class="k">positions</span><span class="v dim">flat</span></div>`) +
+    (r.rules?.length ? `<div class="krow"><span class="k">rules in force</span><span class="v">${esc(r.rules.map(x=>x.id).join(", "))}</span></div>` : "");
+}
+
+/** Forget deliberately: retire rules nothing has needed. */
+async function decay(){
+  const r = await (await fetch("/memory/decay",{method:"POST",headers:H,body:JSON.stringify({days:14})})).json();
+  // Stamp it, exactly as the replay path does. Without this the next refresh
+  // compares the wipe's timestamp against a stale ttDrawnAt and hides this
+  // panel immediately — so after any wipe in the session, "Retire rules"
+  // worked and showed the operator nothing at all.
+  const box = el("ttout"); box.hidden = false; ttDrawnAt = Date.now();
+  // "Checked 0 rules. Every rule has either fired or is younger than the
+  // window." is nonsense when there are no rules — the same failure as not
+  // telling an empty store from one that simply has no match.
+  box.innerHTML = ttHead("retire unused rules") +
+    `<div style="font-size:12.5px;line-height:18px;color:var(--ink55)">` + (
+    r.checked === 0
+      ? `You have not taught it any rules yet, so there is nothing to retire.`
+      : `Checked ${r.checked} rule${r.checked===1?"":"s"} over ${r.days} days. ` +
+        (r.archived?.length
+          ? `Retired ${r.archived.join(", ")} into the archive — readable, not deleted.`
+          : `Nothing retired: every rule has either fired or is younger than the window.`)
+  ) + `</div>`;
+  await refresh();
+}
+
+async function wipe(){
+  await fetch("/memory/wipe",{method:"POST",headers:H});
+  // The verdict on screen was reasoned from memory that no longer exists.
+  // Leaving it up would be the one dishonest frame in the whole demo.
+  pending = null;
+  el("sig").innerHTML = `<div class="verdict"><div class="vhead"><span class="vact rej">Memory wiped</span></div>` +
+    `<div class="fnote"><span class="fnref">—</span><span>the last verdict was reasoned from limits, positions and rules that are now gone. Press a key to decide again.</span></div></div>`;
+  await refresh();
+}
+
+// The log lives on the server, so this shows what the PAD did too — not just
+// what was clicked in this tab — and survives a refresh.
+function drawLog(entries, into = "log", cap = 22){
+  el(into).innerHTML = (entries||[]).slice(0,cap).map(e=>
+    `<div class="krow"><span class="k" style="color:var(--ink55)">${esc(e.m)}</span>` +
+    `<span class="v dim" style="font-weight:400">${new Date(e.t).toLocaleTimeString([], {hour12:false})}</span></div>`).join("")
+    || `<div class="krow"><span class="k dim">Nothing yet. Propose a trade.</span></div>`;
+}
+
+/**
+ * The day's budget, on every screen. It is drawn from what the journal says has
+ * already gone out against the limit the store remembers — wipe the store and
+ * the bar has nothing to measure, and says so instead of showing a full one.
+ */
+function drawBudget(mem){
+  const box = el("topright");
+  const lim = mem?.limits, spent = Number(mem?.spent_today);
+  if (!lim || !Number.isFinite(spent)) { box.innerHTML = ""; return; }
+  const pct = Math.max(0, Math.min(100, (spent / lim.max_day_usd) * 100));
+  box.innerHTML = `<span class="budget" title="${dollars(spent)} of ${dollars(lim.max_day_usd)} executed today">
+    <span class="bl">today</span>
+    <span class="bt"><span class="bf${pct >= 80 ? " hot" : ""}" style="width:${pct.toFixed(1)}%"></span></span>
+    <span class="bv">${dollars(spent)} / ${dollars(lim.max_day_usd)}</span></span>`;
+}
+
+/** What has already been decided on the instrument in hand. */
+function drawMarketJournal(store){
+  const box = el("mktjrnl"), sub = el("mktjrnlsub");
+  const j = (store?.journal || []).filter(e => e.evaluated?.signal?.symbol === activeMarket);
+  sub.textContent = `${j.length} decision${j.length===1?"":"s"} on ${activeMarket}`;
+  if (!j.length) {
+    box.innerHTML = `<div class="krow"><span class="k dim">Nothing has been decided on ${esc(activeMarket)} yet.</span></div>`;
+    return;
+  }
+  box.innerHTML = j.slice(0, 10).map(e => {
+    const sg = e.evaluated.signal, act = e.acted?.action || "—";
+    const kind = /FILL|APPROVED/.test(act) ? "up" : /REJECT/.test(act) ? "down" : "dim";
+    return `<div class="krow"><span class="k" style="color:var(--ink55)">
+        <span class="${kind}" style="font-weight:600">${esc(act)}</span>
+        ${esc(sg.side)} ${dollars(sg.sizeUsd)}</span>` +
+      `<span class="v dim" style="font-weight:400">${new Date(e.ts).toLocaleTimeString([], {hour12:false})}</span></div>`;
+  }).join("");
+}
+
+/* ── formatters ──────────────────────────────────────────────────────────
+   The pad trades assets from $0.58 to $79,000. One fixed decimal count cannot
+   serve both, so scale the precision to the magnitude. */
+function money(v){
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  if (n === 0) return "$0";
+  const a = Math.abs(n);
+  const dp = a >= 1000 ? 0 : a >= 100 ? 2 : a >= 1 ? 3 : a >= 0.01 ? 4 : 6;
+  return "$" + n.toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp});
+}
+/** A budget figure, not a price. money() scales precision by magnitude, which
+ *  is right for a $0.6458 token and wrong for a dollar total — "$50.000" reads
+ *  as a measurement, not as fifty dollars. */
+function dollars(v){
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  // A whole figure keeps no decimals ($50, not $50.00); a fractional one takes
+  // exactly two, or a column reads "$662.8" beside "$473.79".
+  const dp = Number.isInteger(n) ? 0 : 2;
+  return "$" + n.toLocaleString(undefined,{minimumFractionDigits:dp, maximumFractionDigits:dp});
+}
+function qty(v){
+  const n = Number(v); const a = Math.abs(n);
+  if (!isFinite(n)) return "—";
+  return n.toLocaleString(undefined,{maximumFractionDigits: a >= 1000 ? 2 : a >= 1 ? 4 : 6});
+}
+function esc(s){ return String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+// One authenticated GET. A bad token must read as a bad token — not as a blank
+// app throwing a TypeError into the console every four seconds.
+let authBad = false, chainDown = null;
+async function get(path){
+  const r = await fetch(path,{headers:H});
+  if (r.status === 401) { authBad = true; return null; }
+  // 503 means the Base node did not answer. An empty pane would read as "you
+  // hold nothing", which is a different and much worse claim than "we could
+  // not ask", so say which one it is.
+  if (r.status === 503) { chainDown = (await r.json().catch(()=>({}))).error || "the Base node is not answering"; return null; }
+  if (!r.ok) return null;
+  return r.json().catch(()=>null);
+}
+let backendDown = false;
+function drawAuthBanner(){
+  const b = el("authbar");
+  // Say exactly what is unavailable, and only claim what is actually on screen.
+  // Prices come from the exchange feed rather than from Base, so they DO survive
+  // the node going down mid-session — but the app receives them on the
+  // /portfolio response, so a cold load with the node already down has none at
+  // all. Promising live prices beside six dashes is the same defect as claiming
+  // they were gone while six correct ones sat underneath.
+  // A dead backend outranks a dead node: without the backend we cannot even
+  // know whether the node is up, and every number on screen is stale.
+  if (backendDown) {
+    b.hidden = false;
+    b.textContent = "The desk cannot reach its backend. Nothing on this screen is live — " +
+      "the figures below are the last ones it managed to read, and may be minutes old. " +
+      "Nothing can be traded until it reconnects.";
+    return;
+  }
+  if (chainDown) {
+    const havePrices = Object.values(lastPrices).some((v) => Number.isFinite(v));
+    b.hidden = false;
+    b.textContent = chainDown + (havePrices
+      ? " Holdings and on-chain data are unavailable until it does; the market prices below come from the exchange feed and are still live."
+      : " Holdings, prices and on-chain data are all unavailable until it does.");
+    return;
+  }
+  b.hidden = !authBad;
+  if (authBad) b.textContent =
+    "Bad pad token. This page's ?token= value does not match PAD_TOKEN on the backend, so the data panes stay empty until it does.";
+}
+
+/* ── markets ─────────────────────────────────────────────────────────────
+   Hairline rows on Markets, scrolling pills on Trade. Pills never shrink to
+   fit — that is how the old market tabs broke. */
+let mktKeys = "";
+/**
+ * Market rows are built once, then updated in place.
+ *
+ * They used to be re-rendered whenever any price changed — which is every few
+ * seconds — and that destroyed the row under the operator's cursor mid-click,
+ * so choosing a market sometimes did nothing at all. The same fault the nav and
+ * the agent cards had. Prices move constantly, so a signature guard is not
+ * enough here: the markup itself has to stop being replaced.
+ *
+ * Only two things change: the price text, and which row is in hand.
+ */
+function drawMarkets(){
+  const entries = Object.entries(MARKETS).filter(([k])=>!k.startsWith("__"));
+  const shape = entries.map(([k])=>k).join(",");
+
+  if (shape !== mktKeys) {                  // the set of markets changed — rebuild
+    mktKeys = shape;
+    el("mkts").innerHTML = entries.map(([sym,m])=>
+      `<div class="lrow" role="button" tabindex="0" data-sym="${sym}" onclick="pickMarket('${sym}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMarket('${sym}')}"
+          style="cursor:pointer" title="${esc(m.label)}. Uniswap V3 ${m.fee/10000}% tier on Base.">
+        ${markHtml(sym)}
+        <div class="lmain"><span class="lp"><span class="sym">${esc(sym)}</span><span class="hand"></span></span>
+          <span class="ls">${esc(m.label)} · ${CLASS_LABEL[m.class]||m.class}</span></div>
+        <div class="lval"><span class="lv">—</span>
+          <span class="ld">${m.fee/10000}% tier</span></div>
+      </div>`).join("");
+
+    el("tradepills").innerHTML = entries.map(([sym])=>
+      `<button class="pill" type="button" data-sym="${sym}" aria-pressed="${sym===activeMarket}" onclick="pickMarket('${sym}')">${esc(sym)}</button>`).join("");
+  }
+
+  for (const row of el("mkts").children) {
+    const sym = row.dataset.sym, px = lastPrices[sym];
+    const lv = row.querySelector(".lv");
+    const want = px != null ? money(px) : "—";
+    if (lv.textContent !== want) lv.textContent = want;
+    const hand = row.querySelector(".hand");
+    const on = sym === activeMarket;
+    if (on !== (hand.childNodes.length > 0)) hand.innerHTML = on ? ` <span class="tag">in hand</span>` : ``;
+  }
+  for (const pill of el("tradepills").children)
+    pill.setAttribute("aria-pressed", String(pill.dataset.sym === activeMarket));
+}
+async function pickMarket(sym){
+  const r = await fetch("/key",{method:"POST",headers:H,body:JSON.stringify({id:sym})}).then(r=>r.json());
+  if(r.ok===false){ el("sig").innerHTML = note("block", esc(r.error)); return; }
+  activeMarket = sym; drawMarkets(); await refresh();
+}
+
+/**
+ * The tokenized equities. They are listed with their real depth and their real
+ * blocker, because the interesting thing about them here is not that they exist
+ * — it is exactly why this build will not trade them yet.
+ */
+function drawEquities(mk){
+  const eq = mk?.equities || {}, blocked = mk?.equitiesBlocked || {};
+  // Read from each equity's own pool. These work even on a fork: the B20 token
+  // reverts there, but the pool behind it is ordinary bytecode.
+  const eqpx = mk?.equityPrices || {};
+  const syms = Object.keys(eq);
+  if (!syms.length) { el("equities").innerHTML = ""; el("eqnote").hidden = true; return; }
+  const priced = syms.filter((s) => eqpx[s] != null).length;
+  el("eqsub").textContent = `${syms.length} on Base · backed 1:1 at a regulated broker`
+    + (priced ? ` · ${priced} priced from their own pools` : ``);
+  el("equities").innerHTML = syms.map((sym) => {
+    const m = eq[sym], px = eqpx[sym] ?? lastPrices[sym];
+    const off = blocked[sym];
+    return `<div class="lrow"${off ? ` title="${esc(off)}"` : ""}>
+      ${markHtml(sym)}
+      <div class="lmain"><span class="lp">${esc(m.label)}${off ? ` <span class="tag">not yet</span>` : ``}</span>
+        <span class="ls">${esc(m.company)}</span></div>
+      <div class="lval"><span class="lv">${px != null ? money(px) : "—"}</span>
+        <span class="ld">${dollars(Math.round(m.liquidityUsd / 1000) * 1000)} depth</span></div>
+    </div>`;
+  }).join("");
+  // One blocker, said once, rather than ten identical badges.
+  const why = blocked[syms[0]];
+  el("eqnote").hidden = !why;
+  if (why) el("eqwhy").innerHTML = `<b>Listed, not yet tradeable.</b> ${esc(why)}`;
+}
+
+function drawScan(r){
+  if(!r || !r.markets){ el("scanhead").textContent="scan returned nothing"; return; }
+  for (const m of r.markets) if (m.price!=null) lastPrices[m.symbol]=m.price;
+  drawMarkets();
+  // Stamp the run. The summary says what is true "right now", and a scan from
+  // seven minutes ago saying that is simply wrong.
+  el("scanhead").innerHTML = `<b style="color:${r.signals.length?'var(--up)':'var(--ink70)'};font-weight:600">${esc(r.summary)}</b>`
+    + `<div style="margin-top:4px">${esc(r.gate.reason)}</div>`
+    + (r.at ? `<div class="dim" style="margin-top:4px">book run at ${esc(new Date(r.at).toLocaleTimeString([], {hour12:false}))}</div>` : "");
+  const head = `<div class="trow thead"><span>market</span><span>rsi</span>` +
+    `<span>ema50</span><span>vol</span><span>regime</span></div>`;
+  const rows = r.markets.map(m=> m.error
+    ? `<div class="trow"><span>${esc(m.symbol)}</span><span style="grid-column:2/-1;text-align:left;color:var(--down)">${esc(m.error)}</span></div>`
+    : `<div class="trow"><span>${esc(m.symbol)}<span class="tag">${CLASS_LABEL[m.class]||m.class}</span></span>` +
+      `<span>${m.rsi}</span>` +
+      `<span class="${m.emaGapPct<0?'neg':''}">${m.emaGapPct>0?"+":""}${m.emaGapPct}%</span>` +
+      `<span>${m.relVol}×</span>` +
+      `<span class="dim">${esc(m.regime.toLowerCase().replace("_"," "))}</span></div>`).join("");
+  const fires = r.signals.map(sg=>`<div class="card">
+      <div class="vhead" style="margin-bottom:8px"><span class="vact exec" style="font-size:20px">${esc(sg.symbol)}</span>
+        <span class="vsize" style="font-size:13px">${esc(sg.strategy)}</span>
+        <span class="vorder">conf ${sg.confidence}</span></div>
+      <div class="fnote"><span class="fnref">1</span><span>${esc(sg.rationale)}</span></div>
+      <div class="fnote"><span class="fnref">2</span><span>measured ${esc(sg.provenance?.measured||"")}</span></div>
+      <div class="krow"><span class="k">stop / target / hold</span><span class="v">${sg.stopPct}% · ${sg.takeProfitPct}% · ${sg.maxHoldMin}m</span></div>
+    </div>`).join("");
+  el("scan").innerHTML = fires + `<div class="card">${head}${rows}</div>`;
+}
+
+/* ── home ────────────────────────────────────────────────────────────────
+   The hero is the sum of what is actually held, priced by the same feed the
+   markets use. USDC is the quote asset and is taken at $1. */
+const STABLE = { USDC: 1 };
+function drawHome(p, brief, log, mem){
+  if (!p) {
+    el("hero").textContent = "—";
+    el("herosub").textContent = chainDown ? "the node is not answering" : "reading balances…";
+    // Clear the holdings with it. Leaving the last-known list on screen beside
+    // a hero that has gone to "—" presents stale balances as current — the very
+    // claim the banner is there to stop the app from making.
+    el("coincount").textContent = "";
+    el("pf").innerHTML = `<div class="krow"><span class="k dim">${chainDown
+      ? "Balances cannot be read while the node is down. Nothing here is stale — it is simply unknown."
+      : "reading balances…"}</span></div>`;
+  }
+  else {
+    let total = 0, coins = [];
+    for (const [sym, v] of Object.entries(p.balances)) {
+      if (!(v.amount > 0.000001)) continue;
+      const px = STABLE[sym] ?? lastPrices[sym] ?? (sym === "WETH" ? lastPrices.ETH : null);
+      const usd = px != null ? v.amount * px : null;
+      if (usd != null) total += usd;
+      coins.push({ sym, amount: v.amount, usd, px });
+    }
+    coins.sort((a,b) => (b.usd ?? -1) - (a.usd ?? -1));
+    el("hero").textContent = dollars(Math.round(total * 100) / 100);
+
+    // Unrealised P&L, and the only place green and red are allowed to mean
+    // anything. It is computed against the entry prices Sibyl remembers — with
+    // the store wiped there is no cost basis and the line says so rather than
+    // showing a zero it cannot justify.
+    const held = Object.entries(mem?.positions || {});
+    let open = 0, basis = 0;
+    for (const [sym, pos] of held) {
+      const px = STABLE[sym] ?? lastPrices[sym] ?? (sym === "WETH" ? lastPrices.ETH : null);
+      if (px == null || !(pos.qty > 0)) continue;
+      open  += pos.qty * px;
+      basis += pos.qty * Number(pos.avg_entry_usd || 0);
+    }
+    const sub = `${coins.length} asset${coins.length===1?"":"s"} on Base · via ${esc(p.route)}`;
+    if (basis > 0) {
+      const d = open - basis, pct = (d / basis) * 100;
+      el("herosub").innerHTML =
+        `<span class="${d >= 0 ? "up" : "down"}" style="font-weight:600">` +
+        `${d >= 0 ? "+" : "−"}${dollars(Math.abs(Math.round(d * 100) / 100))} ` +
+        `(${d >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(2)}%)</span>` +
+        `<span style="color:var(--ink38)"> unrealised · ${sub}</span>`;
+    } else {
+      el("herosub").innerHTML = held.length
+        ? `<span style="color:var(--ink38)">no remembered entry price · ${sub}</span>`
+        : `<span style="color:var(--ink38)">flat · ${sub}</span>`;
+    }
+    el("coincount").textContent = `${coins.length} held`;
+    el("pf").innerHTML = coins.map(c => {
+      return `<div class="lrow">
+        ${markHtml(c.sym)}
+        <div class="lmain"><span class="lp">${esc(c.sym)}</span>
+          <span class="ls">${qty(c.amount)}${c.px!=null?` · ${money(c.px)}`:``}</span></div>
+        <div class="lval"><span class="lv">${c.usd!=null?dollars(Math.round(c.usd*100)/100):"—"}</span></div>
+      </div>`;
+    }).join("") || `<div class="krow"><span class="k dim">Nothing held yet.</span></div>`;
+  }
+
+  // "In the last day" — the pad's own risk checks, drawn from the journal it
+  // actually wrote. The dot encodes the class the design system defines:
+  // green acted, amber adjusted the risk, red blocked it.
+  const evts = (log || []).slice(0, 40);
+  const CLASSES = [
+    { re:/refused|REJECT|rejected|disarmed|too thin|not in the allowlist|vetoed/i, dot:"block", title:"Blocked" },
+    { re:/clamped|capped|limit/i,                                                  dot:"warn",  title:"Risk adjusted" },
+    { re:/FILL|APPROVED|learned|ARMED|retired/i,                                   dot:"",      title:"Acted" },
+  ];
+  const classify = (m) => CLASSES.find(c => c.re.test(m)) || { dot:"warn", title:"Checked" };
+  const checks = evts.filter(e => classify(e.m).dot !== "");
+  const shown = (checks.length ? checks : evts).slice(0, 3);
+  el("daycard").innerHTML =
+    `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+       <span class="eyebrow">In the last day</span>
+       <span style="margin-left:auto;font-size:12.5px;color:var(--ink45)">${evts.length} event${evts.length===1?"":"s"}</span></div>
+     <div style="font-size:24px;font-weight:700;line-height:29px;letter-spacing:-.4px;margin-bottom:12px">
+       ${checks.length} risk check${checks.length===1?"":"s"}</div>` +
+    (shown.length
+      ? shown.map(e => { const c = classify(e.m);
+          return `<div style="display:flex;gap:10px;padding:7px 0">
+            <span class="nd ${c.dot}" style="width:8px;height:8px;border-radius:999px;flex:none;margin-top:6px;
+              background:${c.dot==="block"?"var(--down)":c.dot==="warn"?"var(--warn)":"var(--up)"}"></span>
+            <span style="min-width:0">
+              <span style="display:block;font-size:13.5px;font-weight:600;line-height:18px">${esc(c.title)}</span>
+              <span style="display:block;font-size:11.5px;line-height:17px;color:var(--ink38);
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.m)}</span></span></div>`;
+        }).join("") +
+        (evts.length > shown.length
+          ? `<button class="linkbtn" style="margin-top:10px" onclick="pickTab('agents')">and ${evts.length - shown.length} more ›</button>` : ``)
+      : `<div class="fnote"><span class="fnref">—</span><span>Nothing has been decided yet. Propose a trade and every check it runs lands here.</span></div>`);
+
+  // Recall as the first thing on screen: what it remembers, in one sentence.
+  el("briefwrap").innerHTML = brief?.text ? note("", esc(brief.text)) : "";
+}
+
+/**
+ * What the pad is holding and what it has been told, on the screen where a
+ * trade is decided. Every line here is recalled, not computed on the spot —
+ * wipe the store and this card empties, which is the whole claim.
+ */
+function drawInHand(mem){
+  const box = el("inhand");
+  const pos = mem?.positions?.[activeMarket];
+  const lim = mem?.limits;
+  if (!mem || (!pos && !lim)) {
+    box.innerHTML = `<div class="fnote"><span class="fnref">—</span><span>` +
+      `It remembers nothing about ${esc(activeMarket)}. With no limits recalled it will ` +
+      `refuse anything but the smallest trade.</span></div>`;
+    return;
+  }
+  const px = lastPrices[activeMarket];
+  const rows = [];
+  if (pos) {
+    rows.push(`<div class="krow"><span class="k">holding</span><span class="v">${qty(pos.qty)} ${esc(activeMarket)}</span></div>`);
+    rows.push(`<div class="krow"><span class="k">average entry</span><span class="v">${money(pos.avg_entry_usd)}</span></div>`);
+    if (px != null) {
+      const d = (px - pos.avg_entry_usd) * pos.qty;
+      rows.push(`<div class="krow"><span class="k">unrealised</span>` +
+        `<span class="v ${d>=0?"up":"down"}">${d>=0?"+":"−"}${dollars(Math.abs(Math.round(d*100)/100))}</span></div>`);
+    }
+  } else {
+    rows.push(`<div class="krow"><span class="k">holding</span><span class="v dim">nothing in ${esc(activeMarket)}</span></div>`);
+  }
+  if (lim) {
+    rows.push(`<div class="krow"><span class="k">per trade / per day</span>` +
+      `<span class="v">${dollars(lim.max_trade_usd)} · ${dollars(lim.max_day_usd)}</span></div>`);
+    if (Number.isFinite(mem.spent_today))
+      rows.push(`<div class="krow"><span class="k">spent today</span><span class="v">${dollars(mem.spent_today)}</span></div>`);
+  }
+  const ruleCount = (mem.rules || []).length;
+  if (ruleCount) rows.push(`<div class="krow"><span class="k">rules in force</span><span class="v">${ruleCount}</span></div>`);
+  box.innerHTML = `<div class="eyebrow" style="margin-bottom:8px">What it remembers</div>` + rows.join("");
+}
+
+let agentKey = "";
+function drawAgents(active){
+  // Rebuilt only when the active agent actually changes. Replacing this markup
+  // on every refresh destroyed the card under the cursor mid-click, so pressing
+  // an agent sometimes did nothing at all — the same fault the nav had.
+  if (active === agentKey) return;
+  agentKey = active;
+  const cards = AGENTS.map(a => {
+    const on = a.id === active;
+    // Named, because the label lives in child spans that never become the
+    // button's accessible name — six identical "button"s to a screen reader,
+    // and nothing any tool can address by name either.
+    return `<button class="agentcard" type="button" aria-pressed="${on}" ` +
+      `aria-label="${esc(a.name)} — ${on ? "active" : "paused"}" ` +
+      `title="${esc(a.name)}" onclick="pickAgent('${a.id}')">
+      <div class="orbwrap">${orb(a, 56, {bloom:on})}
+        <span class="orbname">${esc(a.name)}</span>
+        <span class="orbstatus ${on?"active":"paused"}">${on?"Active":"Paused"}</span></div></button>`;
+  });
+  el("orbs").innerHTML = cards.join("");
+  el("agentgrid").innerHTML = cards.join("");
+  el("agentcount").textContent = `1 of ${AGENTS.length} active`;
+}
+
+/* ── the loop ────────────────────────────────────────────────────────────── */
+async function refresh(){
+  authBad = false; chainDown = null;
+  const h = await fetch("/health").then(r=>r.json()).catch(()=>null);
+  if (!h) {
+    // The BACKEND is gone, not just the chain. Returning here used to leave the
+    // last render standing — a confident total, a block number and a wallet,
+    // all minutes stale and presented as current. On a trading desk that is
+    // worse than showing nothing: the operator can act on it. Say it, and stop
+    // asserting the numbers we can no longer stand behind.
+    backendDown = true;
+    drawAuthBanner();
+    el("hero").textContent = "—";
+    el("herosub").textContent = "the desk cannot reach its backend";
+    el("railblock").textContent = "—";
+    el("railaddr").textContent = "—";
+    return;
+  }
+  backendDown = false;
+  armed = !!h.armed; agentNow = h.agent;
+
+  el("livedot").className = "livedot" + (armed ? " on" : "");
+  el("livedot").title = armed ? "armed — trading enabled" : "disarmed — the kill switch is engaged";
+  // The rail's kill switch is reachable from every screen, and it reads both
+  // ways: red to stop while armed, white to put it back while disarmed.
+  const rk = el("railkill");
+  rk.textContent = armed ? "Stop all trading" : "Re‑arm trading";
+  rk.className = armed ? "armed" : "";
+  rk.setAttribute("aria-label", armed
+    ? "stop all trading — engage the kill switch"
+    : "the kill switch is engaged — activate to re-arm trading");
+  el("railchain").textContent = h.mode === "fork" ? "Base fork" : "Base MAINNET";
+  el("armlabel").textContent = armed ? "armed" : "disarmed";
+  el("killbtn").textContent = armed ? "Stop all trading" : "Re‑arm trading";
+  el("killbtn").className = "btn " + (armed ? "danger" : "primary");
+  // Say what stopping actually does. The old copy promised that "the decision
+  // is kept", which is true of a proposal raised WHILE stopped and false of the
+  // one already on the table — pressing stop voids that one, so a ✓ afterwards
+  // answered "nothing pending" instead of the refusal the words had promised.
+  el("killnote").textContent = armed
+    ? "Nothing trades without an explicit ✓. Stopping refuses even that, and voids the decision currently on the table."
+    : "Stopped. You can still propose a trade — the ✓ is refused while stopped, and that proposal is held, so re-arming honours it.";
+  drawAgents(h.agent);
+  drawTabs();
+  if (Number.isFinite(h.sizeUsd)) drawSizes(h.sizeUsd);
+
+  // The market in hand is the BACKEND's, not this tab's. /markets is fetched
+  // once, and activeMarket was only ever changed by a click here — so a market
+  // chosen on the physical pad, or in another window, never reached the desk:
+  // the backend held AERO while the screen highlighted ETH. For a trading app
+  // that is the same failure as a route label that lies about where a fill
+  // went, and it is exactly what the pad is for.
+  if (h.market && h.market !== activeMarket) { activeMarket = h.market; drawMarkets(); }
+
+  const p = await get("/portfolio");
+  if (p?.prices) { lastPrices = { ...lastPrices, ...p.prices }; drawMarkets(); }
+  el("railblock").textContent = p?.chain?.block ?? "—";
+  el("railaddr").textContent = p?.chain?.address
+    ? p.chain.address.slice(0, 6) + "…" + p.chain.address.slice(-4) : "—";
+
+  const m = await get("/memory");
+  el("reteach").hidden = !(m && !m.limits);
+
+  if (!MARKETS.__fromServer) {
+    const mk = await get("/markets");
+    if (mk) { MARKETS = mk.markets; MARKETS.__fromServer = true; activeMarket = mk.active || activeMarket;
+      drawEquities(mk);
+      const d = Object.entries(mk.delisted);
+      el("delisted").innerHTML = `<b>Delisted for thin liquidity.</b> ` +
+        d.map(([k,v])=>`${esc(k)} <span class="dim">(${esc(v.reason)})</span>`).join("; ") + `.`;
+      drawMarkets(); }
+  }
+
+  // Restore a decision that is still live server-side (after a refresh, or one
+  // the physical pad raised), but never stomp on a card being read.
+  const pd = await get("/pending");
+  if (pd) {
+    if (pd.pending && !pending) { pending = pd; render_signal(pd); }
+    else if (!pd.pending && pending) { pending = null; }
+  }
+
+  const full = await get("/memory/full");
+  if (full) drawStore(full);
+
+  // An empty briefing is not a briefing — left visible it renders as a bare
+  // block, furniture that reads as a rendering fault.
+  const bf = await get("/briefing");
+  el("briefnote").hidden = !bf?.text;
+  if (bf?.text) el("briefing").textContent = bf.text;
+
+  const cx = await get("/memory/contradictions");
+  drawContradictions(cx);
+
+  const cost = await get("/memory/diff");
+  drawCost(cost);
+  // A wipe destroys the journal the replay panel was reading from, so its claim
+  // can no longer be substantiated. Clearing it only in this tab's wipe() left
+  // it stale whenever the wipe came from the pad, another tab, or the API.
+  if (cost?.at && Date.parse(cost.at) > ttDrawnAt) { el("ttout").hidden = true; el("ttout").innerHTML = ""; }
+
+  const ls = await get("/scan/last");
+  if (ls && ls.summary && ls.at !== lastScanAt) { lastScanAt = ls.at; drawScan(ls); }
+
+  const lg = await get("/log");
+  if (lg) { drawLog(lg.log, "log", 22); drawLog(lg.log, "homelog", 8); }
+
+  drawHome(p, bf, lg?.log, m);
+  drawInHand(m);
+  drawBudget(m);
+  drawMarketJournal(full);
+
+  const rf = (await get("/reflect")) || { proposals: [] };
+  if (m && rf.proposals?.length) {
+    el("store").innerHTML += `<div class="grp"><h3>Learned from your yes/no</h3>` +
+      rf.proposals.map(p=>`<div class="krow"><span class="k" style="color:var(--ink55)">${esc(p.text)}</span>
+        <span><button class="linkbtn" onclick='acceptRule(${JSON.stringify(p)})'>accept</button></span></div>`).join("") + `</div>`;
+  }
+  drawAuthBanner();
+}
+
+// ── first paint ────────────────────────────────────────────────────────────
+// Nothing here depends on the server, so draw it immediately. Waiting for the
+// first refresh left the page looking ready while every click fell through.
+const BOOT_MARKETS = { ETH:{label:"Ethereum",class:"crypto",fee:100}, cbBTC:{label:"Bitcoin",class:"crypto",fee:500},
+  EURC:{label:"Euro",class:"forex",fee:500}, AERO:{label:"Aerodrome",class:"defi",fee:500},
+  MORPHO:{label:"Morpho",class:"defi",fee:10000}, VIRTUAL:{label:"Virtuals",class:"ai",fee:3000} };
+MARKETS = BOOT_MARKETS;
+pickTab(hashTab()); history.replaceState({ tab: tab }, "", "#/" + tab);
+drawMarkets(); drawAgents("momentum");
+el("store").innerHTML = `<div class="krow"><span class="k dim">recalling…</span></div>`;
+el("log").innerHTML     = `<div class="krow"><span class="k dim">connecting…</span></div>`;
+el("homelog").innerHTML = `<div class="krow"><span class="k dim">connecting…</span></div>`;
+el("mktjrnl").innerHTML = `<div class="krow"><span class="k dim">recalling…</span></div>`;
+el("daycard").innerHTML = `<div class="krow"><span class="k dim">reading the journal…</span></div>`;
+el("scanhead").innerHTML = `Nothing has been run yet. The book tests six measured edges against all ` +
+  `six markets at once and reports honestly when none of them fires.`;
+// An Operate surface's empty state teaches the control that fills it.
+el("sig").innerHTML =
+  `<div class="verdict"><div class="fnote"><span class="fnref">—</span><span>Nothing in hand. ` +
+  `<b style="color:var(--ink70);font-weight:600">Buy</b> or <b style="color:var(--ink70);font-weight:600">Sell</b> proposes a trade on the market in hand; ` +
+  `<b style="color:var(--ink70);font-weight:600">the book</b> runs across all six. ` +
+  `Every verdict arrives with the remembered facts it rests on, numbered.</span></div></div>`;
+
+// A thrown refresh must never kill the polling loop, or the pad goes silent.
+const tick = () => refresh().catch(e => console.warn("refresh failed:", e.message));
+tick(); setInterval(tick, 4000);
+
+/**
+ * The pad's setup code, on demand.
+ *
+ * Provisioning means typing the desk's LAN address and the pad token into a
+ * captive portal on a phone keyboard. Scanning beats typing, and the QR is
+ * generated on the backend with no library and no CDN — the desk has to work on
+ * venue wi-fi.
+ */
+async function togglePadCode(){
+  const box = el("padcode");
+  if (!box.hidden) { box.hidden = true; return; }
+  el("padsvg").innerHTML = "";
+  el("padurl").textContent = "…"; el("padtok").textContent = "…";
+  box.hidden = false;
+  const r = await get("/padqr");
+  if (!r || r.error) { el("padsvg").innerHTML = `<div style="padding:24px;color:#000;font-size:12px">${esc(r?.error || "could not build the code")}</div>`; return; }
+  el("padsvg").innerHTML = r.svg;
+  el("padurl").textContent = r.url;
+  el("padtok").textContent = r.token;
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !el("padcode").hidden) togglePadCode();
+});
+</script>

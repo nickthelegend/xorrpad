@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.bak
+dist/
+build/
+exports/
+__pycache__/
+.venv/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+tools/uipreview/preview
+tools/uipreview/out/
+firmware/build/

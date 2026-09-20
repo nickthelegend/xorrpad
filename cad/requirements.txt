@@ -1,0 +1,12 @@
+# The CAD toolchain's dependencies. Recorded because they were not: a fresh
+# checkout could not build a single part — `import part_caps` died on a missing
+# shapely — and nothing in the repo said what to install. The geometry was
+# fine; the toolchain was simply unrunnable, which looks identical from outside.
+#
+#   python3 -m venv cad/.venv && cad/.venv/bin/pip install -r cad/requirements.txt
+#   cad/.venv/bin/python cad/export_print_batches.py
+#
+# macOS note: pip refuses to install into the system Python (PEP 668), so the
+# venv is not optional here.
+shapely>=2.0
+numpy>=1.24

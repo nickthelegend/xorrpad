@@ -1,0 +1,14 @@
+import { Memory } from "../main/memory.mjs";
+const m = new Memory({ db: "/tmp/xorrpad-node-test.db" });
+await m.wipe();
+console.log("ping        ", await m.ping());
+await m.setReference("risk/limits", { max_trade_usd: 100, allow: ["ETH", "USDC"] });
+await m.setEntity("position", "ETH", { qty: 0.012, avg_entry_usd: 3100 });
+await m.journal({ evaluated: { signal: "momentum ETH" }, acted: { decision: "BUY", usd: 50 } });
+const b = await m.recallBrief();
+console.log("limits      ", b.limits);
+console.log("positions   ", Object.keys(b.positions));
+console.log("events      ", b.journal_recent.length);
+const s = await m.stats();
+console.log("db          ", s.db, s.size_bytes, "bytes");
+m.stop();

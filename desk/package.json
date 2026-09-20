@@ -1,0 +1,88 @@
+{
+  "name": "xorr-pad-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The xorr-pad desk app: hosts the trading backend the pad talks to, and shows what the agent remembers.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test:memory": "node test/memory.test.mjs",
+    "test:loadbearing": "node test/loadbearing.test.mjs",
+    "test": "node --test test/",
+    "start": "electron .",
+    "backend": "node --env-file-if-exists=../.env main/server.mjs",
+    "fork": "./fork.sh",
+    "shots": "electron shots.mjs",
+    "verify": "node test/verify.mjs",
+    "warm": "node warm.mjs",
+    "icon": "python3 build/make-icon.py",
+    "dist": "python3 build/make-icon.py && electron-builder --mac --arm64",
+    "pack": "electron-builder --dir"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.56.3"
+  },
+  "main": "main/electron.mjs",
+  "devDependencies": {
+    "electron-builder": "^26.15.3",
+    "electron": "^44.2.0"
+  },
+  "build": {
+    "appId": "finance.xorr.pad",
+    "productName": "xorr-pad",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "package.json",
+      "!**/*.map",
+      "!test/**",
+      "!build/**",
+      "!shots.mjs",
+      "!warm.mjs",
+      "!run-dev.sh"
+    ],
+    "extraResources": [
+      {
+        "from": "memory",
+        "to": "memory"
+      },
+      {
+        "from": "fork.sh",
+        "to": "fork.sh"
+      },
+      {
+        "from": "../.venv",
+        "to": ".venv"
+      },
+      {
+        "from": ".fork-state.json",
+        "to": "fork-state.json"
+      },
+      {
+        "from": ".fork-block",
+        "to": "fork-block"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": null
+    }
+  },
+  "author": "nickthelegend"
+}
