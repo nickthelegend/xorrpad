@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
 import { runOnce, getMarket, snapshot, applyFill } from "./trader.mjs";
 import { decide } from "./decide.mjs";
-import { evaluate } from "./agents.mjs";
+import { evaluate, AGENT_KINDS } from "./agents.mjs";
 import { swap, spendable } from "./dex.mjs";
 import { IS_FORK, fundOnFork, chainReachable, pub, READ_ONLY } from "./chain.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
@@ -33,7 +33,7 @@ import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { STOCKS, STOCKS_UNLISTED, STOCK_SYMBOLS, isStock, stockBlocker, stockPrices } from "./stocks.mjs";
 import { usable } from "./routers/index.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
-import { marketHours } from "./xstocks.mjs";
+import { marketHours, XSTOCKS as XSTOCKS_BOOK } from "./xstocks.mjs";
 
 /** The venue in hand — Solana by default, X Layer with CHAIN=xlayer. */
 const CHAIN = activeChain();
@@ -72,9 +72,13 @@ const TOKEN = process.env.PAD_TOKEN || randomBytes(16).toString("hex");
  *
  * It used to be hardcoded "ETH", which on a Solana build meant the panel led
  * with a ticker the venue cannot trade and a price from a different chain's
- * feed. The first symbol the active venue lists is the only defensible default.
+ * feed. It comes from the active venue now — and never its quote asset: on
+ * X Layer the book lists USDT first, and symbols[0] opened the pad on "buy
+ * USDT with USDT", a market that prices at exactly 1.00 and means nothing.
  */
-const DEFAULT_MARKET = process.env.MARKET || CHAIN.markets().symbols[0];
+const DEFAULT_MARKET = process.env.MARKET
+  || CHAIN.markets().symbols.find((sym) => sym !== CHAIN.markets().quoteAsset)
+  || CHAIN.markets().symbols[0];
 
 /**
  * The risk limits a fresh store is seeded with, for THIS build.
@@ -403,7 +407,16 @@ export function createServer(mem) {
       if (url.pathname === "/pad" && req.method === "GET") {
         const brief = await mem.recallBrief().catch(() => null);
         const px = await feedPrices().catch(() => ({}));
-        const hrs = marketHours();
+        // NYSE hours describe the market behind a tokenized SHARE. WOKB has no
+        // listing and no closing bell, and telling the operator it is "shut on
+        // the NYSE" would be describing an exchange this asset was never on.
+        const equity = CHAIN.markets().kind === "tokenized-equity";
+        const hrs = equity ? marketHours() : {
+          state: "CRYPTO", open: true, why: "crypto has no exchange hours",
+          nyTime: marketHours().nyTime,
+          note: "crypto trades around the clock",
+          short: "always open - no closing bell",
+        };
         // Reachability and price both come from the venue in hand. Asking the
         // Base fork whether Solana is up produced `chainOk: false` next to a
         // live Jupiter quote — two true-looking fields disagreeing about the
@@ -519,7 +532,8 @@ export function createServer(mem) {
       }
 
       if (url.pathname === "/health")
-        return send(200, { ok: true, mode: IS_FORK ? "fork" : "mainnet", agent: state.agent,
+        return send(200, { ok: true, mode: CHAIN.id, chain: CHAIN.id, chainLabel: CHAIN.label,
+                           agent: state.agent,
                            armed: state.armed, pending: !!state.pending,
                            market: state.market, sizeUsd: state.sizeUsd,
                            // The store this process actually opened. Anything that
@@ -603,7 +617,35 @@ export function createServer(mem) {
         } catch (e) { return send(500, { error: String(e.message || e) }); }
       }
 
-      if (url.pathname === "/markets")
+      if (url.pathname === "/markets") {
+        // The venue's own book, priced live. Serving Base's six coins under a
+        // Solana session had the Markets page listing markets this build cannot
+        // reach, above equities marked "NOT YET" that it can.
+        if (CHAIN.id !== "base") {
+          const m = CHAIN.markets();
+          const tradeable = m.symbols.filter((sym) => sym !== m.quoteAsset);
+          const prices = {};
+          await Promise.all(tradeable.map(async (sym) => {
+            const p = await chainPrice(sym);
+            if (p) prices[sym] = p;
+          }));
+          const book = CHAIN.id === "solana" ? XSTOCKS_BOOK : CHAIN.TOKENS;
+          return send(200, {
+            chain: CHAIN.id, chainLabel: CHAIN.label, kind: m.kind,
+            quoteAsset: m.quoteAsset, active: state.market,
+            hours: m.kind === "tokenized-equity" ? marketHours() : null,
+            symbols: tradeable,
+            book: Object.fromEntries(tradeable.map((sym) => [sym, {
+              ...(book?.[sym] || {}),
+              price: prices[sym] ?? null,
+              tradeable: true,
+            }])),
+            // Kept visible: an omission the operator cannot see reads as an
+            // oversight rather than a decision.
+            rejected: CHAIN.REJECTED || {},
+            prices,
+          });
+        }
         return send(200, {
           markets: MARKETS, delisted: DELISTED, active: state.market,
           // Shown, priced and explained — never silently omitted. A judge should
@@ -618,6 +660,7 @@ export function createServer(mem) {
           equitiesBlocked: Object.fromEntries(STOCK_SYMBOLS.map((s) =>
             [s, stockBlocker(s, { isFork: IS_FORK, hasAggregator: HAS_AGGREGATOR })])),
         });
+      }
 
       if (url.pathname === "/reflect" && req.method === "GET")
         return send(200, await reflect(mem));
@@ -701,8 +744,29 @@ export function createServer(mem) {
         return send(200, { armed: true });
       }
 
-      if (url.pathname === "/portfolio")
-        return send(200, await snapshot(mem));
+      // The desk UI's whole first paint hangs off this. Built from the active
+      // venue rather than from Base, which on a Solana run had the browser
+      // reporting "the Base node at :8545 did not answer" over a backend that
+      // was happily quoting Jupiter the whole time.
+      if (url.pathname === "/portfolio") {
+        if (CHAIN.id === "base") return send(200, await snapshot(mem));
+        const [info, bal, brief] = await Promise.all([
+          CHAIN.info().catch((e) => ({ chain: CHAIN.id, label: CHAIN.label, error: String(e.message || e) })),
+          CHAIN.balances().catch(() => ({})),
+          mem.recallBrief().catch(() => null),
+        ]);
+        // Price only what is actually held, and only from the venue in hand.
+        const prices = {};
+        await Promise.all(Object.keys(bal)
+          .filter((sym) => sym !== CHAIN.markets().quoteAsset)
+          .map(async (sym) => { const p = await chainPrice(sym); if (p) prices[sym] = p; }));
+        return send(200, {
+          chain: { ...info, mode: CHAIN.id, label: CHAIN.label, signing: "external" },
+          route: CHAIN.id === "solana" ? "jupiter" : "okx-dex",
+          balances: bal, memory: brief, agents: AGENT_KINDS, prices,
+          markets: CHAIN.markets(),
+        });
+      }
 
       if (url.pathname === "/tick" && req.method === "POST") {
         const r = await runOnce(mem, { execute: state.armed && IS_FORK });

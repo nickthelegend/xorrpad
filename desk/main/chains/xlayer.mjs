@@ -153,10 +153,18 @@ export async function quote(sell, buy, amountIn) {
     }
   }
 
+  // `price` is the quote asset per unit of the other token, whichever way the
+  // trade runs — the same meaning it carries on the Solana venue. Reporting a
+  // bare amountOut/amountIn made a $118 token quote as "$0.01", because that
+  // ratio answers a different question depending on the direction.
+  const priced = sell === quoteAsset ? buy : sell;
+  const price = sell === quoteAsset ? Number(amountIn) / amountOut
+                                    : amountOut / Number(amountIn);
+
   return {
     venue: "okx-dex", chain: id, sell, buy,
     amountIn: Number(amountIn), amountOut,
-    price: amountOut / Number(amountIn),
+    price, priced,
     route, flags: [...new Set(flags)],
     impactPct: Number(q.priceImpactPercentage ?? 0),
     raw: q,
@@ -166,8 +174,7 @@ export async function quote(sell, buy, amountIn) {
 /** One unit of `symbol` in USDT. */
 export async function price(symbol, notional = 50) {
   if (symbol === quoteAsset) return 1;
-  const q = await quote(quoteAsset, symbol, notional);
-  return notional / q.amountOut;
+  return (await quote(quoteAsset, symbol, notional)).price;
 }
 
 /** See WHY THIS ONE IS READ-ONLY. The CLI can execute; this module will not. */

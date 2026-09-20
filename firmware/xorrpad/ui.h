@@ -172,6 +172,7 @@ static void banner(GFXcanvas16 &c, uint16_t col, const char *tag, const String &
 /** Colour and wording for the exchange's state. Open is the quiet case. */
 static uint16_t hoursColour(const String &st) {
   if (st == "OPEN") return UP;
+  if (st == "CRYPTO") return BLUE;                    // no bell to be shut by
   if (st == "PRE" || st == "AFTER") return WARN;
   return SOL;                                        // weekend / holiday / overnight
 }
@@ -182,6 +183,7 @@ static const char *hoursTag(const String &st) {
   if (st == "WEEKEND")   return "WEEKEND";
   if (st == "HOLIDAY")   return "HOLIDAY";
   if (st == "OVERNIGHT") return "OVERNIGHT";
+  if (st == "CRYPTO")    return "24/7";
   return "MARKET";
 }
 

@@ -410,7 +410,7 @@ nav .dot.on{background:var(--up)}
      <div class="cols side">
       <div>
        <div id="mkts"></div>
-       <div class="shead"><h2>Stocks</h2><span class="aside" id="eqsub">tokenized equities on Base</span></div>
+       <div class="shead"><h2>Stocks</h2><span class="aside" id="eqsub">tokenized equities</span></div>
        <div id="equities"></div>
        <div class="note" id="eqnote" hidden><span class="nd warn"></span><span class="nt" id="eqwhy"></span></div>
        <div class="note" style="margin-top:14px"><span class="nd block"></span>
@@ -600,7 +600,7 @@ function orb(a, size, {face=true, bloom=false}={}){
 const TABS = [
   { id:"home", label:"Portfolio", title:"Portfolio", sub:"what it holds and what it did",
     d:`<path d="M3 10.5 L12 3.5 L21 10.5 V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9.5 21v-6h5v6"/>` },
-  { id:"markets", label:"Markets", title:"Markets", sub:"six, all on Base",
+  { id:"markets", label:"Markets", title:"Markets", sub:"the venue's book",
     d:`<path d="M4 4v16h16"/><path d="M7.5 15.5 L11 11 L14 13.5 L19.5 7"/>` },
   { id:"agents", label:"Agents", title:"Agents", sub:"one holds the baton", dot:true,
     d:`<circle cx="12" cy="12" r="8.5"/><circle cx="9.3" cy="10.4" r="1.15" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.4" r="1.15" fill="currentColor" stroke="none"/><path d="M9.4 15.2a3.6 3.6 0 0 0 5.2 0"/>` },
@@ -1255,12 +1255,12 @@ function drawMarkets(){
     el("mkts").innerHTML = entries.map(([sym,m])=>
       `<div class="lrow" role="button" tabindex="0" data-sym="${sym}" onclick="pickMarket('${sym}')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMarket('${sym}')}"
-          style="cursor:pointer" title="${esc(m.label)}. Uniswap V3 ${m.fee/10000}% tier on Base.">
+          style="cursor:pointer" title="${esc(m.label)}${m.venue ? ` · ${esc(m.venue)}` : ` · Uniswap V3 ${m.fee/10000}% tier`}">
         ${markHtml(sym)}
         <div class="lmain"><span class="lp"><span class="sym">${esc(sym)}</span><span class="hand"></span></span>
           <span class="ls">${esc(m.label)} · ${CLASS_LABEL[m.class]||m.class}</span></div>
         <div class="lval"><span class="lv">—</span>
-          <span class="ld">${m.fee/10000}% tier</span></div>
+          <span class="ld">${m.venue ? esc(m.venue) : `${m.fee/10000}% tier`}</span></div>
       </div>`).join("");
 
     el("tradepills").innerHTML = entries.map(([sym])=>
@@ -1298,7 +1298,7 @@ function drawEquities(mk){
   const syms = Object.keys(eq);
   if (!syms.length) { el("equities").innerHTML = ""; el("eqnote").hidden = true; return; }
   const priced = syms.filter((s) => eqpx[s] != null).length;
-  el("eqsub").textContent = `${syms.length} on Base · backed 1:1 at a regulated broker`
+  el("eqsub").textContent = `${syms.length} tokenized · backed 1:1 at a regulated broker`
     + (priced ? ` · ${priced} priced from their own pools` : ``);
   el("equities").innerHTML = syms.map((sym) => {
     const m = eq[sym], px = eqpx[sym] ?? lastPrices[sym];
@@ -1386,7 +1386,8 @@ function drawHome(p, brief, log, mem){
       open  += pos.qty * px;
       basis += pos.qty * Number(pos.avg_entry_usd || 0);
     }
-    const sub = `${coins.length} asset${coins.length===1?"":"s"} on Base · via ${esc(p.route)}`;
+    const chainName = esc(p?.chain?.label || p?.chain?.mode || "chain");
+    const sub = `${coins.length} asset${coins.length===1?"":"s"} on ${chainName} · via ${esc(p.route)}`;
     if (basis > 0) {
       const d = open - basis, pct = (d / basis) * 100;
       el("herosub").innerHTML =
@@ -1540,7 +1541,9 @@ async function refresh(){
   rk.setAttribute("aria-label", armed
     ? "stop all trading — engage the kill switch"
     : "the kill switch is engaged — activate to re-arm trading");
-  el("railchain").textContent = h.mode === "fork" ? "Base fork" : "Base MAINNET";
+  // The venue names itself. Hardcoding "Base fork" here put that label under a
+  // Solana session whose every other field said jupiter.
+  el("railchain").textContent = h.chainLabel || (h.mode === "fork" ? "Base fork" : h.mode || "—");
   el("armlabel").textContent = armed ? "armed" : "disarmed";
   el("killbtn").textContent = armed ? "Stop all trading" : "Re‑arm trading";
   el("killbtn").className = "btn " + (armed ? "danger" : "primary");
@@ -1565,7 +1568,9 @@ async function refresh(){
 
   const p = await get("/portfolio");
   if (p?.prices) { lastPrices = { ...lastPrices, ...p.prices }; drawMarkets(); }
-  el("railblock").textContent = p?.chain?.block ?? "—";
+  // Solana has slots where an EVM chain has blocks; show whichever the venue
+  // actually reports rather than a dash next to a healthy connection.
+  el("railblock").textContent = p?.chain?.block ?? p?.chain?.slot ?? "—";
   el("railaddr").textContent = p?.chain?.address
     ? p.chain.address.slice(0, 6) + "…" + p.chain.address.slice(-4) : "—";
 
@@ -1574,11 +1579,36 @@ async function refresh(){
 
   if (!MARKETS.__fromServer) {
     const mk = await get("/markets");
-    if (mk) { MARKETS = mk.markets; MARKETS.__fromServer = true; activeMarket = mk.active || activeMarket;
-      drawEquities(mk);
-      const d = Object.entries(mk.delisted);
-      el("delisted").innerHTML = `<b>Delisted for thin liquidity.</b> ` +
-        d.map(([k,v])=>`${esc(k)} <span class="dim">(${esc(v.reason)})</span>`).join("; ") + `.`;
+    if (mk) {
+      // Two shapes reach here. Base sends `markets` + `equities`; the Solana
+      // and X Layer venues send one `book` of what they can actually trade.
+      // Translate the second into the first so the views below stay one
+      // implementation rather than two that drift apart.
+      if (mk.book) {
+        MARKETS = Object.fromEntries(Object.entries(mk.book).map(([sym, t]) => [sym, {
+          label: t.name || sym,
+          class: mk.kind === "tokenized-equity" ? "equity" : "crypto",
+          fee: 0, venue: t.venue || mk.chainLabel,
+        }]));
+        for (const [sym, t] of Object.entries(mk.book)) if (t.price != null) lastPrices[sym] = t.price;
+        el("delisted").innerHTML = Object.keys(mk.rejected || {}).length
+          ? `<b>Not traded here.</b> ` + Object.entries(mk.rejected)
+              .map(([k, why]) => `${esc(k)} <span class="dim">(${esc(why)})</span>`).join("; ") + `.`
+          : ``;
+        el("equities").innerHTML = ""; el("eqnote").hidden = true; el("eqsub").textContent = "";
+        const hrs = mk.hours;
+        document.querySelectorAll('[data-view="markets"] .vsub, #markets .vsub').forEach((n) => {
+          n.textContent = `${Object.keys(mk.book).length} on ${mk.chainLabel}`
+            + (hrs ? ` · ${hrs.open ? "NYSE open" : hrs.short}` : ``);
+        });
+      } else {
+        MARKETS = mk.markets;
+        drawEquities(mk);
+        const d = Object.entries(mk.delisted || {});
+        el("delisted").innerHTML = `<b>Delisted for thin liquidity.</b> ` +
+          d.map(([k,v])=>`${esc(k)} <span class="dim">(${esc(v.reason)})</span>`).join("; ") + `.`;
+      }
+      MARKETS.__fromServer = true; activeMarket = mk.active || activeMarket;
       drawMarkets(); }
   }
 

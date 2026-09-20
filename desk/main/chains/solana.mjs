@@ -20,7 +20,7 @@
  * whether it happens.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import { XSTOCKS, USDC, SOL, mintOf, isStock, SYMBOLS, marketHours } from "../xstocks.mjs";
+import { XSTOCKS, REJECTED, USDC, SOL, mintOf, isStock, SYMBOLS, marketHours } from "../xstocks.mjs";
 
 export const id = "solana";
 export const label = "Solana";
@@ -76,7 +76,10 @@ export async function balances() {
   if (!address) return {};
   const out = {};
   const lamports = await rpc("getBalance", [address]).catch(() => null);
-  if (lamports != null) out.SOL = { amount: (lamports.value ?? lamports) / 1e9, decimals: 9 };
+  const sol = lamports == null ? 0 : (lamports.value ?? lamports) / 1e9;
+  // Zero is not a position. Listing it put an empty SOL row in the desk UI's
+  // holdings and then priced it, which is two kinds of noise for no signal.
+  if (sol > 0) out.SOL = { amount: sol, decimals: 9 };
 
   const byMint = new Map();
   for (const program of [TOKEN_PROGRAM, TOKEN_2022]) {
@@ -117,15 +120,17 @@ export async function quote(sell, buy, amountIn) {
   if (!(amountOut > 0)) throw new Error(`jupiter returned no route for ${sell} -> ${buy}`);
   const route = [...new Set((q.routePlan || []).map((r) => r.swapInfo?.label).filter(Boolean))];
 
-  // Price is USDC per share whichever direction the trade runs.
-  const stock = isStock(sell) ? sell : isStock(buy) ? buy : null;
-  const price = stock === buy ? Number(amountIn) / amountOut
-              : stock === sell ? amountOut / Number(amountIn)
-              : amountOut / Number(amountIn);
+  // USDC per unit of the other side, whichever direction the trade runs. The
+  // last branch used to be a bare amountOut/amountIn, which is the right number
+  // for a stock and the reciprocal for everything else — so a $40 SOL quoted as
+  // "$0.01" the moment a non-equity pair went through here.
+  const priced = sell === "USDC" ? buy : sell;
+  const price = sell === "USDC" ? Number(amountIn) / amountOut
+                                : amountOut / Number(amountIn);
 
   return {
     venue: "jupiter", chain: id, sell, buy,
-    amountIn: Number(amountIn), amountOut, price,
+    amountIn: Number(amountIn), amountOut, price, priced,
     impactPct: Number(q.priceImpactPct || 0) * 100,
     route: route.join(" → ") || "direct",
     slippageBps: q.slippageBps,
@@ -179,4 +184,7 @@ export function markets() {
   return { symbols: SYMBOLS, quoteAsset: "USDC", hours: h, kind: "tokenized-equity" };
 }
 
-export { marketHours, SYMBOLS, XSTOCKS };
+export { marketHours, SYMBOLS, XSTOCKS, REJECTED };
+
+/** Alias so the chain registry can read every venue's book the same way. */
+export const TOKENS = XSTOCKS;
