@@ -1,7 +1,7 @@
 /**
  * memory.mjs — the Node side of Sibyl.
  *
- * Spawns desktop/memory/sibyl_bridge.py and speaks newline-delimited JSON to
+ * Spawns ../memory/sibyl_bridge.py and speaks newline-delimited JSON to
  * it. Every call here hits the real SQLite store; there is no in-memory
  * fallback on purpose — if memory is gone, the agent must visibly degrade,
  * because that is the product claim.
@@ -23,16 +23,21 @@ const ROOT = path.resolve(HERE, "..", "..");
  */
 const pick = (...c) => c.find((f) => f && existsSync(f)) || null;
 
+// Resolved relative to THIS file, not to a directory name. It used to be
+// path.join(ROOT, "desktop", ...) and renaming that folder made `pick` return
+// null, which was then handed to python as a filename — so the failure arrived
+// as "can't open file '.../desk/null'" instead of "the bridge is missing".
 const BRIDGE = pick(
   process.env.SIBYL_BRIDGE,
   process.resourcesPath && path.join(process.resourcesPath, "memory", "sibyl_bridge.py"),
-  path.join(ROOT, "desktop", "memory", "sibyl_bridge.py"),
+  path.join(HERE, "..", "memory", "sibyl_bridge.py"),
 );
 
 const PY = pick(
   process.env.SIBYL_PY,
   process.resourcesPath && path.join(process.resourcesPath, ".venv", "bin", "python"),
   path.join(ROOT, ".venv", "bin", "python"),
+  path.join(HERE, "..", "..", ".venv", "bin", "python"),
 ) || "python3";   // last resort: a system python that may lack the SDK, and will say so
 
 export class Memory {
@@ -45,6 +50,11 @@ export class Memory {
 
   start() {
     if (this.proc) return;
+    // A missing bridge is a configuration fault, and it must read as one. Left
+    // to itself, spawn(PY, [null]) reaches python as the literal filename
+    // "null" and the error names a file nobody wrote.
+    if (!BRIDGE)
+      throw new Error("sibyl bridge not found — expected desk/memory/sibyl_bridge.py, or set SIBYL_BRIDGE");
     this.proc = spawn(PY, [BRIDGE], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, ...(this.db ? { SIBYL_DB: this.db } : {}) },

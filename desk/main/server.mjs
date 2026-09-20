@@ -67,9 +67,32 @@ function lanAddress() {
 }
 const TOKEN = process.env.PAD_TOKEN || randomBytes(16).toString("hex");
 
+/**
+ * The market the pad opens on.
+ *
+ * It used to be hardcoded "ETH", which on a Solana build meant the panel led
+ * with a ticker the venue cannot trade and a price from a different chain's
+ * feed. The first symbol the active venue lists is the only defensible default.
+ */
+const DEFAULT_MARKET = process.env.MARKET || CHAIN.markets().symbols[0];
+
+/**
+ * The risk limits a fresh store is seeded with, for THIS build.
+ *
+ * DEFAULT_LIMITS carries Base's allowlist, and seeding it on a Solana build
+ * meant the gate refused every real market with "SPYx is not in the allowlist
+ * [ETH, WETH, USDC, cbBTC, ...]" — a correct refusal for an incorrect reason.
+ * An allowlist is a statement about what may be traded, so it has to be drawn
+ * from what this venue can trade at all.
+ */
+const CHAIN_LIMITS = {
+  ...DEFAULT_LIMITS,
+  allow: [...CHAIN.markets().symbols, CHAIN.markets().quoteAsset],
+};
+
 export const state = {
   agent: "momentum",        // the baton: which agent the keys act through
-  market: "ETH",
+  market: DEFAULT_MARKET,
   sizeUsd: 50,              // the knob
   armed: true,
   pending: null,            // a signal waiting on YES/NO
@@ -84,6 +107,29 @@ export const state = {
 };
 
 const note = (m) => { state.log.unshift({ t: new Date().toISOString(), m }); state.log.length = Math.min(state.log.length, 50); console.log("  " + m); };
+
+/**
+ * Spot price from the active venue, cached briefly.
+ *
+ * /pad is polled by the hardware and by every open browser tab. Quoting the
+ * aggregator on each of those would be rude and slow; a few seconds of staleness
+ * on a price that is already a quote is not a lie worth avoiding.
+ */
+const PRICE_TTL_MS = Number(process.env.PRICE_TTL_MS || 6000);
+const priceCache = new Map();
+async function chainPrice(symbol) {
+  const hit = priceCache.get(symbol);
+  if (hit && Date.now() - hit.at < PRICE_TTL_MS) return hit.v;
+  try {
+    const v = await CHAIN.price(symbol);
+    priceCache.set(symbol, { at: Date.now(), v });
+    return v;
+  } catch {
+    // Say nothing rather than something stale: a price with no timestamp on a
+    // 2.8" panel reads as current no matter how old it is.
+    return hit ? hit.v : null;
+  }
+}
 
 export function createServer(mem) {
   return http.createServer(async (req, res) => {
@@ -357,8 +403,15 @@ export function createServer(mem) {
       if (url.pathname === "/pad" && req.method === "GET") {
         const brief = await mem.recallBrief().catch(() => null);
         const px = await feedPrices().catch(() => ({}));
-        const chainOk = await chainReachable().catch(() => false);
         const hrs = marketHours();
+        // Reachability and price both come from the venue in hand. Asking the
+        // Base fork whether Solana is up produced `chainOk: false` next to a
+        // live Jupiter quote — two true-looking fields disagreeing about the
+        // same chain.
+        const [chainOk, livePrice] = await Promise.all([
+          CHAIN.info().then(() => true).catch(() => false),
+          chainPrice(state.market),
+        ]);
 
         // Unrealised P&L against the entry prices the store remembers. With no
         // remembered entry there is no cost basis, and the field is null rather
@@ -382,7 +435,7 @@ export function createServer(mem) {
 
         return send(200, {
           ok: true,
-          mode: IS_FORK ? "fork" : "mainnet",
+          mode: CHAIN.id === "solana" ? "solana" : CHAIN.id,
           armed: state.armed,
           agent: state.agent,
           market: state.market,
@@ -397,7 +450,7 @@ export function createServer(mem) {
           dayLimit: brief?.limits?.max_day_usd ?? null,
           unrealised,
           unpriced: held - priced,   // why `unrealised` is null, when it is
-          price: px[state.market] ?? null,
+          price: livePrice ?? px[state.market] ?? null,
 
           // Which venue is in hand, and — the part the display leads on —
           // whether the exchange behind the asset is even open. A tokenized
@@ -510,7 +563,7 @@ export function createServer(mem) {
       // Teach it its limits again. Without this a wipe is one-way until the
       // process restarts, so the demo could only ever be run once.
       if (url.pathname === "/memory/seed" && req.method === "POST") {
-        const limits = body.limits || DEFAULT_LIMITS;
+        const limits = body.limits || CHAIN_LIMITS;
         await mem.setReference("risk/limits", limits);
         note(`re-taught: $${limits.max_trade_usd}/trade, $${limits.max_day_usd}/day`);
         return send(200, { limits });
@@ -785,6 +838,49 @@ async function onKey(mem, id) {
     if (id === "no") { note(`rejected ${p.sig.side} ${p.sig.symbol}`); return { ok: true, rejected: true }; }
     if (p.verdict.action !== "EXECUTE") return { ok: false, error: "that signal was not executable" };
 
+    // ── the ✓ on a venue the pad cannot sign for ──────────────────────────
+    //
+    // Solana and X Layer both hand back an unsigned transaction rather than a
+    // receipt. The pad has reasoned its way to a trade and a person has agreed
+    // to it; what remains is a signature, and the key for that is not here.
+    //
+    // The quote is taken again at this moment rather than reused from the
+    // proposal. Seconds have passed since the gate ran — on a market that
+    // trades while its exchange is shut, that is exactly when a price moves —
+    // and confirming against a stale number would be signing for something
+    // other than what was shown.
+    if (CHAIN.id !== "base") {
+      const [sell, buy] = p.sig.side === "BUY"
+        ? [CHAIN.markets().quoteAsset, p.sig.symbol]
+        : [p.sig.symbol, CHAIN.markets().quoteAsset];
+      try {
+        const fresh = await CHAIN.quote(sell, buy, p.verdict.sizeUsd);
+        const built = CHAIN.buildSwap ? await CHAIN.buildSwap(fresh).catch((e) => ({ error: String(e.message || e) })) : null;
+
+        // Journalled as handed off, never as filled. The pad does not watch the
+        // chain for this signature and must not claim an outcome it cannot see.
+        await mem.journal({
+          evaluated: { signal: p.sig, verdict: p.verdict, quote: { out: fresh.amountOut, price: fresh.price, route: fresh.route } },
+          acted: { action: "HANDED_OFF", usd: p.verdict.sizeUsd, executed: false },
+          forward: { venue: fresh.venue, signing: "external" },
+        });
+        note(`${p.sig.side} ${p.sig.symbol} $${p.verdict.sizeUsd} -> ${fresh.amountOut.toFixed(6)} via ${fresh.route} — built, unsigned`);
+
+        return {
+          ok: true,
+          handoff: true,
+          quote: { ...fresh, raw: undefined },
+          transaction: built?.unsignedTx ? { unsignedTx: built.unsignedTx, signWith: built.signWith } : null,
+          buildError: built?.error || null,
+          note: built?.unsignedTx
+            ? "built and unsigned — sign it with your own wallet; the pad holds no key"
+            : `quoted only — ${CHAIN.label} execution stays with you`,
+        };
+      } catch (e) {
+        return { ok: false, error: `could not price that on ${CHAIN.label}: ${String(e.message || e)}` };
+      }
+    }
+
     // A read-only mainnet session has no wallet at all. Say that here, before
     // the balance check below — otherwise the refusal reads "no USDC to spend",
     // which is true of the zero address but describes the wrong problem, and
@@ -993,8 +1089,9 @@ export async function start() {
   // The baton remembers the size, so a restart does not silently reset it.
   if (Number.isFinite(brief.baton?.sizeUsd)) state.sizeUsd = brief.baton.sizeUsd;
   if (!brief.limits) {
-    await mem.setReference("risk/limits", DEFAULT_LIMITS);
-    console.log("  seeded default risk limits into memory");
+    await mem.setReference("risk/limits", CHAIN_LIMITS);
+    console.log(`  seeded risk limits: $${CHAIN_LIMITS.max_trade_usd}/trade, ` +
+                `$${CHAIN_LIMITS.max_day_usd}/day, ${CHAIN_LIMITS.allow.length} markets on ${CHAIN.label}`);
   }
   const srv = createServer(mem);
   // Wait for the bind to actually succeed. Returning as soon as listen() is
@@ -1008,7 +1105,7 @@ export async function start() {
     srv.listen(PORT, HOST, () => { srv.removeAllListeners("error"); resolve(); });
   });
   {
-    console.log(`xorr-pad backend on http://${HOST}:${PORT}  (${IS_FORK ? "Base fork" : "Base MAINNET"}, auth on)`);
+    console.log(`xorrpad backend on http://${HOST}:${PORT}  (${CHAIN.label}, quotes only, auth on)`);
     if (GENERATED) {
       console.log(`  no PAD_TOKEN was set, so one was generated for this run:`);
       console.log(`  ${TOKEN}`);
@@ -1020,7 +1117,11 @@ export async function start() {
   // holds no USDC in Base mainnet state, so the operator's very first buy came
   // back "insufficient USDC" on a freshly-started fork. Top it up at boot —
   // never on mainnet, where fundOnFork is a no-op by construction.
-  if (IS_FORK) {
+  // Only when the Base venue is the one in hand. On a Solana or X Layer build
+  // there is no fork to fund, and trying produced two alarming lines at every
+  // boot ("fork wallet could NOT be funded", "0/13 reads cached") describing a
+  // chain this run never touches.
+  if (IS_FORK && CHAIN.id === "base") {
     const f = await fundOnFork().catch((e) => ({ funded: false, quoteAsset: e.message }));
     if (f.funded) console.log(`  fork wallet: ${f.usdc?.toFixed(2) ?? "?"} USDC${f.swapped ? " (topped up)" : ""}`);
     else console.log(`  fork wallet could NOT be funded: ${f.quoteAsset || f.reason}`);
