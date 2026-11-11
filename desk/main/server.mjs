@@ -12,6 +12,8 @@
  * Bearer PAD_TOKEN on everything except /health.
  */
 import http from "node:http";
+import { SignalQueue, attachEvents } from "./signals.mjs";
+import { Permissions } from "./permissions.mjs";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -112,7 +114,26 @@ async function chainPrice(symbol) {
 }
 
 export function createServer(mem) {
-  return http.createServer(async (req, res) => {
+  const permissions = new Permissions();
+  const signals = new SignalQueue({
+    gate:async e => {
+      if (!state.armed) return {...e.proposal,verdict:{...e.proposal.verdict,action:'REJECT',sizeUsd:0,ruleId:'signals.disarmed',why:['disarmed — re-arm before trading']}};
+      return propose(e.proposal.signal,await mem.recallBrief());
+    },
+    journal:e => mem.journal(e),
+    announce:async e => {
+      if (!state.armed) throw new Error('disarmed — re-arm before trading');
+      const text = `Auto-accepting ${e.proposal.signal.side} ${e.proposal.signal.symbol} for ${e.proposal.verdict.sizeUsd} dollars.`;
+      if (!process.env.DEEPGRAM_API_KEY) throw new Error('Setup required: DEEPGRAM_API_KEY for auto-accept speech');
+      const pcm = await tts(text);
+      signals.publish({type:'speech',text,pcm:pcm.toString('base64'),sampleRate:16000});
+      note(text);
+    },
+  });
+  signals.on('event',e => {
+    if (e.type === 'signal' && state.pending?.id === e.signal.id && ['refused','expired','executed','failed'].includes(e.signal.state)) state.pending = null;
+  });
+  const srv = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     // Raw chain amounts can be bigints; JSON has no bigint, so
     // serialise them as strings rather than crashing the server.
@@ -154,7 +175,7 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+    const allowedMethods = /^\/signals\/[^/]+\/(?:accept|refuse)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
       ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
@@ -211,7 +232,7 @@ export function createServer(mem) {
         if (sig) {
           const proposal = await propose(sig,brief,{price:market.prices[sig.symbol]});
           verdict = proposal.verdict;
-          state.pending = { sig:proposal.signal, verdict, market, routing:proposal.routing };
+          state.pending = { id:(await signals.create(proposal)).id, sig:proposal.signal, verdict, market, routing:proposal.routing };
           reply = verdict.action === "EXECUTE"
             ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. Press yes to confirm.`
             : `I can't. ${verdict.why.slice(-1)[0]}.`;
@@ -259,6 +280,14 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (url.pathname === '/permissions') return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body));
+      if (url.pathname === '/signals' && req.method === 'GET') return send(200,{signals:signals.list()});
+      const signalAction = url.pathname.match(/^\/signals\/([^/]+)\/(accept|refuse)$/);
+      if (signalAction) {
+        if (!signals.get(signalAction[1])) return send(404,{error:'signal not found'});
+        try { return send(200,await signals[signalAction[2]](signalAction[1])); }
+        catch(e) { return send(409,{error:e.message}); }
+      }
       if (/^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
@@ -270,9 +299,10 @@ export function createServer(mem) {
           market:body.market,outcomeSide:kind==="predict"?side.toLowerCase():undefined,
           sizeUsd:Number(body.size),leverage:Number(body.leverage ?? 1),reason:body.reason || "agent propose tool"};
         const proposal = await propose(sig,await mem.recallBrief());
-        state.pending = {sig:proposal.signal,verdict:proposal.verdict,routing:proposal.routing};
+        const queued = await signals.create(proposal);
+        state.pending = {id:queued.id,sig:proposal.signal,verdict:proposal.verdict,routing:proposal.routing};
         await mem.journal({evaluated:{signal:proposal.signal},acted:{action:proposal.verdict.action,executed:false},forward:{why:proposal.verdict.why}});
-        return send(200,proposal);
+        return send(200,{...proposal,signalId:queued.id,signalState:queued.state});
       }
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/venues") return send(200, { venues: await venues() });
@@ -584,6 +614,7 @@ export function createServer(mem) {
         // no longer exist. Honouring it would execute against forgotten facts,
         // so the wipe invalidates it and the operator has to decide again.
         const dropped = !!state.pending;
+        await signals.cancelAll('signals.memory_wiped');
         state.pending = null;
         note("MEMORY WIPED — the agent has forgotten its limits, positions and rules"
              + (dropped ? "; the pending decision was voided with it" : ""));
@@ -769,12 +800,17 @@ export function createServer(mem) {
 
       if (url.pathname === "/tick" && req.method === "POST") {
         const r = await runOnce(mem, { execute: false });
+        if (r.signal && r.verdict) {
+          const queued = await signals.create({signal:r.signal,verdict:r.verdict,routing:r.routing});
+          r.signalId = queued.id;
+          state.pending = {id:queued.id,sig:r.signal,verdict:r.verdict,routing:r.routing};
+        }
         if (r.fill) { state.lastFill = r.fill; note(`FILL ${r.fill.hash.slice(0, 12)}… ${Number(r.fill.received).toFixed(6)} ${r.fill.receivedSymbol}`); }
         return send(200, r);
       }
 
       if (url.pathname === "/panic" && req.method === "POST") {
-        state.armed = false; state.pending = null;
+        state.armed = false; await signals.cancelAll(); state.pending = null;
         note("PANIC — disarmed, pending cleared");
         return send(200, { armed: false });
       }
@@ -786,7 +822,7 @@ export function createServer(mem) {
         const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","kill","mic"]);
         const asSymbol = !controls.has(raw.toLowerCase()) && (SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
           || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase()));
-        return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body));
+        return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body, signals));
       }
 
       // Wrong-verb requests never reach here — ROUTE_METHODS is enforced
@@ -809,11 +845,14 @@ export function createServer(mem) {
       return send(500, { error: msg.split("\n")[0] });
     }
   });
+  srv.signals = signals;
+  attachEvents(srv,signals,TOKEN);
+  return srv;
 }
 
 /** The deck. Every physical key lands here — and so does every UI click, so a
  *  dead switch never blocks a demo. */
-async function onKey(mem, id, options = {}) {
+async function onKey(mem, id, options = {}, signals) {
   const AGENTS = ["dca", "grid", "momentum", "rebalance", "yield", "risk"];
 
   if (AGENTS.includes(id)) {
@@ -852,7 +891,7 @@ async function onKey(mem, id, options = {}) {
                     sizeUsd: state.sizeUsd, reason: top.rationale, confidence: top.confidence };
       const proposal = await propose(sig,brief,{price:top.price});
       const {verdict,routing} = proposal;
-      state.pending = {sig:proposal.signal,verdict,routing,market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}};
+      state.pending = {id:(await signals.create(proposal)).id,sig:proposal.signal,verdict,routing,market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}};
       note(`${sig.side} ${sig.symbol} $${sig.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
       return { ok: true, scan: r, signal: state.pending.sig, verdict, routing:state.pending.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
     }
@@ -868,7 +907,7 @@ async function onKey(mem, id, options = {}) {
                   sizeUsd: state.sizeUsd, reason: `${id} pressed on the pad`, confidence: 1 };
     const proposal = await propose(sig,brief,{price:market.prices[selected]});
     const {verdict,routing} = proposal;
-    state.pending = {sig:proposal.signal,verdict,market,routing};
+    state.pending = {id:(await signals.create(proposal)).id,sig:proposal.signal,verdict,market,routing};
     // A refusal decided HERE used to leave no trace at all. The journal only
     // ever recorded what the operator rejected by pressing NO — never what the
     // gate itself refused — so the store could not answer "what did you turn
@@ -894,7 +933,11 @@ async function onKey(mem, id, options = {}) {
       note("YES refused — the pad is disarmed");
       return { ok: false, error: "disarmed — re-arm before trading", armed: false };
     }
+    const queued = signals.get(p.id);
+    if (!queued || !['awaiting','accepted'].includes(queued.state)) { state.pending = null; return {ok:false,error:`signal is ${queued?.state || 'unavailable'}`}; }
     state.pending = null;
+    const answered = id === 'yes' ? await signals.accept(p.id) : await signals.refuse(p.id);
+    if (id === 'yes' && answered.state !== 'accepted') return {ok:false,error:answered.proposal.verdict.why.at(-1),...answered.proposal};
     // The answer is the training signal reflection later learns from.
     await mem.journal({
       evaluated: { signal: p.sig, verdict: p.verdict },
@@ -922,14 +965,14 @@ async function onKey(mem, id, options = {}) {
     } catch(e) {return {ok:false,error:e.message};}
   }
 
-  if (id === "base") return onKey(mem, "scan");   // the white key runs the book
+  if (id === "base") return onKey(mem, "scan", {}, signals);   // the white key runs the book
   if (id === "portfolio") return { ok: true, ...(await snapshot(mem)) };
   // Stopping voids the decision on the table as well as disarming — the same
   // as POST /panic. A loaded ✓ left behind a kill switch is exactly what bites:
   // the operator stops, walks away, and a later re-arm makes a decision reasoned
   // from stale prices executable again. Proposing while stopped is still
   // allowed, and THAT proposal is held across a re-arm (see the yes/no branch).
-  if (id === "kill")      { state.armed = false; state.pending = null; note("KILL"); return { ok: true, armed: false }; }
+  if (id === "kill")      { state.armed = false; await signals.cancelAll(); state.pending = null; note("KILL"); return { ok: true, armed: false }; }
   // The physical pad's mic key streams straight to POST /voice; the on-screen
   // one records in the browser and does the same. Neither routes through here,
   // and answering {ok:true} made a dead on-screen key look like it had worked.
@@ -1031,6 +1074,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  '/signals':['GET'], '/permissions':['GET','POST'], '/events':['GET'],
   "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
