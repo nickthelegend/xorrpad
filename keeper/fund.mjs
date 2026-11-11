@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { guard,connectionFor,DEVNET_RPC,MINT } from "./guards.mjs";
 import { publicCreator,readJson,writePublicJson,FUNDING_FILE } from "./paths.mjs";
 export async function ensureFunding({depositUsdc = 50} = {}) {
+  if(!Number.isFinite(depositUsdc) || depositUsdc<=0)throw new Error("KEEPER_DEPOSIT_USDC must be a positive amount");
   const connection=connectionFor();await guard(connection);
   const publicKey=await publicCreator(), owner=new PublicKey(publicKey);
   const ledger=await readJson(FUNDING_FILE,{});
