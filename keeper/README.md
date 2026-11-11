@@ -1,7 +1,9 @@
 # xorrpad devnet keeper
 
-This is a separate process and the only transaction signer in xorrpad. The desk
-continues to return unsigned transactions. The keeper refuses any RPC whose
+This separate process signs only keeper market-creation and resolution
+transactions on devnet. The v1 desk defaults to phone-wallet signing and also
+supports a capped local session wallet; its venue adapters remain unsigned
+builders. The keeper refuses any RPC whose
 genesis hash is not Solana devnet and any collateral other than
 `3WQ8hCqTNwjrh8WzE2XyoZoUrd1miPcwWfMkmFPUMEWZ` (6-decimal mUSDC).
 It checks both before key access and again before each signing/submission.

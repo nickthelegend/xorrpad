@@ -7,10 +7,11 @@ flash; **no recompile to change networks**.
 
 Sketch: [`xorrpad/xorrpad.ino`](xorrpad/xorrpad.ino).
 
-> **Nothing on this pad can move money on its own.** BUY and SELL raise a
-> decision; only ✓ executes it, only while the backend says it is armed, and the
-> same gate answers whether the key was pressed here or on screen. The firmware
-> holds no opinion about limits, positions or what is armed — it asks.
+> **The pad holds no wallet key.** BUY and SELL raise a decision; manual ✓ or
+> explicitly enabled desk auto-accept can advance it through the same memory and
+> permissions gate. The desk executor uses the phone wallet by default, or an
+> opted-in capped session wallet. The firmware asks the backend about limits,
+> positions and armed state; it does not authorize signing itself.
 
 ## What it does
 
@@ -190,14 +191,14 @@ picks the transport**:
 
 | You're… | Enter | Token |
 |---|---|---|
-| on the same Wi-Fi as the Mac | `http://<mac-lan-ip>:8080` (e.g. `http://192.168.1.20:8080`) | blank is fine on a trusted LAN |
+| on the same Wi-Fi as the Mac | `http://<mac-lan-ip>:8710` (e.g. `http://192.168.1.20:8710`) | matching backend token required |
 | anywhere / the pad moves around | `https://<machine>.<tailnet>.ts.net` (Tailscale Funnel) | **required** — Funnel is public |
 
 - **`http://…`** → plain connection. Use the Mac's **LAN IP**, *not* its
   `tailscale ip` (`100.x`) — a bare ESP32 can't route to a tailnet address.
 - **`https://…ts.net`** → TLS, with the Let's Encrypt root pinned (the pad
   verifies the cert, so the token can't be MITM'd). Set the same `PAD_TOKEN` on
-  the backend, which lives in [`desktop/`](../desktop).
+  the backend, which lives in [`desk/`](../desk).
 
 A URL that cannot work is refused at the portal rather than saved — see
 `Provision::validUrl`. Change either later without reflashing: `reset-wifi` over
@@ -247,7 +248,7 @@ firmware. It has two modes over the serial monitor at 115200 baud:
 | "backend not reachable" | Backend running? Right URL? On `http://`, use the Mac's **LAN IP** not `100.x`. Fix with `url <u>` or `reset-wifi` |
 | Works on LAN, fails on the `ts.net` URL | Is `tailscale funnel` running? Does `PAD_TOKEN` match on both sides? (a 401 means the token's wrong/blank) |
 | Portal never opens | Forget/rejoin `xorr-pad-setup`, or browse to `192.168.4.1` |
-| Portal won't take my URL | It needs a scheme: `http://192.168.1.20:8080`, not `192.168.1.20` |
+| Portal won't take my URL | It needs a scheme: `http://192.168.1.20:8710`, not `192.168.1.20` |
 | Amp silent | Check `DIN/BCLK/LRC` wiring and that the amp's **SD pin is tied to 3V3** |
 | Mic captures nothing | Check `SCK/WS/SD`, and tie the INMP441 **L/R pin to GND** |
 | Keys wrong / swapped | Flash `keytest`, run MAP mode, paste the map it prints |
@@ -255,7 +256,7 @@ firmware. It has two modes over the serial monitor at 115200 baud:
 ## What is verified, and what needs the board
 
 Compiled and tested against the real backend on every run of
-[`desktop/test/verify.mjs`](../desktop/test/verify.mjs) section P: the `/pad`
+[`desk/test/verify.mjs`](../desk/test/verify.mjs) section P: the `/pad`
 poll, `/speak`, the key ids, and the voice round trip.
 
 The URL validator is unit-tested. The captive-portal markup is checked in a
