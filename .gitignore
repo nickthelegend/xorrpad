@@ -17,3 +17,9 @@ tools/uipreview/out/
 firmware/build/
 # Loom's local state (event log, attachments, machine config)
 .loom/
+# The keeper's one local devnet key and local operational state.
+/keeper/.keeper-devnet.json
+/keeper/.creator-devnet.json
+/keeper/.funding.json
+/keeper/.run.lock
+/keeper/state/
