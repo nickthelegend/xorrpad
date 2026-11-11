@@ -774,3 +774,60 @@ funded devnet trade check skipped; Pyth's specified history shim returned HTTP
 404, so successful history replay remains unproven. The UI renders those real
 setup/error states. Keeper reads returned no owned markets or published resolutions
 in this run; the UI does not invent evidence or receipts to fill those regions.
+
+## T7 — landing, waitlist and USDC reservations (2026-11-12)
+
+Implemented `site/` as an independent Vite static landing with Vercel Node
+functions. Product visuals are the real `docs/pad.jpg` and desk screenshots,
+converted to WebP. No counters, testimonials, quotes or payment receipts are
+fabricated. No `.env` or secret file was opened and no mainnet transaction,
+push, deployment or release tag was made.
+
+Validation runtime: Node **26.5.0**, npm **11.17.0**, Vite **8.3.8**, Playwright
+**1.65.0** / Chromium. Deployment requires Node 22.12+ or 24+ as documented.
+
+| Check | Result |
+| --- | --- |
+| `npm test --prefix site` | **14 passed, 0 failed, 0 skipped** |
+| `npm run test:ui --prefix site` | **2 viewport checks passed**, 1440 and 375 px |
+| `npm run format:check --prefix site` | Passed |
+| `npm run build --prefix site` | Passed; independent `site/dist` output |
+| `npm audit --prefix site` | **0 vulnerabilities** |
+| Real devnet read-only probe | Genesis hash matched; Solana Pay `findReference` returned no transaction for a fresh generated public reference |
+
+API tests exercise actual HTTP handlers on loopback 8718. They cover normalized
+email validation, malicious/oversized bodies, honeypot rejection, methods, exact
+missing-Upstash responses without a fabricated count, missing price/merchant/
+terms, invalid setup, explicit terms acceptance, reference validation, Solana Pay
+URL round-trip at six USDC decimals, immutable expectations across config changes,
+and the trusted hashed rate-limit identity. There are no Redis or RPC mocks,
+intercepted APIs, or simulated successful payments. Generated keys are public
+correlation/config-validation inputs, never funded wallets or published offers.
+
+The browser check runs the actual local site/API on 8719, verifies signup errors
+preserve the email and re-enable the button, confirms **Pre-orders open soon**
+stays disabled, opens/closes the FAQ, and records the real setup messages. Final
+[1440 capture](docs/screens/v1/site/landing-1440.png),
+[375 capture](docs/screens/v1/site/landing-375.png) and
+[manifest](docs/screens/v1/site/manifest.json): **0 document overflows, 0 broken
+images, 0 clipped form controls, 0 runtime errors**. Browser/server close at exit.
+A bounded visual review inspected both widths; its payment-retry and configured-
+terms-copy findings were corrected and scored resolved in a source verdict pass.
+The design detector used a degraded regex fallback; computed contrast was not
+certified by that tool.
+
+Reservation state is saved in Redis before issuing a Solana Pay URL, including
+the accepted terms version, price, merchant, network and pinned USDC mint. Payment
+status uses `findReference` plus `validateTransfer` at finalized commitment and
+an atomic signature claim. Failed or mismatched oldest attempts do not block a
+valid retry among up to 20 recent candidates; references with more spam may need
+manual reconciliation. Pending reloads restore the saved URL/QR; confirmed
+receipts hide the payment action. Neither API signs nor submits transactions.
+
+Live limits: no Upstash credentials, approved reservation price/merchant or
+Nick-authored terms were configured for this task. Real signup persistence,
+rate-limit exhaustion, merchant account verification and a **funded devnet USDC
+payment/receipt remain unverified**. The read-only devnet probe is not a payment
+cycle. Production/Preview deployment, security-header enforcement on Vercel,
+configured checkout/QR with a wallet and fulfillment/refunds require the handoff
+in [site/README.md](site/README.md). Nothing was deployed or pushed.

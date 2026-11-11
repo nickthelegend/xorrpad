@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 8717 --strictPort",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 8717 --strictPort"
+    "preview": "vite preview --host 127.0.0.1 --port 8717 --strictPort",
+    "test": "node --test test/*.test.mjs",
+    "test:ui": "node test/ui.mjs",
+    "format:check": "prettier --check index.html src api server test vite.config.js vercel.json"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "5.3.0",
@@ -22,6 +25,11 @@
     "@solana/kit-plugin-rpc": "0.11.1",
     "@solana/kit-plugin-signer": "0.10.0",
     "@solana/pay": "1.0.26",
+    "qrcode": "1.5.4",
     "vite": "8.3.8"
+  },
+  "devDependencies": {
+    "playwright": "1.65.0",
+    "prettier": "3.10.0"
   }
 }

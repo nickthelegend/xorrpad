@@ -26,3 +26,6 @@ The disconnected hardware and absent chat history are intentional truthful state
 
 These 26 PNGs are original screenshots of this implementation. None of the
 internal design-reference artwork was copied into the repository.
+
+T7's separate landing captures at 1440 and 375 are documented in
+[site/README.md](site/README.md), alongside their own measured manifest.

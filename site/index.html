@@ -4,31 +4,390 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f2eee5" />
-    <meta name="description" content="Meet xorrpad: a physical trading pad and desktop workspace for Solana. Explore the prototype and join the hardware waitlist." />
+    <meta
+      name="description"
+      content="Meet xorrpad: a physical trading pad and desktop workspace for Solana. Explore the prototype and join the hardware waitlist."
+    />
     <title>xorrpad — Put your next move in your hands.</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="wrap masthead">
-      <a class="wordmark" href="#" aria-label="xorrpad home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h7l4 7 4-7h7l-7 11 7 11h-7l-4-7-4 7H5l7-11Z" fill="currentColor"/></svg>xorrpad<span>®</span></a>
-      <nav aria-label="Main navigation"><a href="#how">The system</a><a href="#specs">The hardware</a><a class="nav-cta" href="#waitlist">Join the waitlist <span aria-hidden="true">↗</span></a></nav>
+      <a class="wordmark" href="#" aria-label="xorrpad home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5 5h7l4 7 4-7h7l-7 11 7 11h-7l-4-7-4 7H5l7-11Z"
+            fill="currentColor"
+          /></svg
+        >xorrpad</a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#how">The system</a><a href="#specs">The hardware</a
+        ><a class="nav-cta" href="#waitlist"
+          >Join the waitlist <span aria-hidden="true">↗</span></a
+        >
+      </nav>
     </header>
     <main id="main">
       <section class="wrap hero" aria-labelledby="hero-title">
-        <div class="hero-copy"><h1 id="hero-title">Your next move.<br><em>In your hands.</em></h1><p>A physical pad for your Solana trading desk. Put proposals, permissions and the decision to act within reach.</p><a class="button" href="#waitlist">Get on the list <span aria-hidden="true">↗</span></a><p class="small release-note">Working toward v1. Prototype shown. Manufacturing comes next.</p></div>
-        <figure class="prototype"><div class="photo-mat"><img src="/assets/pad.webp" width="282" height="340" alt="The real xorrpad prototype: white and colored physical keys below a blue screen housing, with exposed wiring on a workbench" fetchpriority="high" /></div><figcaption><span>Built on the workbench.</span><span>Workbench prototype / ESP32-S3</span></figcaption></figure>
-        <div class="hero-baseline"><span>One pad. One desk. Your decision.</span><a href="#how">Explore the system <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-copy">
+          <h1 id="hero-title">Your next move.<br /><em>In your hands.</em></h1>
+          <p>
+            A physical pad for your Solana trading desk. Put proposals,
+            permissions and the decision to act within reach.
+          </p>
+          <a class="button" href="#waitlist"
+            >Get on the list <span aria-hidden="true">↗</span></a
+          >
+          <p class="small release-note">
+            Working toward v1. Prototype shown. Manufacturing comes next.
+          </p>
+        </div>
+        <figure class="prototype">
+          <div class="photo-mat">
+            <img
+              src="/assets/pad.webp"
+              width="282"
+              height="340"
+              alt="The real xorrpad prototype: white and colored physical keys below a blue screen housing, with exposed wiring on a workbench"
+              fetchpriority="high"
+            />
+          </div>
+          <figcaption>
+            <span>Built on the workbench.</span
+            ><span>Workbench prototype / ESP32-S3</span>
+          </figcaption>
+        </figure>
+        <div class="hero-baseline">
+          <a class="desk-preview" href="#how"
+            ><img
+              src="/assets/desk-trade.webp"
+              width="1440"
+              height="1434"
+              alt="Actual XOR desk interface; see the larger capture below"
+            /><span>One pad. One desk.<br />Your decision.</span></a
+          >
+          <a href="#how"
+            >Explore the system <span aria-hidden="true">↓</span></a
+          >
+        </div>
       </section>
-      <section class="system" id="how"><div class="wrap"><div class="section-intro"><h2>A small pad.<br>A bigger picture.</h2><p>The keys are just the beginning. The desk connects your intent to quotes, checks and a wallet signature.</p></div><ol class="flow"><li><span class="flow-number">1 / PAD</span><h3>Make your move.</h3><p>Use a key, a voice command or the desk to create a trade proposal. Connect the pad over USB, Wi-Fi or BLE; physical radio testing is still ahead.</p></li><li><span class="flow-number">2 / DESK</span><h3>See the whole trade.</h3><p>Compare available routes, review fees and run the proposal through your permission gate. Bring your own model and provider keys.</p></li><li><span class="flow-number">3 / VENUES</span><h3>Choose. Then sign.</h3><p>Accept or refuse the proposal. Phone-wallet signing is the default; an optional funded session wallet operates within your caps.</p></li></ol><figure class="desk-shot"><img src="/assets/desk-trade.webp" width="1440" height="1434" alt="Actual XOR desk Trade screen showing the venue directory, route comparison and order ticket" loading="lazy" /><figcaption>Inside the real desk app · captured November 12, 2026 · historical prices, not current quotes</figcaption></figure></div></section>
-      <section class="wrap venues" id="venues"><div class="section-intro"><h2>Different markets.<br>One workspace.</h2><p>Availability depends on the venue, liquidity and your account. A quote is a proposal, never a promise of a fill.</p></div><dl class="venue-list"><div><dt>Jupiter <span>Spot</span></dt><dd>Spot aggregation across supported routes, including Meteora, Orca, Raydium and Phoenix spot.</dd></div><div><dt>Meteora <span>DLMM</span></dt><dd>Direct USDC pool discovery and quotes. Mainnet unsigned swap construction for your wallet.</dd></div><div><dt>Phoenix <span>Perpetuals</span></dt><dd>Mainnet reads and unsigned order builds. A registered, funded trader account is required.</dd></div><div><dt>Jupiter Perps <span>Perpetuals</span></dt><dd>Mainnet reads and indicative quotes. Funded account setup is required for order building.</dd></div><div><dt>pm-AMM <span>Outcomes</span></dt><dd>Devnet outcome markets using test mUSDC. This integration is not a mainnet prediction-market launch.</dd></div></dl></section>
-      <section class="safety" id="safety"><div class="wrap safety-layout"><div><h2>Fast hands.<br>Deliberate decisions.</h2><p>Every proposal passes through a gate before signing. Set per-trade and daily caps, leverage limits, venue and market allowlists, and a cooldown.</p><p>Manual acceptance is the default. Auto-accept is off until enabled under your policy, and each automatic acceptance is logged and spoken.</p><p>Trading can lose money. Permission limits reduce what the app may do; they do not eliminate market or execution risk.</p><a class="text-link" href="#faq">Understand the safety model <span aria-hidden="true">↗</span></a></div><figure><img src="/assets/desk-permissions.webp" width="1440" height="1352" alt="Actual desk Permissions screen with auto-accept disabled and trading limits" loading="lazy" /><figcaption>Your rules live in the desk. Real application capture.</figcaption></figure></div></section>
-      <section class="wrap specs" id="specs"><h2>Built for the desk.<br>Still on the bench.</h2><div><dl class="spec-list"><div><dt>At the core</dt><dd>ESP32-S3</dd></div><div><dt>Under your fingers</dt><dd>14 keys + rotary knob</dd></div><div><dt>In view</dt><dd>2.8-inch TFT display</dd></div><div><dt>For your voice</dt><dd>Microphone + amplifier</dd></div><div><dt>Connections</dt><dd>USB-C serial · Wi-Fi · BLE GATT</dd></div><div><dt>Companion</dt><dd>XOR desktop + XOR phone app integration</dd></div></dl><p class="small">Prototype specification, subject to revision before manufacturing. Firmware is compiled, not yet flashed in this verification pass. Hardware and complete phone integration still need end-to-end testing.</p></div></section>
-      <section class="join" id="waitlist"><div class="wrap join-layout"><div><h2>Be here<br>for the next move.</h2><p>Join the hardware waitlist for progress and availability updates. No payment to join.</p><p id="waitlist-count" class="small" aria-live="polite">The waitlist count will appear when the signup service is connected.</p></div><form id="waitlist-form"><label for="email">Your email</label><div class="email-row"><input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required /><button type="submit" disabled>Join the waitlist <span aria-hidden="true">↗</span></button></div><div class="honeypot" aria-hidden="true"><label for="website">Leave this field empty</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div><p class="small">We store your email to manage the waitlist. Joining does not reserve a device.</p><p id="waitlist-message" class="form-message" role="status">Signup service is not connected yet.</p></form></div></section>
-      <section class="wrap preorder" id="preorder"><h2>A place at the desk.</h2><div><p>USDC reservations via Solana Pay will open after the price, merchant and reservation terms are published. A reservation is separate from the free waitlist.</p><p id="preorder-terms" class="small">Refund policy: pending. Nick must publish the reservation and refund terms at PREORDER_TERMS_URL before any payment is enabled. No shipping date is promised.</p><label id="terms-consent" class="consent" hidden><input id="accept-terms" type="checkbox" /> I have read and accept the reservation and refund terms.</label><button id="preorder-button" disabled>Pre-orders open soon</button><p id="preorder-message" class="form-message" role="status">Reservations are not open yet.</p><div id="payment" hidden><p id="payment-details"></p><a id="payment-link" class="button">Open in Solana Pay wallet <span aria-hidden="true">↗</span></a><p class="small">Review the network, USDC amount and recipient in your wallet. Save your reference to check this reservation again.</p><p id="payment-reference" class="reference"></p><button id="payment-check" type="button">Check payment</button></div></div></section>
-      <section class="wrap faq" id="faq"><h2>A few things<br>to know.</h2><div><details><summary>Can I buy a finished device today?</summary><p>No. This is a workbench prototype. The order of work is a working ESP32-S3 demo, then waitlist and reservations, then bulk manufacturing. There is no promised ship date.</p></details><details><summary>Does the pad hold my wallet keys?</summary><p>The pad sends intent to the desk. The default signing path is your phone wallet. The optional session wallet is held by Electron safeStorage on the desktop and must be explicitly created and funded. Never share a seed phrase through this site.</p></details><details><summary>Can it trade automatically?</summary><p>Auto-accept is off by default and constrained by your permission policy. Acceptance and signing are separate steps. Mainnet session signing needs the explicit real-funds acknowledgement in the desk.</p></details><details><summary>Do I need an AI subscription?</summary><p>v1 uses your own model and keys, such as a local Ollama model or a supported provider. Voice uses Deepgram credentials. A paid hosted model subscription is outside v1.</p></details><details><summary>What are the reservation and refund terms?</summary><p>They are not published yet. Nick must write and publish them at PREORDER_TERMS_URL. Payments stay disabled until the terms, price and merchant are configured. Read the published terms before reserving.</p></details></div></section>
+      <section class="system" id="how">
+        <div class="wrap">
+          <div class="section-intro">
+            <h2>A small pad.<br />A bigger picture.</h2>
+            <p>
+              The keys are just the beginning. The desk connects your intent to
+              quotes, checks and a wallet signature.
+            </p>
+          </div>
+          <ol class="flow">
+            <li>
+              <span class="flow-number">1 / PAD</span>
+              <h3>Make your move.</h3>
+              <p>
+                Use a key, a voice command or the desk to create a trade
+                proposal. Connect the pad over USB, Wi-Fi or BLE; physical radio
+                testing is still ahead.
+              </p>
+            </li>
+            <li>
+              <span class="flow-number">2 / DESK</span>
+              <h3>See the whole trade.</h3>
+              <p>
+                Compare available routes, review fees and run the proposal
+                through your permission gate. Bring your own model and provider
+                keys.
+              </p>
+            </li>
+            <li>
+              <span class="flow-number">3 / VENUES</span>
+              <h3>Choose. Then sign.</h3>
+              <p>
+                Accept or refuse the proposal. Phone-wallet signing is the
+                default; an optional funded session wallet operates within your
+                caps.
+              </p>
+            </li>
+          </ol>
+          <figure class="desk-shot">
+            <img
+              src="/assets/desk-trade.webp"
+              width="1440"
+              height="1434"
+              alt="Actual XOR desk Trade screen showing the venue directory, route comparison and order ticket"
+              loading="lazy"
+            />
+            <figcaption>
+              Inside the real desk app · captured November 12, 2026 · historical
+              prices, not current quotes
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+      <section class="wrap venues" id="venues">
+        <div class="section-intro">
+          <h2>Different markets.<br />One workspace.</h2>
+          <p>
+            Availability depends on the venue, liquidity and your account. A
+            quote is a proposal, never a promise of a fill.
+          </p>
+        </div>
+        <dl class="venue-list">
+          <div>
+            <dt>Jupiter <span>Spot</span></dt>
+            <dd>
+              Spot aggregation across supported routes, including Meteora, Orca,
+              Raydium and Phoenix spot.
+            </dd>
+          </div>
+          <div>
+            <dt>Meteora <span>DLMM</span></dt>
+            <dd>
+              Direct USDC pool discovery and quotes. Mainnet unsigned swap
+              construction for your wallet.
+            </dd>
+          </div>
+          <div>
+            <dt>Phoenix <span>Perpetuals</span></dt>
+            <dd>
+              Mainnet reads and unsigned order builds. A registered, funded
+              trader account is required.
+            </dd>
+          </div>
+          <div>
+            <dt>Jupiter Perps <span>Perpetuals</span></dt>
+            <dd>
+              Mainnet reads and indicative quotes. Funded account setup is
+              required for order building.
+            </dd>
+          </div>
+          <div>
+            <dt>pm-AMM <span>Outcomes</span></dt>
+            <dd>
+              Devnet outcome markets using test mUSDC. This integration is not a
+              mainnet prediction-market launch.
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <section class="safety" id="safety">
+        <div class="wrap safety-layout">
+          <div>
+            <h2>Fast hands.<br />Deliberate decisions.</h2>
+            <p>
+              Every proposal passes through a gate before signing. Set per-trade
+              and daily caps, leverage limits, venue and market allowlists, and
+              a cooldown.
+            </p>
+            <p>
+              Manual acceptance is the default. Auto-accept is off until enabled
+              under your policy, and each automatic acceptance is logged and
+              spoken.
+            </p>
+            <p>
+              Trading can lose money. Permission limits reduce what the app may
+              do; they do not eliminate market or execution risk.
+            </p>
+            <a class="text-link" href="#faq"
+              >Understand the safety model <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <figure>
+            <img
+              src="/assets/desk-permissions.webp"
+              width="1440"
+              height="1352"
+              alt="Actual desk Permissions screen with auto-accept disabled and trading limits"
+              loading="lazy"
+            />
+            <figcaption>
+              Your rules live in the desk. Real application capture.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+      <section class="wrap specs" id="specs">
+        <h2>Built for the desk.<br />Still on the bench.</h2>
+        <div>
+          <dl class="spec-list">
+            <div>
+              <dt>At the core</dt>
+              <dd>ESP32-S3</dd>
+            </div>
+            <div>
+              <dt>Under your fingers</dt>
+              <dd>14 keys + rotary knob</dd>
+            </div>
+            <div>
+              <dt>In view</dt>
+              <dd>2.8-inch TFT display</dd>
+            </div>
+            <div>
+              <dt>For your voice</dt>
+              <dd>Microphone + amplifier</dd>
+            </div>
+            <div>
+              <dt>Connections</dt>
+              <dd>USB-C serial · Wi-Fi · BLE GATT</dd>
+            </div>
+            <div>
+              <dt>Companion</dt>
+              <dd>XOR desktop + XOR phone app integration</dd>
+            </div>
+          </dl>
+          <p class="small">
+            Prototype specification, subject to revision before manufacturing.
+            Firmware is compiled, not yet flashed in this verification pass.
+            Hardware and complete phone integration still need end-to-end
+            testing.
+          </p>
+        </div>
+      </section>
+      <section class="join" id="waitlist">
+        <div class="wrap join-layout">
+          <div>
+            <h2>Be here<br />for the next move.</h2>
+            <p>
+              Join the hardware waitlist for progress and availability updates.
+              No payment to join.
+            </p>
+            <p id="waitlist-count" class="small" aria-live="polite">
+              The waitlist count will appear when the signup service is
+              connected.
+            </p>
+          </div>
+          <form id="waitlist-form">
+            <label for="email">Your email</label>
+            <div class="email-row">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                maxlength="254"
+                placeholder="you@example.com"
+                required
+              /><button type="submit" disabled>
+                Join the waitlist <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+            <div class="honeypot" aria-hidden="true">
+              <label for="website">Leave this field empty</label
+              ><input
+                id="website"
+                name="website"
+                tabindex="-1"
+                autocomplete="off"
+              />
+            </div>
+            <p class="small">
+              We store your email to manage the waitlist. Joining does not
+              reserve a device.
+            </p>
+            <p id="waitlist-message" class="form-message" role="status">
+              Signup service is not connected yet.
+            </p>
+          </form>
+        </div>
+      </section>
+      <section class="wrap preorder" id="preorder">
+        <h2>A place at the desk.</h2>
+        <div>
+          <p id="preorder-intro">
+            USDC reservations via Solana Pay will open after the price, merchant
+            and reservation terms are published. A reservation is separate from
+            the free waitlist.
+          </p>
+          <p id="preorder-terms" class="small">
+            Refund policy: pending. Nick must publish the reservation and refund
+            terms at PREORDER_TERMS_URL before any payment is enabled. No
+            shipping date is promised.
+          </p>
+          <label id="terms-consent" class="consent" hidden
+            ><input id="accept-terms" type="checkbox" /> I have read and accept
+            the reservation and refund terms.</label
+          ><button id="preorder-button" disabled>Pre-orders open soon</button>
+          <p id="preorder-message" class="form-message" role="status">
+            Reservations are not open yet.
+          </p>
+          <div id="payment" hidden>
+            <p id="payment-details"></p>
+            <canvas
+              id="payment-qr"
+              width="220"
+              height="220"
+              role="img"
+              aria-label="Scan this Solana Pay reservation with your wallet"
+              hidden
+            ></canvas
+            ><a id="payment-link" class="button"
+              >Open in Solana Pay wallet <span aria-hidden="true">↗</span></a
+            >
+            <p class="small">
+              Review the network, USDC amount and recipient in your wallet. Save
+              your reference to check this reservation again.
+            </p>
+            <p id="payment-reference" class="reference"></p>
+            <button id="payment-check" type="button">Check payment</button>
+          </div>
+        </div>
+      </section>
+      <section class="wrap faq" id="faq">
+        <h2>A few things<br />to know.</h2>
+        <div>
+          <details>
+            <summary>Can I buy a finished device today?</summary>
+            <p>
+              No. This is a workbench prototype. The order of work is a working
+              ESP32-S3 demo, then waitlist and reservations, then bulk
+              manufacturing. There is no promised ship date.
+            </p>
+          </details>
+          <details>
+            <summary>Does the pad hold my wallet keys?</summary>
+            <p>
+              The pad sends intent to the desk. The default signing path is your
+              phone wallet. The optional session wallet is held by Electron
+              safeStorage on the desktop and must be explicitly created and
+              funded. Never share a seed phrase through this site.
+            </p>
+          </details>
+          <details>
+            <summary>Can it trade automatically?</summary>
+            <p>
+              Auto-accept is off by default and constrained by your permission
+              policy. Acceptance and signing are separate steps. Mainnet session
+              signing needs the explicit real-funds acknowledgement in the desk.
+            </p>
+          </details>
+          <details>
+            <summary>Do I need an AI subscription?</summary>
+            <p>
+              v1 uses your own model and keys, such as a local Ollama model or a
+              supported provider. Voice uses Deepgram credentials. A paid hosted
+              model subscription is outside v1.
+            </p>
+          </details>
+          <details>
+            <summary>What are the reservation and refund terms?</summary>
+            <p id="faq-terms">
+              They are not published yet. Nick must write and publish them at
+              PREORDER_TERMS_URL. Payments stay disabled until the terms, price
+              and merchant are configured. Read the published terms before
+              reserving.
+            </p>
+          </details>
+        </div>
+      </section>
     </main>
-    <footer class="wrap footer"><a class="wordmark" href="#">xorrpad</a><p>A physical way into your trading desk.</p><a href="#waitlist">Stay in the loop <span aria-hidden="true">↗</span></a><span>v1.0.0 · Prototype in progress</span></footer>
+    <footer class="wrap footer">
+      <a class="wordmark" href="#">xorrpad</a>
+      <p>A physical way into your trading desk.</p>
+      <a href="#waitlist">Stay in the loop <span aria-hidden="true">↗</span></a
+      ><span>v1.0.0 · Prototype in progress</span>
+    </footer>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

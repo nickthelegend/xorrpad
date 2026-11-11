@@ -4,6 +4,15 @@ Standalone Vite static site with three Vercel Node serverless functions. The
 landing is independent of Electron. No deploy or payment submission was made
 while implementing T7.
 
+## Design
+
+The premium paper/editorial landing pairs generous spacing, oversized headings and fine rules with restrained, nearly square controls.
+Real prototype photography and desk captures anchor the page; OFL-licensed Manrope Variable is self-hosted through Fontsource.
+Core palette: paper `#f2eee5`, ink `#242d29`, action blue `#233fc4`, rules `#c8c8bc` and muted text `#586057`.
+Supporting surfaces use photo mat `#d9d5c9`, system `#e5e5da`, safety `#26352e` and waitlist `#d9dfbb`.
+Desktop uses a split hero and paired editorial columns within a 1280px maximum; spacing tightens at 1000px and layouts stack at 650px.
+Accessibility includes a skip link, descriptive image text, labeled forms, native FAQ details and visible keyboard focus; reduced motion removes transitions and smooth scrolling.
+
 ## Local development
 
 Use Node 22.12+ or 24+ and run from `site/`:
@@ -103,6 +112,34 @@ Rate limits use atomic Redis INCR/EXPIRE and SHA-256 IP keys with expiring windo
 60 status reads per minute. Vercel's protected `x-vercel-forwarded-for` header is
 used in deployment; the local bridge uses the socket IP. All API responses are
 `no-store`. Upstream errors are redacted, never logged with tokens or RPC URLs.
+
+Payment retries are checked against the oldest referenced transaction and up to
+20 recent finalized candidates. Failed or mismatched attempts do not hide a
+valid retry within that window. Heavily spammed references may require manual
+reconciliation. RPC work has a 12-second deadline; an upstream timeout never
+becomes a confirmed receipt. Reloading a pending reservation restores its saved
+wallet URL and QR code rather than creating another order.
+
+## Checks
+
+```sh
+npm test
+npx playwright install chromium
+npm run test:ui
+npm run format:check
+npm run build
+npm audit
+```
+
+`npm test` exercises 14 groups through real HTTP handlers, covering validation,
+honeypot, body size/content type, methods, missing configuration, reference and
+Solana Pay URL generation, immutable expectations, and trusted rate-limit identity.
+It does not stub Redis, RPC, quotes or payment responses. Browser checks use the
+actual local API at 1440 and 375 px, verify honest setup errors, signup error
+recovery, disabled reservations, working FAQ and layout. Captures and measured
+results are in `../docs/screens/v1/site/`; `../TESTING.md` records the run and
+live verification limits. Tests clear deployment variable names in their isolated
+process and never open an env file. The browser/server close in `finally`.
 
 ## Assets and evidence
 

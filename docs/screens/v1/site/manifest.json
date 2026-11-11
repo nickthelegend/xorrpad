@@ -1,0 +1,37 @@
+{
+  "capturedAt": "2026-11-11T22:52:34.915Z",
+  "source": "real Vite site and API handlers; no interception or business fixtures",
+  "captures": [
+    {
+      "width": 1440,
+      "filename": "landing-1440.png",
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "brokenImages": 0,
+      "clippedControls": 0,
+      "setupStates": [
+        "UPSTASH_REDIS_REST_URL",
+        "PREORDER_PRICE_USDC"
+      ],
+      "signupErrorPreservesInput": true,
+      "preorderDisabled": true,
+      "faqWorks": true
+    },
+    {
+      "width": 375,
+      "filename": "landing-375.png",
+      "viewport": 375,
+      "documentWidth": 375,
+      "brokenImages": 0,
+      "clippedControls": 0,
+      "setupStates": [
+        "UPSTASH_REDIS_REST_URL",
+        "PREORDER_PRICE_USDC"
+      ],
+      "signupErrorPreservesInput": true,
+      "preorderDisabled": true,
+      "faqWorks": true
+    }
+  ],
+  "runtimeErrors": []
+}
