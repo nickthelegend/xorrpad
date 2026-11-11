@@ -12,6 +12,7 @@
  * Bearer PAD_TOKEN on everything except /health.
  */
 import http from "node:http";
+import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
@@ -174,6 +175,12 @@ export function createServer(mem) {
       if (given !== TOKEN) return send(401, { error: "bad pad token" });
     }
 
+    if (url.pathname === '/padlink') {
+      if (req.method !== 'POST') return send(405,{error:'use POST NDJSON or WebSocket'});
+      return srv.padlink.http(req,res,url.searchParams.get('device'));
+    }
+    if (url.pathname === '/pad/keymap' && req.method === 'GET') return send(200,srv.padlink.keymap);
+
     // A known path reached with the wrong verb is 405, not 404. Answering
     // "no such route" for `POST /pad` is a lie — the route exists — and it
     // sends the caller looking for a missing endpoint instead of a wrong
@@ -291,6 +298,9 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (url.pathname === '/pad/keymap') {
+        try {return send(200,srv.padlink.setKeymap(body));} catch(e) {return send(400,{error:e.message});}
+      }
       if (url.pathname === '/events') {res.setHeader('Upgrade','websocket'); return send(426,{error:'use WebSocket at /events'});}
       if (url.pathname === '/permissions') {
         try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
@@ -882,6 +892,13 @@ export function createServer(mem) {
   srv.signals = signals;
   srv.executor = executor;
   attachEvents(srv,signals,TOKEN);
+  let padBrief=null;
+  const refreshPadBrief=() => mem.recallBrief().then(b => {padBrief=b;}).catch(() => {padBrief=null;});
+  refreshPadBrief();const padBriefTimer=setInterval(refreshPadBrief,5000);padBriefTimer.unref();
+  srv.once('close',() => clearInterval(padBriefTimer));
+  srv.padlink = new PadLink({token:TOKEN,signals,status:() => ({armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
+    agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
+  srv.padlink.bind(srv);
   return srv;
 }
 
@@ -1094,7 +1111,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
-  '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
@@ -1149,6 +1166,7 @@ export async function start() {
     }
   }
   await assertNeverSigns();
+  await srv.padlink.discover();
 
   // A listener from here on keeps a late socket error from taking the app down.
   srv.on("error", (e) => console.error("[server]", e.message));

@@ -88,6 +88,7 @@ export function attachEvents(server, queue, token) {
     handleProtocols:protocols => protocols.has('xorrpad') ? 'xorrpad' : false});
   server.on('upgrade', (req,socket,head) => {
     const url = new URL(req.url,'http://localhost');
+    if (url.pathname === '/padlink') return; // owned by the pad protocol bridge
     const auth = req.headers.authorization || '';
     const protocols = String(req.headers['sec-websocket-protocol'] || '').split(',').map(s => s.trim());
     const given = auth.startsWith('Bearer ') ? auth.slice(7) : req.headers['x-pad-token'] ||
