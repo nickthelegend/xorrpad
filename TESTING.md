@@ -338,3 +338,84 @@ Post-compaction regression run:
 **11 tests, 11 passed, 0 failed, 0 skipped**. This rechecked every catalog mint,
 duplicate ticker handling, the desk gate, exact keeper expiry interpretation,
 key isolation and the real devnet guard after the snapshot/schema change.
+
+## v1 T1 — unified Solana aggregator
+
+Measured 2026-11-12 (Asia/Kolkata), Node **26.5.0**. Venue APIs and Solana
+RPC were called directly. No mocked venue responses, mainnet sends, signing,
+secret files or `.env` loading were used. Servers were closed after each test.
+
+| Run | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| Final `npm test --prefix desk` | 37 | 32 | 0 | 5 |
+| T1 targeted: `node --test desk/test/aggregate.test.mjs desk/test/aggregate.live.test.mjs desk/test/aggregate.http.test.mjs` | 11 | 10 | 0 | 1 |
+| Gate and adapter regression subset: `node --test desk/test/aggregate.test.mjs desk/test/pmamm.test.mjs desk/test/phoenix.test.mjs` | 11 | 11 | 0 | 0 |
+
+The five required T1 venue checks all passed in both the targeted and full
+runs: Jupiter SOL spot, Meteora SOL spot, Phoenix SOL perp (both sides),
+Jupiter SOL perp (both sides), and pm-AMM live market discovery. A real
+pm-AMM outcome also routed and quoted on devnet. The error-path test used a
+sub-unit input, retained both actual venue errors, and returned `best:null`.
+
+Final-run evidence (prices are snapshots, not current offers):
+
+| Venue | Observed quote / discovery |
+|---|---|
+| Jupiter spot | 10 USDC → **0.117705895 SOL**, execution **$84.957512111**; separately itemized fees and liquidity unavailable, explicitly null |
+| Meteora DLMM | 10 USDC → **0.117598880 SOL**, execution **$85.034823461**, included fee **$0.003713**, API pool TVL **$3,747,421.41** |
+| Phoenix SOL | long **$85.04**, opening fee **$0.006845720**; short **$85.03**, opening fee **$0.006844915**; $10 collateral at 2×, lot-rounded |
+| Jupiter SOL perp | live mark **$84.963423790**, indicative opening/impact fees **$0.014** on $20 notional; JLP AUM **$759,348,770.9034** |
+| pm-AMM | **95** live devnet mUSDC markets; a liquid YES outcome routed successfully |
+
+The actual `/venues` response reported **7,549 Jupiter catalog identities**,
+**6,985 distinct Meteora USDC-pair mints**, **109 Phoenix markets**, **3 Jupiter
+Perps markets**, and **95 pm-AMM markets**. Discovery is live and counts can
+change even between adjacent runs. Jupiter's count is labelled as the pinned
+catalog, with a separate real SOL quote health probe. See
+[venue scope, quote semantics and signing status](docs/VENUES.md#t1-unified-aggregator).
+
+Additional integration evidence:
+
+- The HTTP suite used **127.0.0.1:8717** and verified authentication, allowed
+  methods, invalid intents, all five venue health entries, BUY/SELL/LONG/SHORT,
+  the agent `/propose` endpoint and the existing $10 remembered size cap.
+- Changing the remembered allowlist after proposing caused YES to rerun the
+  gate and refuse the handoff. No transaction was built. The check also caught
+  and fixed the catalog `YES` ticker intercepting the confirm control.
+- Unit coverage retains market/rule/day caps and adds venue, leverage,
+  cooldown, invalid-size and refused-build checks. The existing registry
+  signing assertion now includes both added venues; no assertion was removed.
+  The original memory/load-bearing tests passed unchanged.
+- A standalone real Meteora quote and SDK build produced a **765-byte**,
+  **5-instruction**, unsigned mainnet transaction for an explicit throwaway
+  public owner. Deserialization confirmed the owner as fee payer and all
+  signatures empty. The SDK compute estimate reported `AccountNotFound` for
+  that unfunded owner, then returned the unsigned transaction. This proves
+  construction only, not a successful execution or simulation.
+- Jupiter Perps decoded real Pool/Custody accounts, including SOL/ETH/BTC marks,
+  available reserves, 500× venue maximums, and distinct long/USDC-short borrow
+  rates. A separate observed snapshot at slot **468263468** gave SOL hourly
+  borrow rate **0.000015684** and USDC-short hourly rate **0.000007739** (fractions).
+  These rates are not locked. Anonymous quotes are explicitly indicative and
+  exclude collateral conversion, rent and network costs.
+- Jupiter's official unsigned-build API returned **HTTP 422 insufficient_funds**
+  for an unfunded on-curve public owner. Funded-owner open and close success is
+  **not verified**. Builders require an explicit funded public owner; no
+  corresponding secret key was generated or used for the probes.
+
+Exact final full-suite skips:
+
+1. The extra Meteora unsigned-build test hit public mainnet RPC **429**.
+2. Existing Phoenix successful simulation needed a registered funded trader;
+   the real simulation returned **AccountNotFound**.
+3. Existing Phoenix actual-position/close check needed that funded trader.
+4. Existing pm-AMM successful simulation needed devnet SOL/mUSDC; the RPC
+   faucet returned **HTTP 410**.
+5. Existing expanded SOL/HYPE spot test quoted SOL, then the HYPE mint-decimal
+   RPC read hit **HTTP 429**.
+
+The added live tests skip only printed network/service unavailability reasons;
+invalid inputs, missing listings, invalid quote math and assertions fail tests.
+The only skip in the targeted 11-test run was the extra Meteora build's RPC
+429. No required two-venue quote check was skipped. No pad firmware was
+changed, compiled or flashed as part of T1.

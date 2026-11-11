@@ -2,7 +2,8 @@
 
 Observed 2026-11-12 (Asia/Kolkata). Phoenix is the chosen perps venue. This
 confirms the existing decision; Drift is excluded by the project brief and
-Jupiter Perps remains an optional second venue.
+Jupiter Perps is now integrated as the second perps route in T1; the
+research below preserves the Phoenix deployment evidence.
 
 ## Current SDK and public data
 
@@ -163,3 +164,77 @@ transitive types, converted to modern Anchor IDL format from the reference
 Borrow and fee math follows that revision's `get-borrow-fee-and-funding-rate.ts`
 and `price-impact-fee.ts`. Account owner, discriminator, asset mint and pool are
 checked before use. No provider, wallet or secret key is instantiated.
+
+## T1 unified aggregator
+
+`desk/main/aggregate.mjs` exports `route({kind, market, side, size, leverage?})`
+and `venues()`. All matching venues are queried concurrently, with a 25-second
+per-venue deadline. `best` is null if none quote; `alternatives` retains errors,
+unlisted markets and successful runners-up. No failed venue receives a quote.
+
+| Venue | Kind | Markets | Network | Signing status |
+|---|---|---|---|---|
+| Jupiter spot | spot | 7,549 pinned, unambiguous catalog identities; real quote required per mint | Solana mainnet-beta | unsigned transaction, external owner wallet |
+| Meteora direct DLMM | spot | live USDC pool discovery; 6,985 distinct mints in the recorded health run | Solana mainnet-beta | unsigned SDK swap for explicit owner |
+| Phoenix | perp | all 109 discovered markets, including SOL | Solana mainnet-beta | unsigned open / ReduceOnly close; registered funded trader required |
+| Jupiter Perps | perp | SOL, ETH, BTC | Solana mainnet-beta | unsigned API open/close for funded explicit owner; anonymous quotes indicative |
+| pm-AMM | predict | 95 live mUSDC outcomes in the recorded health run | Solana devnet | unsigned swap/create/claim, external owner wallet |
+
+Counts are observations, not availability guarantees. Meteora discovery counts
+all returned USDC-pair mint identities, while routing accepts only exact catalog
+mint identities. `/venues` probes a real SOL Jupiter quote; its Jupiter market
+count is labelled as the pinned catalog count. Other counts come from current
+venue discovery. Unreachable venues return `ok:false`, `marketCount:null`, and
+an error. A successful health check does not imply a funded trading account.
+
+Meteora uses the current public [DLMM pools API](https://docs.meteora.ag/api-reference/dlmm/pools/pools.md)
+for paginated discovery and TVL. The official
+[DLMM SDK](https://docs.meteora.ag/developer-guides/dlmm/typescript-sdk/getting-started.md)
+reads pool accounts and bins, calculates quotes, and builds unsigned swaps.
+Exact mints are checked against on-chain pool state. Quotes compare the three
+highest-TVL direct USDC pools; that search boundary and each failed pool are
+returned. They reject partial fills. SDK transaction construction refreshes the
+quote, owner and blockhash; compute estimation may report an unfunded account
+while still constructing an unsigned transaction. DAMM v2 is deferred under
+T1's optional condition: the [DAMM v2 SDK](https://docs.meteora.ag/developer-guides/damm-v2/typescript-sdk/getting-started.md)
+is a separate `@meteora-ag/cp-amm-sdk` integration,
+with different discovery, state and dynamic-fee handling, rather than a DLMM
+SDK option. Jupiter can still route supported DAMM pools.
+
+Authenticated API:
+
+- `GET /route?kind=spot&market=SOL&side=buy&size=10`
+- `GET /route?kind=perp&market=SOL&side=long&size=10&leverage=2`
+- `GET /route?kind=predict&market=<market public key>&side=yes&size=0.1`
+- `GET /venues`
+- `POST /propose` with `{kind, market, side, size, leverage?}` creates a routed,
+  gated, manually pending agent proposal; it never signs or auto-accepts.
+
+For **`route()`**, spot `size` is input units: USDC for buys, base tokens for
+sells. Perp `size` is USD collateral; notional is collateral × leverage.
+Prediction `size` is devnet mUSDC. For **`/propose` and pad keys**, sizing is the
+existing USD budget; sell budgets become identical base-token input amounts
+across venues using a live reference quote and available remembered holdings.
+The returned `sizeUnit` spells out the router input denomination.
+
+Quotes return price, fees, impact, liquidity, venue, network and `why`. Spot
+selection maximizes output for the same input; route fees are already included.
+Unknown separate Jupiter fees or liquidity remain null with an explanation.
+Perp selection compares entry price including opening fees per base unit;
+ongoing borrow/funding, collateral conversion, rent and network costs are not
+ranked. Phoenix liquidity means visible orderbook depth; Jupiter Perps liquidity
+means JLP AUM; DLMM liquidity means API pool TVL; pm-AMM liquidity means vault
+mUSDC. These metrics are labelled and are not interchangeable depth measures.
+
+BUY, SELL, LONG, SHORT, voice orders, scans, strategy evaluation and the agent
+proposal endpoint use the shared `propose()` path. Pad key requests can include
+`market` and `leverage`, e.g. `{id:"long",market:"SOL",leverage:2}`. Leverage
+permission defaults to 1× until `limits.max_leverage` is set. `limits.venues`,
+when present, is an exact venue allowlist; `limits.cooldown_seconds` gates after
+executed journal entries. Existing market/rule/per-trade/day limits still apply.
+A venue refusal does not silently choose a different venue. Accepting reruns
+routing and the gate against current memory, then builds only the selected
+venue's unsigned transaction. YES/NO and other pad controls take priority over
+same-named catalog tickers. Rejections, quote-only results and unsigned
+handoffs remain distinct from fills. Public owner setup uses `SOLANA_ADDRESS`,
+`PHOENIX_AUTHORITY` or `JUPPERPS_AUTHORITY`; no signer is created here.
