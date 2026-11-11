@@ -15,6 +15,10 @@
 // the whole model the firmware holds: it keeps no opinion of its own about what
 // is armed or what is in hand, because the backend is the only thing that knows.
 struct PadState {
+  String keyLabels[14];uint32_t keymapUntil=0;
+  bool autoAccept = false;
+  String link, signalId, signalState, receiptSignature, receiptExplorer, lastKeyLabel;
+  uint32_t signalDeadline=0, receiptUntil=0, labelUntil=0;
   bool   ok        = false;   // did the poll succeed at all
   bool   armed     = false;
   bool   pending   = false;   // a decision is waiting on a ✓

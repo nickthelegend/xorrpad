@@ -92,7 +92,7 @@ static const KeyBind KEYMAP[MATRIX_ROWS][MATRIX_COLS] = {
 // nothing to reflect. Set it to 1 only if the tray is remounted rotated 180°,
 // and re-measure afterwards rather than trusting the reflection.
 #define KEYS_MIRRORED 0
-inline const KeyBind &keyAt(uint8_t r, uint8_t c) {
+inline const KeyBind &defaultKeyAt(uint8_t r, uint8_t c) {
 #if KEYS_MIRRORED
   return KEYMAP[MATRIX_ROWS - 1 - r][MATRIX_COLS - 1 - c];
 #else

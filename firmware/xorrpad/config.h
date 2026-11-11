@@ -1,4 +1,5 @@
 #pragma once
+#define XORR_FW_VERSION "1.0.0"
 // ─────────────────────────────────────────────────────────────────────────────
 // Board + wiring for the ESP32-S3 macropad. Only fixed hardware facts live here;
 // WiFi and the backend address are provisioned at runtime through the captive
