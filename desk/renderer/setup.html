@@ -102,6 +102,9 @@
     <label><span class="k">API key (blank removes it)</span><input id="apiKey" type="password" autocomplete="off"></label>
     <button id="saveKey">Save key</button>
     <p id="keyStatus" class="hint"></p>
+    <h2>xorr's voice</h2>
+    <label><span class="k">Persona</span><textarea id="persona" maxlength="8000" aria-describedby="personaHint"></textarea><span id="personaHint" class="hint">Edit the style. Exact numbers, risks, venues and signature checks always apply.</span></label>
+    <div class="row"><button id="savePersona">Save persona</button><button id="resetPersona" class="ghost">Reset to default</button></div>
     <div id="agentMsg" role="status" aria-live="polite"></div>
   </div>
 </main>
@@ -128,12 +131,14 @@
     $('models').replaceChildren(...rows.map(row => {const o=document.createElement('option');o.value=row.id;return o;}));
     if (!$('model').value && rows.length) $('model').value=rows[0].id;
   });
+  $('savePersona').onclick = () => action($('savePersona'),() => agentRequest('/agent/settings',{persona:$('persona').value}));
+  $('resetPersona').onclick = () => action($('resetPersona'),async () => {$('persona').value=(await agentRequest('/agent/settings',{resetPersona:true})).persona;});
   $('saveKey').onclick = () => action($('saveKey'),async () => {
     const j=await agentRequest('/agent/keys',{provider:$('keyProvider').value,key:$('apiKey').value});
     $('apiKey').value=''; $('keyStatus').textContent=j.provider+': '+(j.key || 'Setup required: API key');
   });
   if (authToken) agentRequest('/agent/settings').then(j => {
-    for(const k of ['provider','baseUrl','model']) $(k).value=j[k];
+    for(const k of ['provider','baseUrl','model','persona']) $(k).value=j[k];
     $('keyStatus').textContent=Object.entries(j.keys).map(([k,v]) => k+': '+(v || 'not configured')).join(' · ');
   }).catch(e => {$('agentMsg').textContent=e.message;});
 

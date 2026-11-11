@@ -14,6 +14,7 @@
  * Whatever answers, it is handed recallBrief() first — the spoken reply is
  * grounded in the same memory that gates the trades.
  */
+import { assemblePrompt } from './persona.mjs';
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const exec = promisify(execFile);
@@ -82,12 +83,12 @@ function usd(v) {
   const n = Number(v);
   if (!isFinite(n)) return "unknown";
   const a = Math.abs(n);
-  return "$" + n.toFixed(a >= 1000 ? 0 : a >= 100 ? 2 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6);
+  return "$" + String(v);
 }
 
 function groundIn(brief, market) {
   const pos = Object.entries(brief.positions || {})
-    .map(([s, p]) => `${s} ${Number(p.qty).toFixed(5)} @ ${usd(p.avg_entry_usd)}`).join(", ") || "none";
+    .map(([s, p]) => `${s} ${p.qty} @ ${usd(p.avg_entry_usd)}`).join(", ") || "none";
   const px = Object.entries(market?.prices || {})
     .map(([s, v]) => `${s} ${usd(v)}`).join(", ") || "unknown";
   return [
@@ -101,10 +102,7 @@ function groundIn(brief, market) {
   ].join("\n");
 }
 
-const SYSTEM =
-  "You are the voice of xorr-pad, a trading deck on someone's desk. Answer in ONE short " +
-  "spoken sentence, under 25 words, no markdown, no lists. You are given the pad's memory " +
-  "— use it and cite the concrete number when it matters. Never invent a price or a balance.";
+const SYSTEM = assemblePrompt();
 
 /**
  * The Claude brain, through the CLI rather than the API.
@@ -132,8 +130,8 @@ const CLAUDE_TIMEOUT_MS = Number(process.env.CLAUDE_TIMEOUT_MS || 60000);
 const NO_TOOLS = ["Bash", "Read", "Edit", "Write", "Glob", "Grep",
                   "WebSearch", "WebFetch", "Task", "NotebookEdit"];
 
-async function brainClaude(question, context) {
-  const prompt = `${SYSTEM}\n\n--- pad memory ---\n${context}\n--- end memory ---\n\nOperator said: "${question}"`;
+async function brainClaude(question, context, system=SYSTEM) {
+  const prompt = `${system}\n\n--- pad memory ---\n${context}\n--- end memory ---\n\nOperator said: "${question}"`;
   const args = [
     "-p", prompt,
     "--output-format", "json",
@@ -154,14 +152,14 @@ async function brainClaude(question, context) {
   return out.split("\n").filter(Boolean).pop() || "";
 }
 
-async function brainGroq(question, context) {
+async function brainGroq(question, context, system=SYSTEM) {
   const refusals = [];
   for (const model of GROQ_MODELS) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${groqKey()}`, "content-type": "application/json" },
       body: JSON.stringify({ model, max_tokens: 80, messages: [
-        { role: "system", content: SYSTEM + "\n\n--- pad memory ---\n" + context },
+        { role: "system", content: system + "\n\n--- pad memory ---\n" + context },
         { role: "user", content: question }] }),
       ...DEADLINE(20_000),
     });
@@ -331,11 +329,12 @@ function brainFallback(question, brief, market) {
  * desk and the pad can show whether they are hearing Claude, Groq, or memory
  * alone — a degraded answer that looks identical to a real one is a trap.
  */
-export async function think(question, brief, market, mem = null) {
+export async function think(question, brief, market, mem = null, {persona} = {}) {
+  const system=assemblePrompt({persona,brief,market});
   const context = groundIn(brief, market) + (await recallHistory(mem, question));
   const order = BRAIN === "groq" && groqKey()
-    ? [["groq", () => brainGroq(question, context)], ["claude", () => brainClaude(question, context)]]
-    : [["claude", () => brainClaude(question, context)], ["groq", () => groqKey() ? brainGroq(question, context) : Promise.reject(new Error("no groq key"))]];
+    ? [["groq", () => brainGroq(question, context, system)], ["claude", () => brainClaude(question, context, system)]]
+    : [["claude", () => brainClaude(question, context, system)], ["groq", () => groqKey() ? brainGroq(question, context, system) : Promise.reject(new Error("no groq key"))]];
 
   const tried = [];
   for (const [name, run] of order) {

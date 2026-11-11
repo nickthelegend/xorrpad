@@ -17,6 +17,7 @@ import { AgentSettings } from './agent-settings.mjs';
 import { LLM } from './llm.mjs';
 import { Agent } from './agent.mjs';
 import { Chats } from './chats.mjs';
+import { assemblePrompt } from './persona.mjs';
 import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
@@ -261,7 +262,7 @@ export function createServer(mem) {
             ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. ${state.pending ? "Press yes to confirm." : "See the signal status for execution."}`
             : `I can't. ${verdict.why.slice(-1)[0]}.`;
         } else {
-          const answer = await think(transcript, brief, market, mem);
+          const answer = await think(transcript, brief, market, mem, {persona:agentSettings.read().persona});
           reply = answer.text;
           brain = answer.brain;
         }
@@ -405,7 +406,8 @@ export function createServer(mem) {
             if (!response.ok) throw Object.assign(new Error(result.error || `tool HTTP ${response.status}`),{status:response.status});
             return result;
           }});
-        const result=await chats.turn(chat.id,c => agent.reply({message:body.message,messages:c.messages,
+        const result=await chats.turn(chat.id,async c => agent.reply({message:body.message,messages:c.messages,
+          system:assemblePrompt({persona:config.persona,brief:await mem.recallBrief()}),
           onMessage:m => chats.append(c.id,{...m,model:m.model || config.model,provider:m.provider || config.provider})}));
         return send(200,{chatId:chat.id,...result});
       }
