@@ -1,3 +1,4 @@
+import { SpotQuotes } from './spot-quotes.mjs';
 /**
  * server.mjs — what the pad on your desk talks to.
  *
@@ -138,6 +139,7 @@ export function createServer(mem) {
   const deepgram = new DeepgramVoice({getKey:() => credentials.get('deepgram')});
   const voiceChats=new Map();
   const permissions = new Permissions();
+  const spotQuotes = new SpotQuotes();
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
     gate:async e => {
@@ -432,6 +434,10 @@ export function createServer(mem) {
         symbol:url.searchParams.get('symbol'),from:url.searchParams.has('from')?Number(url.searchParams.get('from')):undefined,
         to:url.searchParams.has('to')?Number(url.searchParams.get('to')):undefined,resolution:url.searchParams.get('resolution')??'60',
       }));
+      if (url.pathname === '/spot/quotes') {
+        try { return send(200,await spotQuotes.get((url.searchParams.get('symbols') || '').split(','))); }
+        catch(e) { return send(e.status || 502,{error:e.message}); }
+      }
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/venues") return send(200, { venues: await venues({includeMarkets:url.searchParams.get('markets') === '1'}) });
       if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
@@ -1233,7 +1239,7 @@ const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
   '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
-  "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
+  "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],

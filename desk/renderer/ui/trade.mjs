@@ -76,7 +76,7 @@ export async function mount({ el, api, subscribe, signal }) {
       "Compare venues, inspect execution, then send a proposal through the gate.",
       "LIVE READS / MANUAL BY DEFAULT",
     ) +
-    `<div class="grid trade-terminal"><div class="stack">${panel("Price action", `<div id="market-chart"></div>`)}${panel("Market directory", `<div class="panel-body"><label>Search markets<input type="search" id="market-search" placeholder="Search a symbol or venue"></label><p class="hint">Spot catalog entries require a live quote. Perpetual marks come from the venue.</p></div><div id="market-list">${loading()}</div>`)}${panel("Route comparison", empty("Start with a quote", "Choose a market and request an aggregated route."), "route-card")}</div>${panel("Order ticket", `<form class="panel-body" id="ticket"><label>Product<select name="kind">${options(["spot", "perp"])}</select></label><label>Market<input name="market" value="SOL" required maxlength="96" autocomplete="off"></label><div class="fields"><label>Direction<select name="side">${options(["buy", "sell"])}</select></label><label>Size (USD collateral / spot notional)<input type="number" name="size" value="50" min="0.01" step="any" required></label></div><label id="leverage-label" hidden>Leverage (×)<input type="number" name="leverage" value="1" min="1" step="any"></label><button class="primary" id="quote">Compare routes</button><button type="button" id="propose" disabled>Create trade proposal</button><p class="hint">Quotes are read-only. A proposal is gated again before acceptance and signing. Mainnet requires the configured real-funds acknowledgement.</p><div id="ticket-result" aria-live="polite"></div></form>`, "", "GATED")}</div><div class="grid equal trade-below">${panel("Positions", `<div id="trade-positions">${loading()}</div>`)}${panel("Signals queue", `<div id="signals-list">${loading()}</div>`)}</div>`;
+    `<div class="grid trade-terminal"><div class="stack">${panel("Price action", `<div id="market-chart"></div>`)}${panel("Market directory", `<div class="panel-body"><label>Search markets<input type="search" id="market-search" placeholder="Search a symbol or venue"></label><p class="hint">Visible spot rows quote 50 USDC through Jupiter, refreshed every 15 seconds. Perpetual marks come from the venue.</p></div><div id="market-list">${loading()}</div>`)}${panel("Route comparison", empty("Start with a quote", "Choose a market and request an aggregated route."), "route-card")}</div>${panel("Order ticket", `<form class="panel-body" id="ticket"><label>Product<select name="kind">${options(["spot", "perp"])}</select></label><label>Market<input name="market" value="SOL" required maxlength="96" autocomplete="off"></label><div class="fields"><label>Direction<select name="side">${options(["buy", "sell"])}</select></label><label>Size (USD collateral / spot notional)<input type="number" name="size" value="50" min="0.01" step="any" required></label></div><label id="leverage-label" hidden>Leverage (×)<input type="number" name="leverage" value="1" min="1" step="any"></label><button class="primary" id="quote">Compare routes</button><button type="button" id="propose" disabled>Create trade proposal</button><p class="hint">Quotes are read-only. A proposal is gated again before acceptance and signing. Mainnet requires the configured real-funds acknowledgement.</p><div id="ticket-result" aria-live="polite"></div></form>`, "", "GATED")}</div><div class="grid equal trade-below">${panel("Positions", `<div id="trade-positions">${loading()}</div>`)}${panel("Signals queue", `<div id="signals-list">${loading()}</div>`)}</div>`;
   const form = $("#ticket", el);
   let selectedVenue = 'jupiter';
   const chart = mountChart({root: $('#market-chart', el), api, signal, selection: () => ({market: form.elements.market.value, kind: form.elements.kind.value, venue: selectedVenue})});
@@ -118,7 +118,32 @@ export async function mount({ el, api, subscribe, signal }) {
     invalidate();
     chart.update();
   };
+  const visible = new Set(), spotCache = new Map();
+  let quoteTimer, quoting = false;
+  async function visibleQuotes() {
+    if(quoting || signal.aborted)return;
+    const symbols=[...visible].filter(s=>!spotCache.has(s)||Date.now()-spotCache.get(s).at>=15000).slice(0,12);
+    if(!symbols.length)return;
+    quoting=true;
+    try {
+      const d=await api('/spot/quotes?'+new URLSearchParams({symbols:symbols.join(',')}));
+      if(signal.aborted)return;
+      for(const q of d.quotes) spotCache.set(q.symbol,{...q,at:Date.now()});
+    } catch(e) { for(const symbol of symbols)spotCache.set(symbol,{price:null,error:e.message,at:Date.now()}); }
+    finally { quoting=false; }
+    if(signal.aborted)return;
+    for(const cell of el.querySelectorAll('[data-spot]')) {
+      const q=spotCache.get(cell.dataset.spot);
+      if(q){cell.textContent=q.error?'Quote failed: '+q.error:fmt(q.price,'USD',6);cell.title=q.observedAt ? 'Observed '+q.observedAt+' · 50 USDC input' : '';}
+    }
+  }
+  const visibility = new IntersectionObserver(entries=>{
+    for(const entry of entries) {const s=entry.target.dataset.spot;if(entry.isIntersecting)visible.add(s);else visible.delete(s);}
+    clearTimeout(quoteTimer);quoteTimer=setTimeout(visibleQuotes,100);
+  },{root:$('#market-list',el)});
+  const quoteRefresh=setInterval(visibleQuotes,15000);
   function directory() {
+    visibility.disconnect();visible.clear();
     const q = $("#market-search", el).value.toLowerCase();
     const rows = catalog
       .filter((r) =>
@@ -131,11 +156,9 @@ export async function mount({ el, api, subscribe, signal }) {
           rows.map((r, i) => [
             `${esc(r.symbol)}<br><span class="muted">${esc(r.venue)}</span>`,
             esc(r.kind),
-            r.price == null
-              ? r.catalog
-                ? "Quote required"
-                : "No mark"
-              : fmt(r.price, "USD"),
+            r.catalog
+              ? `<span data-spot="${esc(r.symbol)}">${spotCache.has(r.symbol) ? esc(spotCache.get(r.symbol).error ? 'Quote failed: '+spotCache.get(r.symbol).error : fmt(spotCache.get(r.symbol).price,'USD',6)) : 'Fetching live quote…'}</span>`
+              : r.price == null ? "No mark" : fmt(r.price, "USD"),
             `<button data-pick="${i}">Select</button>`,
           ]),
         )
@@ -143,6 +166,7 @@ export async function mount({ el, api, subscribe, signal }) {
           "No markets found",
           "Try a different symbol or refresh your connection.",
         );
+    for(const cell of el.querySelectorAll("[data-spot]"))visibility.observe(cell);
     for (const b of el.querySelectorAll("[data-pick]"))
       b.onclick = () => {
         const r = rows[Number(b.dataset.pick)];
@@ -267,6 +291,9 @@ export async function mount({ el, api, subscribe, signal }) {
   return () => {
     off();
     chart.dispose();
+    visibility.disconnect();
+    clearTimeout(quoteTimer);
+    clearInterval(quoteRefresh);
     clearInterval(timer);
   };
 }
