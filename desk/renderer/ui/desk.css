@@ -40,17 +40,18 @@
   color-scheme: light;
 }
 [data-theme="neon"] {
-  --bg: #050806;
-  --panel: #0b110d;
-  --raised: #152119;
-  --ink: #fff;
-  --muted: #becdbf;
-  --line: #5a775e;
-  --accent: #bdff32;
-  --accent-ink: #101900;
-  --bad: #ff9cae;
-  --good: #67ffc7;
-  --focus: #3de3ff;
+  --bg: #030306;
+  --panel: #0a0b12;
+  --raised: #151724;
+  --ink: #f5f7ff;
+  --muted: #bbc1dc;
+  --line: #545b79;
+  --accent: #54f4ff;
+  --accent-ink: #041216;
+  --electric: #ff84ef;
+  --bad: #ffa6b7;
+  --good: #72ffcd;
+  --focus: #ff84ef;
   color-scheme: dark;
 }
 [hidden] {
@@ -1005,3 +1006,14 @@ form > * {
 .knob-marker { position:absolute;inset:0;border-radius:50%;transition:transform 180ms cubic-bezier(.16,1,.3,1); }
 .knob-marker::before { content:"";position:absolute;top:4px;left:calc(50% - 2px);width:4px;height:14px;border-radius:2px;background:var(--accent); }
 @media(prefers-reduced-motion:reduce) { .pad-key,.knob-marker { transition:none; } }
+
+/* Neon has its own electric pair; other themes retain their visual tokens. */
+[data-theme="neon"] ::selection { background:#ff84ef;color:#030306; }
+[data-theme="neon"] input,[data-theme="neon"] textarea { caret-color:var(--electric); }
+[data-theme="neon"] :focus-visible { outline-color:var(--electric);box-shadow:0 2px 12px #ff84ef66; }
+[data-theme="neon"] nav a[aria-current="page"] { color:var(--accent);box-shadow:inset 0 0 14px #54f4ff15,0 2px 9px #54f4ff18; }
+[data-theme="neon"] .primary,[data-theme="neon"] .chart-toolbar button[aria-pressed="true"] { box-shadow:0 3px 14px #54f4ff33; }
+[data-theme="neon"] .pad-key.selected { outline-color:var(--electric);box-shadow:0 3px 12px #ff84ef44; }
+[data-theme="neon"] .market-price,[data-theme="neon"] .stat b,[data-theme="neon"] td,[data-theme="neon"] input[type="number"] { font-family:Azeret,monospace;font-variant-numeric:tabular-nums; }
+[data-theme="neon"] .tft { color:#d1fbff;text-shadow:0 1px 6px #54f4ff44; }
+[data-theme="neon"] .tft-confirm { color:var(--accent); }
