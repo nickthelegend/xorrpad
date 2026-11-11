@@ -29,7 +29,7 @@ import { klines } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
-import { marketHours, XSTOCKS as XSTOCKS_BOOK } from "./xstocks.mjs";
+import { marketHours } from "./xstocks.mjs";
 
 /** Solana venues share the same read-only interface. */
 const CHAIN = activeChain();
@@ -389,11 +389,11 @@ export function createServer(mem) {
       // must not be able to 503.
       if (url.pathname === "/pad" && req.method === "GET") {
         const brief = await mem.recallBrief().catch(() => null);
-        const px = await feedPrices().catch(() => ({}));
+        const px = await feedPrices([...new Set([state.market,...Object.keys(brief?.positions || {})])]).catch(() => ({}));
         // NYSE hours describe the market behind a tokenized SHARE. A token has no
         // listing and no closing bell, and telling the operator it is "shut on
         // the NYSE" would be describing an exchange this asset was never on.
-        const equity = CHAIN.markets().kind === "tokenized-equity";
+        const equity = CHAIN.isEquity(state.market);
         const hrs = equity ? marketHours() : {
           state: "CRYPTO", open: true, why: "crypto has no exchange hours",
           nyTime: marketHours().nyTime,
@@ -607,11 +607,11 @@ export function createServer(mem) {
           const m = CHAIN.markets();
           const tradeable = m.symbols.filter((sym) => sym !== m.quoteAsset);
           const prices = {};
-          await Promise.all(tradeable.map(async (sym) => {
+          await Promise.all([state.market].map(async (sym) => {
             const p = await chainPrice(sym);
             if (p) prices[sym] = p;
           }));
-          const book = XSTOCKS_BOOK;
+          const book = CHAIN.TOKENS;
           return send(200, {
             chain: CHAIN.id, chainLabel: CHAIN.label, kind: m.kind,
             quoteAsset: m.quoteAsset, active: state.market,
@@ -624,7 +624,7 @@ export function createServer(mem) {
             }])),
             // Kept visible: an omission the operator cannot see reads as an
             // oversight rather than a decision.
-            rejected: CHAIN.REJECTED || {},
+            rejected: Object.fromEntries(Object.entries(CHAIN.REJECTED || {}).filter(([sym])=>!book[sym])),
             prices,
           });
       }

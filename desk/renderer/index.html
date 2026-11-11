@@ -1581,7 +1581,7 @@ async function refresh(){
       if (mk.book) {
         MARKETS = Object.fromEntries(Object.entries(mk.book).map(([sym, t]) => [sym, {
           label: t.name || sym,
-          class: mk.kind === "tokenized-equity" ? "equity" : "crypto",
+          class: t.assetClass === "equity" || mk.kind === "tokenized-equity" ? "equity" : "crypto",
           fee: 0, venue: t.venue || mk.chainLabel,
         }]));
         for (const [sym, t] of Object.entries(mk.book)) if (t.price != null) lastPrices[sym] = t.price;

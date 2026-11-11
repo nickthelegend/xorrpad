@@ -62,7 +62,7 @@ export async function scan({ symbols = SYMBOLS } = {}) {
 }
 
 /** Prices only, straight from the same candles the strategies read. */
-export async function prices(symbols = SYMBOLS) {
+export async function prices(symbols = ["SPYx"]) {
   const { active } = await import("./chains/index.mjs");
   const out = { USDC: 1 };
   await Promise.all(symbols.map(async (s) => {

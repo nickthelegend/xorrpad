@@ -22,7 +22,7 @@ import { prices as feedPrices } from "./scan.mjs";
  * momentarily will not quote — never an invented number, and the response says
  * which source each price came from.
  */
-export async function getMarket(symbols = SYMBOLS) {
+export async function getMarket(symbols = ["SPYx"]) {
   const prices = {}, failed = {}, source = {};
   for (const s of symbols) {
     try {
@@ -130,7 +130,7 @@ export async function applyFill(mem, { symbol, side, usd, price, agent, fill = n
 export async function runOnce(mem, { execute = false, cfgs = {}, market } = {}) {
   if (execute) throw new Error("the desk never signs — confirm with your wallet");
   const brief = await mem.recallBrief();
-  const mkt = market || await getMarket();
+  const mkt = market || await getMarket([...new Set(["SPYx", ...Object.keys(brief.positions || {}), ...Object.values(cfgs).map(c=>c.symbol).filter(Boolean)])]);
   // Everything settles against USDC, so a signal naming USDC as the asset to
   // trade would become swap("USDC","USDC") — a self-swap with no pool. The
   // rebalance agent used to emit exactly that, and because runOnce takes

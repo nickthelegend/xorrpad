@@ -1,10 +1,9 @@
 /**
  * chains/solana.mjs — the pad's Solana venue: xStocks through Jupiter.
  *
- * Deliberately dependency-free. Everything here is `fetch` against two public
- * endpoints — Jupiter for routing and a Solana RPC for state — so the desk app
- * gains a whole chain without gaining a single package. There is no keypair in
- * this file and no code path that can sign anything; see SIGNING below.
+ * Jupiter supplies real routes; Solana RPC supplies state and mint decimals.
+ * The allowlist pins mint identities from perp.so alongside the verified
+ * xStocks. No keypair or signing path belongs here; see SIGNING below.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * SIGNING — what this module will and will not do
@@ -20,8 +19,9 @@
  * whether it happens.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import { XSTOCKS, REJECTED, USDC, SOL, mintOf, isStock, SYMBOLS, marketHours } from "../xstocks.mjs";
+import { XSTOCKS, REJECTED, USDC, SOL, marketHours } from "../xstocks.mjs";
 
+import { TOKENS, SYMBOLS, tokenOf, isEquity } from "../spot-book.mjs";
 import { walletHandoff } from "../wallet-requests.mjs";
 
 export const id = "solana";
@@ -43,7 +43,7 @@ const TOKEN_2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 async function rpc(method, params = []) {
   const r = await fetch(RPC, {
     method: "POST", headers: { "content-type": "application/json", ...UA },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(20000),
   });
   if (!r.ok) throw new Error(`solana rpc ${method}: HTTP ${r.status}`);
   const j = await r.json();
@@ -54,7 +54,7 @@ async function rpc(method, params = []) {
 async function jup(path, params) {
   const u = new URL(JUP + path);
   for (const [k, v] of Object.entries(params || {})) u.searchParams.set(k, String(v));
-  const r = await fetch(u, { headers: UA });
+  const r = await fetch(u, { headers: UA, signal: AbortSignal.timeout(20000) });
   const body = await r.json().catch(() => null);
   if (!r.ok) throw new Error(`jupiter ${path}: HTTP ${r.status}${body?.error ? ` — ${body.error}` : ""}`);
   if (body?.error) throw new Error(`jupiter ${path}: ${body.error}`);
@@ -94,12 +94,25 @@ export async function balances() {
       byMint.set(i.mint, prev + Number(i.tokenAmount?.uiAmount || 0));
     }
   }
-  const known = { [USDC.mint]: "USDC", ...Object.fromEntries(Object.entries(XSTOCKS).map(([s, t]) => [t.mint, s])) };
+  const known = { [USDC.mint]: "USDC", ...Object.fromEntries(Object.entries(TOKENS).map(([s, t]) => [t.mint, s])) };
   for (const [mint, amount] of byMint) {
     const sym = known[mint];
-    if (sym && amount > 0) out[sym] = { amount, decimals: mint === USDC.mint ? 6 : 8 };
+    if (sym && amount > 0) out[sym] = { amount: (out[sym]?.amount || 0) + amount, decimals: (await mintInfo(sym)).decimals };
   }
   return out;
+}
+
+const mintCache = new Map();
+export async function mintInfo(symbol) {
+  const token = tokenOf(symbol);
+  if (token.decimals != null) return token;
+  if (!mintCache.has(token.mint)) mintCache.set(token.mint, rpc("getTokenSupply",[token.mint])
+    .then(r => {
+      const decimals = r?.value?.decimals;
+      if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) throw new Error("invalid Solana mint decimals");
+      return { ...token, decimals };
+    }).catch(e => { mintCache.delete(token.mint); throw e; }));
+  return mintCache.get(token.mint);
 }
 
 /**
@@ -109,7 +122,7 @@ export async function balances() {
  * USDC per share so the display never has to guess which way round a pair is.
  */
 export async function quote(sell, buy, amountIn) {
-  const a = mintOf(sell), b = mintOf(buy);
+  const [a,b] = await Promise.all([mintInfo(sell),mintInfo(buy)]);
   const raw = BigInt(Math.round(Number(amountIn) * 10 ** a.decimals));
   if (raw <= 0n) throw new Error(`quote: amount must be positive, got ${amountIn}`);
 
@@ -156,7 +169,7 @@ export async function price(symbol, notional = 50) {
 export async function buildSwap(q, signer = address, { request = true } = {}) {
   if (!signer) throw new Error("Setup required: SOLANA_ADDRESS");
   const r = await fetch(`${JUP}/swap/v1/swap`, {
-    method: "POST", headers: { "content-type": "application/json", ...UA },
+    method: "POST", headers: { "content-type": "application/json", ...UA }, signal: AbortSignal.timeout(20000),
     body: JSON.stringify({
       quoteResponse: q.raw, userPublicKey: signer,
       dynamicComputeUnitLimit: true, dynamicSlippage: true,
@@ -185,10 +198,10 @@ export async function swap() {
 /** The markets this chain offers, with the state of the exchange behind them. */
 export function markets() {
   const h = marketHours();
-  return { symbols: SYMBOLS, quoteAsset: "USDC", hours: h, kind: "tokenized-equity" };
+  return { symbols: SYMBOLS, quoteAsset: "USDC", hours: h, kind: "multi-asset-spot" };
 }
 
 export { marketHours, SYMBOLS, XSTOCKS, REJECTED };
 
 /** Alias so the chain registry can read every venue's book the same way. */
-export const TOKENS = XSTOCKS;
+export { TOKENS, isEquity };
