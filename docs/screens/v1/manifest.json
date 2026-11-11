@@ -1,45 +1,58 @@
 {
-  "capturedAt": "2026-11-11T22:33:33.566Z",
+  "capturedAt": "2026-11-11T23:26:17.329Z",
   "origin": "isolated real server on loopback 8727",
   "data": "Live venue reads, empty isolated SQLite and app state; no mocked responses. One quote-backed devnet proposal may be created and refused to check the TFT; no transaction signed or submitted.",
   "checks": [
     "Public renderer/Classic/assets; authenticated device status",
     "Key assignment persists through API; protected kill binding is refused",
+    "Real NDJSON knob changes mirror angle and size; a read-only portfolio key visibly depresses",
     "Real NDJSON simulator hello appears in Pad TFT and authenticated link snapshot; disconnect clears it",
     "Permission cap round-trips through server",
     "Chat create, rename, delete use persisted conversation API",
     "Live route comparison completes without submitting any proposal",
+    "Four Pyth timeframe requests render real candles or honest source failure; visible spot rows quote live; verified cluster/budget status",
     "Skip link focuses workspace and preserves selected page",
     "Backtest strategy/prediction fields adapt",
     "Real T6 replay request renders results or upstream error without fabricated history",
     "Theme persists after reload",
     "375px navigation collapses after selection",
-    "Live devnet proposal and refusal update Pad TFT via authenticated events; no signing",
+    "Real devnet signal appears globally on Chats with countdown and Accept/Refuse; pad mirror Refuse uses same endpoint and clears TFT; no signing",
     "Unauthenticated demo shows setup-required state"
   ],
   "issues": [],
   "runtimeErrors": [],
+  "integrationScreenshots": [
+    "evidence/signal-toast-chats-375.png",
+    "evidence/signal-drawer-chats-375.png",
+    "evidence/pad-confirm-375.png"
+  ],
   "screenshots": [
     {
       "page": "pad",
       "theme": "floor",
       "width": 1440,
       "file": "pad-floor-1440.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "pad",
       "theme": "paper",
       "width": 1440,
       "file": "pad-paper-1440.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "pad",
       "theme": "neon",
       "width": 1440,
       "file": "pad-neon-1440.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "trade",
@@ -47,8 +60,11 @@
       "width": 1440,
       "file": "trade-floor-1440.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -57,8 +73,11 @@
       "width": 1440,
       "file": "trade-paper-1440.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -67,8 +86,11 @@
       "width": 1440,
       "file": "trade-neon-1440.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -78,7 +100,30 @@
       "file": "predict-floor-1440.png",
       "states": [
         "No keeper markets",
-        "No published resolutions"
+        "No published resolutions",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "paper",
+      "width": 1440,
+      "file": "predict-paper-1440.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "neon",
+      "width": 1440,
+      "file": "predict-neon-1440.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions",
+        "No decisions waiting"
       ]
     },
     {
@@ -88,9 +133,36 @@
       "file": "positions-floor-1440.png",
       "states": [
         "Setup required: SOLANA_ADDRESS",
-        "Setup required: PHOENIX_AUTHORITY (registered, funded Phoenix trader public key)",
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "paper",
+      "width": 1440,
+      "file": "positions-paper-1440.png",
+      "states": [
         "Setup required: SOLANA_ADDRESS",
-        "No confirmed receipts"
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "neon",
+      "width": 1440,
+      "file": "positions-neon-1440.png",
+      "states": [
+        "Setup required: SOLANA_ADDRESS",
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
       ]
     },
     {
@@ -100,7 +172,30 @@
       "file": "chats-floor-1440.png",
       "states": [
         "No conversations found",
-        "What are you thinking?"
+        "What are you thinking?",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "paper",
+      "width": 1440,
+      "file": "chats-paper-1440.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "neon",
+      "width": 1440,
+      "file": "chats-neon-1440.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?",
+        "No decisions waiting"
       ]
     },
     {
@@ -108,14 +203,54 @@
       "theme": "floor",
       "width": 1440,
       "file": "agent-floor-1440.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "paper",
+      "width": 1440,
+      "file": "agent-paper-1440.png",
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "neon",
+      "width": 1440,
+      "file": "agent-neon-1440.png",
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "permissions",
       "theme": "floor",
       "width": 1440,
       "file": "permissions-floor-1440.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "permissions",
+      "theme": "paper",
+      "width": 1440,
+      "file": "permissions-paper-1440.png",
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "permissions",
+      "theme": "neon",
+      "width": 1440,
+      "file": "permissions-neon-1440.png",
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "backtest",
@@ -123,7 +258,28 @@
       "width": 1440,
       "file": "backtest-floor-1440.png",
       "states": [
-        "Give your idea a test."
+        "Give your idea a test.",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "backtest",
+      "theme": "paper",
+      "width": 1440,
+      "file": "backtest-paper-1440.png",
+      "states": [
+        "Give your idea a test.",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "backtest",
+      "theme": "neon",
+      "width": 1440,
+      "file": "backtest-neon-1440.png",
+      "states": [
+        "Give your idea a test.",
+        "No decisions waiting"
       ]
     },
     {
@@ -132,7 +288,28 @@
       "width": 1440,
       "file": "link-floor-1440.png",
       "states": [
-        "Setup required: connect a pad"
+        "Setup required: connect a pad",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "paper",
+      "width": 1440,
+      "file": "link-paper-1440.png",
+      "states": [
+        "Setup required: connect a pad",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "neon",
+      "width": 1440,
+      "file": "link-neon-1440.png",
+      "states": [
+        "Setup required: connect a pad",
+        "No decisions waiting"
       ]
     },
     {
@@ -140,21 +317,27 @@
       "theme": "floor",
       "width": 375,
       "file": "pad-floor-375.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "pad",
       "theme": "paper",
       "width": 375,
       "file": "pad-paper-375.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "pad",
       "theme": "neon",
       "width": 375,
       "file": "pad-neon-375.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "trade",
@@ -162,8 +345,11 @@
       "width": 375,
       "file": "trade-floor-375.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -172,8 +358,11 @@
       "width": 375,
       "file": "trade-paper-375.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -182,8 +371,11 @@
       "width": 375,
       "file": "trade-neon-375.png",
       "states": [
+        "Pyth history unavailable: HTTP 404",
         "Start with a quote",
-        "Your queue is clear"
+        "No spot positions",
+        "Your queue is clear",
+        "No decisions waiting"
       ]
     },
     {
@@ -193,7 +385,30 @@
       "file": "predict-floor-375.png",
       "states": [
         "No keeper markets",
-        "No published resolutions"
+        "No published resolutions",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "paper",
+      "width": 375,
+      "file": "predict-paper-375.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "neon",
+      "width": 375,
+      "file": "predict-neon-375.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions",
+        "No decisions waiting"
       ]
     },
     {
@@ -203,9 +418,36 @@
       "file": "positions-floor-375.png",
       "states": [
         "Setup required: SOLANA_ADDRESS",
-        "Setup required: PHOENIX_AUTHORITY (registered, funded Phoenix trader public key)",
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "paper",
+      "width": 375,
+      "file": "positions-paper-375.png",
+      "states": [
         "Setup required: SOLANA_ADDRESS",
-        "No confirmed receipts"
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "neon",
+      "width": 375,
+      "file": "positions-neon-375.png",
+      "states": [
+        "Setup required: SOLANA_ADDRESS",
+        "Your workspace needs setup",
+        "Your workspace needs setup",
+        "No confirmed receipts",
+        "No decisions waiting"
       ]
     },
     {
@@ -215,7 +457,30 @@
       "file": "chats-floor-375.png",
       "states": [
         "No conversations found",
-        "What are you thinking?"
+        "What are you thinking?",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "paper",
+      "width": 375,
+      "file": "chats-paper-375.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "neon",
+      "width": 375,
+      "file": "chats-neon-375.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?",
+        "No decisions waiting"
       ]
     },
     {
@@ -223,14 +488,54 @@
       "theme": "floor",
       "width": 375,
       "file": "agent-floor-375.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "paper",
+      "width": 375,
+      "file": "agent-paper-375.png",
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "neon",
+      "width": 375,
+      "file": "agent-neon-375.png",
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "permissions",
       "theme": "floor",
       "width": 375,
       "file": "permissions-floor-375.png",
-      "states": []
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "permissions",
+      "theme": "paper",
+      "width": 375,
+      "file": "permissions-paper-375.png",
+      "states": [
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "permissions",
+      "theme": "neon",
+      "width": 375,
+      "file": "permissions-neon-375.png",
+      "states": [
+        "No decisions waiting"
+      ]
     },
     {
       "page": "backtest",
@@ -238,7 +543,28 @@
       "width": 375,
       "file": "backtest-floor-375.png",
       "states": [
-        "Give your idea a test."
+        "Give your idea a test.",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "backtest",
+      "theme": "paper",
+      "width": 375,
+      "file": "backtest-paper-375.png",
+      "states": [
+        "Give your idea a test.",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "backtest",
+      "theme": "neon",
+      "width": 375,
+      "file": "backtest-neon-375.png",
+      "states": [
+        "Give your idea a test.",
+        "No decisions waiting"
       ]
     },
     {
@@ -247,7 +573,28 @@
       "width": 375,
       "file": "link-floor-375.png",
       "states": [
-        "Setup required: connect a pad"
+        "Setup required: connect a pad",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "paper",
+      "width": 375,
+      "file": "link-paper-375.png",
+      "states": [
+        "Setup required: connect a pad",
+        "No decisions waiting"
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "neon",
+      "width": 375,
+      "file": "link-neon-375.png",
+      "states": [
+        "Setup required: connect a pad",
+        "No decisions waiting"
       ]
     }
   ]

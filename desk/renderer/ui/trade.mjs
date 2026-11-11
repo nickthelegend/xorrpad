@@ -24,7 +24,7 @@ export function signalView(s) {
   const p = s.proposal || {},
     v = p.verdict || {},
     a = p.signal || {};
-  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p><p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())} · <span data-countdown="${s.expiresAt}">${Math.max(0,Math.ceil((s.expiresAt-Date.now())/1000))}s left</span></p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
+  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p><p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())} · <span data-countdown="${s.expiresAt}">${Math.max(0, Math.ceil((s.expiresAt - Date.now()) / 1000))}s left</span></p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
 }
 export function bindSignals(root, api, refresh, handoff = root) {
   for (const b of root.querySelectorAll("[data-accept],[data-refuse]"))
@@ -78,15 +78,39 @@ export async function mount({ el, api, subscribe, signal }) {
     ) +
     `<div class="grid trade-terminal"><div class="stack">${panel("Price action", `<div id="market-chart"></div>`)}${panel("Market directory", `<div class="panel-body"><label>Search markets<input type="search" id="market-search" placeholder="Search a symbol or venue"></label><p class="hint">Visible spot rows quote 50 USDC through Jupiter, refreshed every 15 seconds. Perpetual marks come from the venue.</p></div><div id="market-list">${loading()}</div>`)}${panel("Route comparison", empty("Start with a quote", "Choose a market and request an aggregated route."), "route-card")}</div>${panel("Order ticket", `<form class="panel-body" id="ticket"><label>Product<select name="kind">${options(["spot", "perp"])}</select></label><label>Market<input name="market" value="SOL" required maxlength="96" autocomplete="off"></label><div class="fields"><label>Direction<select name="side">${options(["buy", "sell"])}</select></label><label>Size (USD collateral / spot notional)<input type="number" name="size" value="50" min="0.01" step="any" required></label></div><label id="leverage-label" hidden>Leverage (×)<input type="number" name="leverage" value="1" min="1" step="any"></label><button class="primary" id="quote">Compare routes</button><button type="button" id="propose" disabled>Create trade proposal</button><p class="hint">Quotes are read-only. A proposal is gated again before acceptance and signing. Mainnet requires the configured real-funds acknowledgement.</p><div id="ticket-result" aria-live="polite"></div></form>`, "", "GATED")}</div><div class="grid equal trade-below">${panel("Positions", `<div id="trade-positions">${loading()}</div>`)}${panel("Signals queue", `<div id="signals-list">${loading()}</div>`)}</div>`;
   const form = $("#ticket", el);
-  let selectedVenue = 'jupiter';
-  const chart = mountChart({root: $('#market-chart', el), api, signal, selection: () => ({market: form.elements.market.value, kind: form.elements.kind.value, venue: selectedVenue})});
+  let selectedVenue = "jupiter";
+  const chart = mountChart({
+    root: $("#market-chart", el),
+    api,
+    signal,
+    selection: () => ({
+      market: form.elements.market.value,
+      kind: form.elements.kind.value,
+      venue: selectedVenue,
+    }),
+  });
   const changeMarket = () => chart.update();
-  form.elements.market.addEventListener('change', changeMarket);
-  api('/portfolio').then(d => {
-    if(signal.aborted)return;
-    const rows=Object.entries(d.balances || {});
-    $('#trade-positions',el).innerHTML=d.chain?.error ? error(d.chain.error) : rows.length ? table(['Asset','Balance'],rows.map(([s,b])=>[esc(s),fmt(b.amount,s,8)])) : empty('No spot positions','Setup required: configure SOLANA_ADDRESS or fund your watched wallet.');
-  }).catch(e=>{if(!signal.aborted)$('#trade-positions',el).innerHTML=error(e);});
+  form.elements.market.addEventListener("change", changeMarket);
+  api("/portfolio")
+    .then((d) => {
+      if (signal.aborted) return;
+      const rows = Object.entries(d.balances || {});
+      $("#trade-positions", el).innerHTML = d.chain?.error
+        ? error(d.chain.error)
+        : rows.length
+          ? table(
+              ["Asset", "Balance"],
+              rows.map(([s, b]) => [esc(s), fmt(b.amount, s, 8)]),
+            )
+          : empty(
+              "No spot positions",
+              "Setup required: configure SOLANA_ADDRESS or fund your watched wallet.",
+              { target: "#link", label: "Review wallet setup" },
+            );
+    })
+    .catch((e) => {
+      if (!signal.aborted) $("#trade-positions", el).innerHTML = error(e);
+    });
   let catalog = [],
     request = 0,
     quotedInput;
@@ -114,36 +138,70 @@ export async function mount({ el, api, subscribe, signal }) {
       form.elements.kind.value === "spot" ? ["buy", "sell"] : ["long", "short"],
     );
     $("#leverage-label", el).hidden = form.elements.kind.value !== "perp";
-    selectedVenue = form.elements.kind.value === 'spot' ? 'jupiter' : 'phoenix';
+    selectedVenue = form.elements.kind.value === "spot" ? "jupiter" : "phoenix";
     invalidate();
     chart.update();
   };
-  const visible = new Set(), spotCache = new Map();
-  let quoteTimer, quoting = false;
+  const visible = new Set(),
+    spotCache = new Map();
+  let quoteTimer,
+    quoting = false;
   async function visibleQuotes() {
-    if(quoting || signal.aborted)return;
-    const symbols=[...visible].filter(s=>!spotCache.has(s)||Date.now()-spotCache.get(s).at>=15000).slice(0,12);
-    if(!symbols.length)return;
-    quoting=true;
+    if (quoting || signal.aborted) return;
+    const symbols = [
+      ...new Set([...visible].map((node) => node.dataset.spotRow)),
+    ]
+      .filter(
+        (s) => !spotCache.has(s) || Date.now() - spotCache.get(s).at >= 15000,
+      )
+      .slice(0, 12);
+    if (!symbols.length) return;
+    quoting = true;
     try {
-      const d=await api('/spot/quotes?'+new URLSearchParams({symbols:symbols.join(',')}));
-      if(signal.aborted)return;
-      for(const q of d.quotes) spotCache.set(q.symbol,{...q,at:Date.now()});
-    } catch(e) { for(const symbol of symbols)spotCache.set(symbol,{price:null,error:e.message,at:Date.now()}); }
-    finally { quoting=false; }
-    if(signal.aborted)return;
-    for(const cell of el.querySelectorAll('[data-spot]')) {
-      const q=spotCache.get(cell.dataset.spot);
-      if(q){cell.textContent=q.error?'Quote failed: '+q.error:fmt(q.price,'USD',6);cell.title=q.observedAt ? 'Observed '+q.observedAt+' · 50 USDC input' : '';}
+      const d = await api(
+        "/spot/quotes?" + new URLSearchParams({ symbols: symbols.join(",") }),
+      );
+      if (signal.aborted) return;
+      for (const q of d.quotes)
+        spotCache.set(q.symbol, { ...q, at: Date.now() });
+    } catch (e) {
+      for (const symbol of symbols)
+        spotCache.set(symbol, {
+          price: null,
+          error: e.message,
+          at: Date.now(),
+        });
+    } finally {
+      quoting = false;
+    }
+    if (signal.aborted) return;
+    for (const cell of el.querySelectorAll("[data-spot]")) {
+      const q = spotCache.get(cell.dataset.spot);
+      if (q) {
+        cell.textContent = q.error
+          ? "Quote failed: " + q.error
+          : fmt(q.price, "USD", 6);
+        cell.title = q.observedAt
+          ? "Observed " + q.observedAt + " · 50 USDC input"
+          : "";
+      }
     }
   }
-  const visibility = new IntersectionObserver(entries=>{
-    for(const entry of entries) {const s=entry.target.dataset.spot;if(entry.isIntersecting)visible.add(s);else visible.delete(s);}
-    clearTimeout(quoteTimer);quoteTimer=setTimeout(visibleQuotes,100);
-  },{root:$('#market-list',el)});
-  const quoteRefresh=setInterval(visibleQuotes,15000);
+  const visibility = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visible.add(entry.target);
+        else visible.delete(entry.target);
+      }
+      clearTimeout(quoteTimer);
+      quoteTimer = setTimeout(visibleQuotes, 100);
+    },
+    { root: $("#market-list", el) },
+  );
+  const quoteRefresh = setInterval(visibleQuotes, 15000);
   function directory() {
-    visibility.disconnect();visible.clear();
+    visibility.disconnect();
+    visible.clear();
     const q = $("#market-search", el).value.toLowerCase();
     const rows = catalog
       .filter((r) =>
@@ -156,9 +214,11 @@ export async function mount({ el, api, subscribe, signal }) {
           rows.map((r, i) => [
             `${esc(r.symbol)}<br><span class="muted">${esc(r.venue)}</span>`,
             esc(r.kind),
-            r.catalog
-              ? `<span data-spot="${esc(r.symbol)}">${spotCache.has(r.symbol) ? esc(spotCache.get(r.symbol).error ? 'Quote failed: '+spotCache.get(r.symbol).error : fmt(spotCache.get(r.symbol).price,'USD',6)) : 'Fetching live quote…'}</span>`
-              : r.price == null ? "No mark" : fmt(r.price, "USD"),
+            r.kind === "spot"
+              ? `<span data-spot="${esc(r.symbol)}">${spotCache.has(r.symbol) ? esc(spotCache.get(r.symbol).error ? "Quote failed: " + spotCache.get(r.symbol).error : fmt(spotCache.get(r.symbol).price, "USD", 6)) : "Fetching live quote…"}</span>`
+              : r.price == null
+                ? "No mark"
+                : fmt(r.price, "USD"),
             `<button data-pick="${i}">Select</button>`,
           ]),
         )
@@ -166,7 +226,11 @@ export async function mount({ el, api, subscribe, signal }) {
           "No markets found",
           "Try a different symbol or refresh your connection.",
         );
-    for(const cell of el.querySelectorAll("[data-spot]"))visibility.observe(cell);
+    for (const cell of el.querySelectorAll("[data-spot]")) {
+      const row = cell.closest("tr");
+      row.dataset.spotRow = cell.dataset.spot;
+      visibility.observe(row);
+    }
     for (const b of el.querySelectorAll("[data-pick]"))
       b.onclick = () => {
         const r = rows[Number(b.dataset.pick)];

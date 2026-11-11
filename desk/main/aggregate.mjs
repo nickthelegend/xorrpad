@@ -38,8 +38,8 @@ const REGISTRY=[
 ];
 export async function venues({includeMarkets=false}={}){
  return Promise.all(REGISTRY.map(v=>bounded(async()=>{
-  const [rows]=await Promise.all([v.list(),v.health?.()]);
-  return {venue:v.venue,kind:v.kind,network:v.network,signing:v.signing,ok:true,
+  const [rows,healthError]=await Promise.all([v.list(),v.health?.().then(()=>null,e=>e.message)]);
+  return {venue:v.venue,kind:v.kind,network:v.network,signing:v.signing,ok:!healthError,...(healthError?{error:healthError}:{}),
    ...(includeMarkets?{markets:[...new Map(rows.map(r=>{const market=typeof r==='string'?r:r.market;return [market,{market,name:typeof r==='string'?r:r.name,markPrice:r.markPrice??null,observedAt:r.observedAt??null}];})).values()]}:{}),
    marketCount:new Set(rows.map(r=>typeof r==='string'?r:r.market)).size,
    ...(v.venue==='meteora'?{poolCount:rows.length}:{}),

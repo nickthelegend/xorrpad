@@ -48,22 +48,26 @@ export async function mount({ el, api, subscribe, signal }) {
     const pending = [...entries.values()]
       .filter((e) => e.state === "awaiting" && e.expiresAt > Date.now())
       .at(-1);
-    const head = `<span class="eyebrow">${d ? esc(d.link.toUpperCase())+' / '+esc(d.firmware) : 'NO PAD CONNECTED'}</span>`;
-    if (receipt && Date.now() - receiptAt < 15000)
-      return (
-        head +
-        `<strong>CONFIRMED</strong><span class="tft-meta mono">${esc(receipt.signature)}</span>`
-      );
+    const head = `<span class="eyebrow">${d ? esc(d.link.toUpperCase()) + " / " + esc(d.firmware) : "NO PAD CONNECTED"}</span>`;
     if (pending) {
       const p = pending.proposal,
         v = p.verdict,
         a = p.signal;
       return (
         head +
-        `<div class="tft-confirm"><span>${esc(a.side)}</span><b>CONFIRM</b></div><strong>${esc(a.kind === "predict" ? (a.outcomeSide || "").toUpperCase() + " OUTCOME" : a.symbol || a.market)}</strong><span class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${Math.max(0, Math.ceil((pending.expiresAt - Date.now()) / 1000))}s left</span><span class="tft-meta">WHY · ${esc((v.why || []).join(' · '))}</span><span class="tft-answers"><span>✓ YES</span><span>✗ NO</span></span><span class="tft-meta">${esc(a.venue || p.routing?.best?.venue || "")} · Press ✓ / ✗</span>`
+        `<div class="tft-confirm"><span>${esc(a.side)}</span><b>CONFIRM</b></div><strong>${esc(a.kind === "predict" ? (a.outcomeSide || "").toUpperCase() + " OUTCOME" : a.symbol || a.market)}</strong><span class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${Math.max(0, Math.ceil((pending.expiresAt - Date.now()) / 1000))}s left</span><span class="tft-meta">WHY · ${esc((v.why || []).join(" · "))}</span><span class="tft-answers"><span>✓ YES</span><span>✗ NO</span></span><span class="tft-meta">${esc(a.venue || p.routing?.best?.venue || "")} · Press ✓ / ✗</span>`
       );
     }
-    if (!d) return head+'<strong>Awaiting device</strong><span class="mono">Setup required: connect pad</span>';
+    if (receipt && Date.now() - receiptAt < 15000)
+      return (
+        head +
+        `<strong>CONFIRMED</strong><span class="tft-meta mono">${esc(receipt.signature)}</span>`
+      );
+    if (!d)
+      return (
+        head +
+        '<strong>Awaiting device</strong><span class="mono">Setup required: connect pad</span>'
+      );
     return (
       head +
       `<strong>${esc(s.market || "No market")}</strong><span class="mono">${fmt(s.sizeUsd, "USD")}</span><span class="tft-meta">${esc(s.agent || "")} · ${s.armed ? "ARMED" : "DISARMED"} · ${s.autoAccept ? "AUTO" : "MANUAL"}</span>`
@@ -88,8 +92,15 @@ export async function mount({ el, api, subscribe, signal }) {
         mirror();
         settings();
         const key = map.keys[selected];
-        const pending = [...entries.values()].filter(e=>e.state==='awaiting'&&e.expiresAt>Date.now()).at(-1);
-        if(pending && ['yes','no'].includes(key.action)) window.dispatchEvent(new CustomEvent('xorr-answer-signal',{detail:{id:pending.id,accept:key.action==='yes'}}));
+        const pending = [...entries.values()]
+          .filter((e) => e.state === "awaiting" && e.expiresAt > Date.now())
+          .at(-1);
+        if (pending && ["yes", "no"].includes(key.action))
+          window.dispatchEvent(
+            new CustomEvent("xorr-answer-signal", {
+              detail: { id: pending.id, accept: key.action === "yes" },
+            }),
+          );
       };
       b.ondragover = (e) => {
         if (!locked.has(map.keys[Number(b.dataset.key)].action))
@@ -195,7 +206,7 @@ export async function mount({ el, api, subscribe, signal }) {
         knobAngle += Math.sign(m.sizeUsd - previous) * 18;
         knobSize = m.sizeUsd;
         if (d) d.status.sizeUsd = m.sizeUsd;
-        const marker = $('.knob-marker', el);
+        const marker = $(".knob-marker", el);
         if (marker) marker.style.transform = `rotate(${knobAngle}deg)`;
         paintScreen();
       }

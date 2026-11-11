@@ -22,7 +22,8 @@ let browser;
 const issues = [],
   results = [],
   consoleErrors = [],
-  checks = [];
+  checks = [],
+  integrationScreenshots = [];
 try {
   await new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -125,6 +126,46 @@ try {
   ).json();
   assert.equal(liveLink.devices[0].firmware, "1.0.0");
   assert.equal(liveLink.devices[0].device, "t5-ui-simulator");
+  const knobBefore = await page.locator(".knob-marker").getAttribute("style");
+  const knobResponse = await fetch(origin + "/padlink?device=t5-ui-simulator", {
+    method: "POST",
+    headers: { ...headers, "content-type": "application/x-ndjson" },
+    body:
+      JSON.stringify({ v: 1, type: "knob", id: "t9-knob", sizeUsd: 75 }) + "\n",
+  });
+  assert.equal(knobResponse.status, 200);
+  await page.waitForFunction(
+    (before) =>
+      document.querySelector(".knob-marker").getAttribute("style") !== before,
+    knobBefore,
+  );
+  assert.match(await page.locator(".tft").innerText(), /75/);
+  const key = DEFAULT_KEYMAP.keys.find((k) => k.action === "portfolio");
+  const keyRequest = fetch(origin + "/padlink?device=t5-ui-simulator", {
+    method: "POST",
+    headers: { ...headers, "content-type": "application/x-ndjson" },
+    body:
+      JSON.stringify({
+        v: 1,
+        type: "key",
+        id: "t9-key",
+        edge: "down",
+        action: "portfolio",
+        row: key.row,
+        col: key.col,
+      }) + "\n",
+  });
+  await page.locator(".pad-key.pressed").waitFor();
+  assert.notEqual(
+    await page
+      .locator(".pad-key.pressed")
+      .evaluate((n) => getComputedStyle(n).transform),
+    "none",
+  );
+  await keyRequest;
+  checks.push(
+    "Real NDJSON knob changes mirror angle and size; a read-only portfolio key visibly depresses",
+  );
   for (const peer of server.padlink.peers)
     if (peer.device === "t5-ui-simulator") server.padlink.remove(peer);
   await page.getByText("NO PAD CONNECTED", { exact: true }).waitFor();
@@ -177,6 +218,61 @@ try {
   checks.push(
     "Live route comparison completes without submitting any proposal",
   );
+  assert.equal(await page.locator("[data-period]").count(), 4);
+  for (const period of ["1m", "15m", "1h", "1d"]) {
+    await page.locator(`[data-period="${period}"]`).click();
+    assert.equal(
+      await page
+        .locator(`[data-period="${period}"]`)
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    await page.waitForFunction(
+      () => !document.querySelector("#candle-state .loading"),
+      null,
+      { timeout: 100000 },
+    );
+    assert.ok(
+      await page
+        .locator(
+          "#price-candles:visible,#candle-state .error,#candle-state .empty",
+        )
+        .count(),
+    );
+  }
+  assert.equal(await page.locator("#market-head h2").innerText(), "SOL spot");
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll("[data-spot]")].some(
+        (n) => !n.textContent.includes("Fetching"),
+      ),
+    null,
+    { timeout: 30000 },
+  );
+  assert.ok(
+    !(await page.locator("#market-list").innerText()).includes(
+      "Quote required",
+    ),
+  );
+  const status = await (
+    await fetch(origin + "/desk/status", { headers })
+  ).json();
+  assert.equal(status.wallet.mode, "phone");
+  assert.ok(status.rpc.length === 2);
+  assert.ok(
+    status.rpc.every((r) =>
+      ["mainnet-beta", "devnet", null, "unknown genesis"].includes(r.cluster),
+    ),
+  );
+  assert.equal(status.autoAccept.enabled, false);
+  await page
+    .locator("#desk-status")
+    .filter({ hasText: "Auto-accept OFF" })
+    .waitFor();
+  checks.push(
+    "Four Pyth timeframe requests render real candles or honest source failure; visible spot rows quote live; verified cluster/budget status",
+  );
+
   await page.locator(".skip").focus();
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => document.activeElement.id === "content");
@@ -224,9 +320,7 @@ try {
   for (const width of [1440, 375]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 812 });
     for (const name of pages) {
-      for (const theme of ["pad", "trade"].includes(name)
-        ? ["floor", "paper", "neon"]
-        : ["floor"]) {
+      for (const theme of ["floor", "paper", "neon"]) {
         await page.goto(base + "#" + name);
         await settle();
         // Use the actual theme control, including on collapsed phone navigation.
@@ -236,6 +330,22 @@ try {
         await page.locator("#theme").selectOption(theme);
         if (width === 375) {
           await page.locator("#menu").click();
+        }
+        if (name === "trade") {
+          const firstSpot = page.locator("[data-spot]").first();
+          if (await firstSpot.count()) {
+            await firstSpot
+              .locator("xpath=ancestor::tr")
+              .scrollIntoViewIfNeeded();
+            await page.waitForFunction(
+              () =>
+                !document
+                  .querySelector("[data-spot]")
+                  .textContent.includes("Fetching"),
+              null,
+              { timeout: 35000 },
+            );
+          }
         }
         const overflow = await page.evaluate(() => ({
           width: innerWidth,
@@ -294,6 +404,14 @@ try {
               requestAnimationFrame(() => requestAnimationFrame(resolve)),
             ),
         );
+        for (const state of await page.locator(".empty").all()) {
+          assert.equal(await state.locator(".empty-art").count(), 1);
+          assert.equal(
+            await state.locator(".actions button,.actions a.button").count(),
+            1,
+          );
+          assert.match(await state.innerText(), /Setup required:/);
+        }
         const filename = `${name}-${theme}-${width}.png`;
         await page.screenshot({
           path: path.join(output, filename),
@@ -363,17 +481,43 @@ try {
     ).json();
     if (proposal.signalState === "awaiting") {
       await page.locator(".tft").filter({ hasText: "Press ✓ / ✗" }).waitFor();
-      await fetch(`${origin}/signals/${proposal.signalId}/refuse`, {
-        method: "POST",
-        headers,
-        body: "{}",
+      await page.goto(base + "#chats");
+      await settle();
+      await page
+        .locator("#signal-toast")
+        .filter({ hasText: "Decision waiting" })
+        .waitFor();
+      await mkdir(path.join(output, "evidence"), { recursive: true });
+      await page.screenshot({
+        path: path.join(output, "evidence/signal-toast-chats-375.png"),
+        fullPage: true,
       });
+      integrationScreenshots.push("evidence/signal-toast-chats-375.png");
+      await page.locator("#view-signals").click();
+      await page.locator("#signal-drawer [data-countdown]").waitFor();
+      assert.ok(await page.locator("#signal-drawer [data-accept]").count());
+      await page.screenshot({
+        path: path.join(output, "evidence/signal-drawer-chats-375.png"),
+        fullPage: true,
+      });
+      integrationScreenshots.push("evidence/signal-drawer-chats-375.png");
+      await page.locator("#close-signals").click();
+      await page.goto(base + "#pad");
+      await settle();
+      await page.locator("#dismiss-signal").click();
+      await page.screenshot({
+        path: path.join(output, "evidence/pad-confirm-375.png"),
+        fullPage: true,
+      });
+      integrationScreenshots.push("evidence/pad-confirm-375.png");
+      const noKey = saved.keys.findIndex((k) => k.action === "no");
+      await page.locator(`[data-key="${noKey}"]`).click();
       await page.waitForFunction(
         () =>
           !document.querySelector(".tft").textContent.includes("Press ✓ / ✗"),
       );
       checks.push(
-        "Live devnet proposal and refusal update Pad TFT via authenticated events; no signing",
+        "Real devnet signal appears globally on Chats with countdown and Accept/Refuse; pad mirror Refuse uses same endpoint and clears TFT; no signing",
       );
     } else
       checks.push(
@@ -404,6 +548,7 @@ try {
         checks,
         issues,
         runtimeErrors: consoleErrors,
+        integrationScreenshots,
         screenshots: results,
       },
       null,

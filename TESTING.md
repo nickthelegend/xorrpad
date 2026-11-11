@@ -1,3 +1,62 @@
+# T9 judge-fix verification
+
+Run on **2026-11-12 (Asia/Kolkata)** / November 11 UTC, using Node 26.5.0.
+The full run after items 1–7 used the same command as the T8 release run below:
+
+```sh
+node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs
+```
+
+| Suite | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| Desk | 113 | 99 | 0 | 14 |
+| Keeper | 9 | 7 | 1 | 1 |
+| Site | 14 | 14 | 0 | 0 |
+| **Total** | **136** | **120** | **1** | **15** |
+
+Exit **1**, duration **240,817.61125 ms**, cancelled 0, TODO 0.
+[Test-by-test results and all skip reasons](docs/v1/T9-JUDGE-RESULTS.json).
+The sole failure is the unchanged keeper isolation assertion (now test 121)
+that forbids all desk signing, including the SPEC-approved session executor.
+It remains **BLOCKED**, and is not relabelled as a pass or skip. Its detailed
+explanation and every dependency recovery action remain in the historical T8
+report below. No existing assertion was removed or relaxed.
+
+After the browser review's visibility/cache fixes, the affected live Jupiter
+cache and three theme contrast checks ran separately: **5 tests, 5 passed, 0
+failed, 0 skipped**. They are already included in the 136 distinct tests above;
+this follow-up run is not added to that total. The cache bounds input to 12
+symbols, runs two quote workers per request, shares in-flight reads and caches
+both outcomes for 15 seconds after completion. Mainnet reads only; no signing.
+All three theme text token pairs pass WCAG AA (4.5:1), including primary buttons.
+
+`npm run test:ui --prefix desk` passes **15 integration groups**, with **54 page
+captures** (nine pages, Floor/Paper/Neon, 1440/375), **0 runtime errors** and **0
+layout issues**. Three additional integration PNGs show a real devnet proposal
+on Chats, the global decision drawer and the pad confirmation screen. The
+proposal is refused from the mirror; no transaction is signed or submitted.
+Real NDJSON events verify knob rotation and pressed-key travel. Every empty
+state has an authored SVG, a setup reason and one recovery action. The final
+capture waits for the first spot row's live quote result. No API is intercepted.
+[Captures, before/after comparisons and measured manifest](docs/screens/v1/README.md).
+
+**BLOCKED — real candle/24h history:** the specified T6 Pyth Benchmarks history
+URL returned **HTTP 404**, then **HTTP 429** during repeated checks. All four
+chart controls request the real service and show its error; candles and 24h
+changes are not fabricated. The live Jupiter reference and perpetual marks are
+independent of that failure. Restoring/reviewing the supported Pyth history
+service is still required to verify candle drawing with real history.
+
+The mechanical UI detector reported **0 findings**; changed UI modules and
+new read services pass syntax and formatting checks. The full test runner and
+browser runner run sequentially because both use port 8727. An initial parallel
+attempt was stopped after that port collision; it is not counted as the full run.
+The browser/server/sidecar processes are closed. Firmware is unchanged in T9;
+the exact successful T8 compilation and **compiled, not yet flashed** limitation
+remain below. Nothing was pushed.
+
+---
+
 # v1.0.0 release verification
 
 T8 run on **2026-11-12 (Asia/Kolkata)**; UTC timestamps fall on November 11.
