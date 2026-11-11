@@ -1,0 +1,254 @@
+{
+  "capturedAt": "2026-11-11T22:33:33.566Z",
+  "origin": "isolated real server on loopback 8727",
+  "data": "Live venue reads, empty isolated SQLite and app state; no mocked responses. One quote-backed devnet proposal may be created and refused to check the TFT; no transaction signed or submitted.",
+  "checks": [
+    "Public renderer/Classic/assets; authenticated device status",
+    "Key assignment persists through API; protected kill binding is refused",
+    "Real NDJSON simulator hello appears in Pad TFT and authenticated link snapshot; disconnect clears it",
+    "Permission cap round-trips through server",
+    "Chat create, rename, delete use persisted conversation API",
+    "Live route comparison completes without submitting any proposal",
+    "Skip link focuses workspace and preserves selected page",
+    "Backtest strategy/prediction fields adapt",
+    "Real T6 replay request renders results or upstream error without fabricated history",
+    "Theme persists after reload",
+    "375px navigation collapses after selection",
+    "Live devnet proposal and refusal update Pad TFT via authenticated events; no signing",
+    "Unauthenticated demo shows setup-required state"
+  ],
+  "issues": [],
+  "runtimeErrors": [],
+  "screenshots": [
+    {
+      "page": "pad",
+      "theme": "floor",
+      "width": 1440,
+      "file": "pad-floor-1440.png",
+      "states": []
+    },
+    {
+      "page": "pad",
+      "theme": "paper",
+      "width": 1440,
+      "file": "pad-paper-1440.png",
+      "states": []
+    },
+    {
+      "page": "pad",
+      "theme": "neon",
+      "width": 1440,
+      "file": "pad-neon-1440.png",
+      "states": []
+    },
+    {
+      "page": "trade",
+      "theme": "floor",
+      "width": 1440,
+      "file": "trade-floor-1440.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "trade",
+      "theme": "paper",
+      "width": 1440,
+      "file": "trade-paper-1440.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "trade",
+      "theme": "neon",
+      "width": 1440,
+      "file": "trade-neon-1440.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "floor",
+      "width": 1440,
+      "file": "predict-floor-1440.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "floor",
+      "width": 1440,
+      "file": "positions-floor-1440.png",
+      "states": [
+        "Setup required: SOLANA_ADDRESS",
+        "Setup required: PHOENIX_AUTHORITY (registered, funded Phoenix trader public key)",
+        "Setup required: SOLANA_ADDRESS",
+        "No confirmed receipts"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "floor",
+      "width": 1440,
+      "file": "chats-floor-1440.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "floor",
+      "width": 1440,
+      "file": "agent-floor-1440.png",
+      "states": []
+    },
+    {
+      "page": "permissions",
+      "theme": "floor",
+      "width": 1440,
+      "file": "permissions-floor-1440.png",
+      "states": []
+    },
+    {
+      "page": "backtest",
+      "theme": "floor",
+      "width": 1440,
+      "file": "backtest-floor-1440.png",
+      "states": [
+        "Give your idea a test."
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "floor",
+      "width": 1440,
+      "file": "link-floor-1440.png",
+      "states": [
+        "Setup required: connect a pad"
+      ]
+    },
+    {
+      "page": "pad",
+      "theme": "floor",
+      "width": 375,
+      "file": "pad-floor-375.png",
+      "states": []
+    },
+    {
+      "page": "pad",
+      "theme": "paper",
+      "width": 375,
+      "file": "pad-paper-375.png",
+      "states": []
+    },
+    {
+      "page": "pad",
+      "theme": "neon",
+      "width": 375,
+      "file": "pad-neon-375.png",
+      "states": []
+    },
+    {
+      "page": "trade",
+      "theme": "floor",
+      "width": 375,
+      "file": "trade-floor-375.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "trade",
+      "theme": "paper",
+      "width": 375,
+      "file": "trade-paper-375.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "trade",
+      "theme": "neon",
+      "width": 375,
+      "file": "trade-neon-375.png",
+      "states": [
+        "Start with a quote",
+        "Your queue is clear"
+      ]
+    },
+    {
+      "page": "predict",
+      "theme": "floor",
+      "width": 375,
+      "file": "predict-floor-375.png",
+      "states": [
+        "No keeper markets",
+        "No published resolutions"
+      ]
+    },
+    {
+      "page": "positions",
+      "theme": "floor",
+      "width": 375,
+      "file": "positions-floor-375.png",
+      "states": [
+        "Setup required: SOLANA_ADDRESS",
+        "Setup required: PHOENIX_AUTHORITY (registered, funded Phoenix trader public key)",
+        "Setup required: SOLANA_ADDRESS",
+        "No confirmed receipts"
+      ]
+    },
+    {
+      "page": "chats",
+      "theme": "floor",
+      "width": 375,
+      "file": "chats-floor-375.png",
+      "states": [
+        "No conversations found",
+        "What are you thinking?"
+      ]
+    },
+    {
+      "page": "agent",
+      "theme": "floor",
+      "width": 375,
+      "file": "agent-floor-375.png",
+      "states": []
+    },
+    {
+      "page": "permissions",
+      "theme": "floor",
+      "width": 375,
+      "file": "permissions-floor-375.png",
+      "states": []
+    },
+    {
+      "page": "backtest",
+      "theme": "floor",
+      "width": 375,
+      "file": "backtest-floor-375.png",
+      "states": [
+        "Give your idea a test."
+      ]
+    },
+    {
+      "page": "link",
+      "theme": "floor",
+      "width": 375,
+      "file": "link-floor-375.png",
+      "states": [
+        "Setup required: connect a pad"
+      ]
+    }
+  ]
+}

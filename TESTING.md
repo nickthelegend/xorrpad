@@ -727,3 +727,50 @@ them. `git diff --check` and module syntax checks passed.
 See [BACKTEST.md](docs/v1/BACKTEST.md) for requests, metric units, current-fee
 assumptions, funding gaps, fixed adverse slippage and the explicitly
 **counterfactual** pm-AMM liquidity/settlement model. T5 owns the UI page.
+
+## v1 T5 — desktop UI and responsive web desk
+
+2026-11-12: implemented the nine-page v1 renderer, retaining the original renderer
+byte-for-byte at `/classic`. Floor, Paper and Neon use the shipped Archivo and
+Azeret fonts; only the appearance preference is saved in browser local storage.
+Provider credentials continue through Electron safeStorage, never plain files.
+
+`npm run test:ui --prefix desk` starts an isolated real HTTP server and SQLite
+memory on loopback **8727**, runs Chromium with reduced motion, and regenerates
+[`docs/screens/v1/`](docs/screens/v1/README.md). Install the browser once with
+`cd desk && npx playwright install chromium` after installing desk dependencies.
+No APIs are intercepted and no market data is mocked.
+
+Final result: **13 integration groups passed**, **26 screenshots captured**,
+**0 runtime errors**, **0 document-width overflows**, **0 clipped form controls**,
+and **0 visible tested controls below 44 px**. The manifest records every capture
+and its real empty/setup/error states. Matrix: all nine pages at 1440 and 375 px
+in Floor, plus Pad and Trade at both widths in Paper and Neon.
+
+The groups cover public renderer/Classic/assets and authenticated link status;
+key assignment persistence and protected controls; actual NDJSON simulator hello,
+firmware and disconnect; permission cap persistence; chat create/rename/delete;
+live route comparison; keyboard skip-link route preservation; both backtest modes;
+a real T6 replay response; theme reload persistence; collapsed phone navigation;
+a live devnet pm-AMM proposal/refusal updating the TFT; and unauthenticated setup.
+Drag/drop uses real browser drag events and the assignment save uses the real API.
+No transaction was signed or submitted by the UI check.
+
+Relevant existing suites also ran unchanged:
+
+| Command | Passed | Skipped | Failed |
+| --- | ---: | ---: | ---: |
+| `npm run test:agent --prefix desk` | 13 | 3 | 0 |
+| `node --test desk/test/padlink.test.mjs desk/test/aggregate.http.test.mjs desk/test/permissions.test.mjs` | 23 | 1 | 0 |
+| `npm run test:backtest --prefix desk` | 8 | 6 | 0 |
+
+The agent HTTP check was rerun after the final masked-key response change.
+The real PTY serial test and authenticated Wi-Fi/event tests pass; this is
+simulator/transport evidence, not a physical-board flash or BLE radio test.
+
+Live limits remain explicit: no watched `SOLANA_ADDRESS` or `PHOENIX_AUTHORITY`
+was configured for UI verification; provider keys/Ollama were unavailable; the
+funded devnet trade check skipped; Pyth's specified history shim returned HTTP
+404, so successful history replay remains unproven. The UI renders those real
+setup/error states. Keeper reads returned no owned markets or published resolutions
+in this run; the UI does not invent evidence or receipts to fill those regions.

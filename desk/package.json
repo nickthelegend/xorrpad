@@ -20,7 +20,8 @@
     "warm": "node warm.mjs",
     "icon": "python3 build/make-icon.py",
     "dist": "python3 build/make-icon.py && electron-builder --mac --arm64",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "test:ui": "node test/desk-ui.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -37,7 +38,8 @@
   "main": "main/electron.mjs",
   "devDependencies": {
     "electron": "^44.2.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.65.0"
   },
   "build": {
     "appId": "finance.xorr.pad",
