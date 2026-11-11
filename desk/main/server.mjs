@@ -46,6 +46,10 @@ import { keeperCreator,keeperResolutions } from "./keeper-read.mjs";
 import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
 import { route, venues } from "./aggregate.mjs";
+import { backtest } from './backtest.mjs';
+import { predictionBacktest } from './prediction-backtest.mjs';
+import { History, RESOLUTIONS, PYTH_HISTORY } from './history.mjs';
+import { BOOK } from './strategies.mjs';
 
 /** Solana venues share the same read-only interface. */
 const CHAIN = activeChain();
@@ -409,6 +413,23 @@ export function createServer(mem) {
         await mem.journal({evaluated:{signal:proposal.signal},acted:{action:proposal.verdict.action,executed:false},forward:{why:proposal.verdict.why}});
         return send(200,{...proposal,signalId:queued.id,signalState:queued.state});
       }
+      if (url.pathname === '/backtest' && req.method === 'GET') return send(200,{
+        strategies:['book',...Object.keys(BOOK),'rule'],venues:['phoenix','jupperps','jupiter'],
+        resolutions:Object.keys(RESOLUTIONS),historySource:PYTH_HISTORY,
+        defaults:{resolution:'60',initialCash:10000,tradeUsd:1000,slippageBps:10},
+        rules:{indicators:['close','sma','ema','rsi','returnPct','relativeVolume'],comparisons:['lt','lte','gt','gte'],
+          entry:'AND array of {left: number or {indicator,period}, op, right: number or {indicator,period}}',
+          exit:'Optional AND array; fills at next open',sides:['long','short']},
+        prediction:{endpoint:'/backtest/predict',required:['symbol','from','to','strike','liquidityUsdc'],
+          model:'Counterfactual pm-AMM curve on real Pyth history; liquidity is a model input, not historical pool data.'},
+        feeBasis:'Current observed venue schedules; historical schedule changes not modelled.',
+      });
+      if (url.pathname === '/backtest' && req.method === 'POST') return send(200,await backtest(body));
+      if (url.pathname === '/backtest/predict') return send(200,await predictionBacktest(body));
+      if (url.pathname === '/backtest/history') return send(200,await new History().get({
+        symbol:url.searchParams.get('symbol'),from:Number(url.searchParams.get('from')),
+        to:Number(url.searchParams.get('to')),resolution:url.searchParams.get('resolution')??'60',
+      }));
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/venues") return send(200, { venues: await venues() });
       if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
@@ -956,6 +977,7 @@ export function createServer(mem) {
       // need completely different things from the operator.
       const msg = String(e.message || e);
       if (msg.startsWith('Setup required:')) return send(503,{error:msg,status:'Setup required'});
+      if (url.pathname.startsWith('/backtest')) return send(e.status || (/invalid|must|requires|choose/.test(msg)?400:502),{error:msg});
       if (url.pathname.startsWith('/agent/') || url.pathname.startsWith('/chats')) return send(e.status || (/invalid|must be/.test(msg)?400:502),{error:msg});
       if (url.pathname === "/route" && /must be|required|invalid side|unambiguous|not traded/.test(msg)) return send(400, {error:msg});
       if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
@@ -1197,6 +1219,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
   '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],

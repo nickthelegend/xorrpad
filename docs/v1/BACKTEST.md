@@ -95,3 +95,20 @@ empirical pm-AMM execution or a profitable-market claim. It requires contiguous
 Pyth bars and a bar closing exactly at expiry, settles `close > strike` (ties NO),
 and labels the difference from the keeper's exact timestamp/confidence oracle
 resolution. It never signs, submits, or creates a real prediction market.
+
+## Authenticated HTTP and agent surface
+
+- `GET /backtest`: strategy names, venues, defaults, rule format and assumptions.
+- `GET /backtest/history?symbol=SOL&from=...&to=...&resolution=60`: cached real
+  Pyth candles and provenance, including volume availability.
+- `POST /backtest`: the strategy request documented above.
+- `POST /backtest/predict`: prediction request; `to` is expiry, `strike` and
+  `liquidityUsdc` required. Optional capital, slippage, lookback, minimum edge.
+
+All use the existing bearer PAD_TOKEN authentication and method restrictions.
+Invalid requests return 400; missing data/setup returns 503; upstream failure
+returns 502. No endpoint accepts caller-supplied candles or fee overrides.
+The agent's `backtest` tool supports the same fields, with optional
+`kind:"predict"` selecting the prediction endpoint. Default kind is strategy;
+BOOK names and rule schema are disclosed in its description/schema. T5 owns the
+UI page; T6 changes only the backend/tool surface.
