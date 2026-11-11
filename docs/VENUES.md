@@ -132,3 +132,34 @@ allowlist keys. See [measured tests and setup limits](../TESTING.md#worker-brief
 | PAPER | — | not routable |
 | SOL | SOL | `So11111111111111111111111111111111111111112` (live quote required) |
 | TTWO | — | `TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo` (live quote required) |
+
+## Jupiter Perps integration (T1 step 2)
+
+`jupperps.mjs` reads SOL/ETH/BTC marks from the `/v2/market-stats` interface
+used by the [official Jupiter CLI](https://github.com/jup-ag/cli/blob/d8d7386691535469f7d17705ebfc5f432b96feba/src/clients/PerpsClient.ts).
+The [official perps docs](https://developers.jup.ag/docs/perps/index.md) still
+label the API work in progress. Open/close builders call the CLI's unsigned
+`positions/increase` and `positions/decrease` endpoints, never its execute endpoint.
+They require an explicit funded owner; close first verifies position ownership.
+Unsigned API transactions are checked for their fee payer and empty signatures.
+No mainnet transaction is signed or submitted by this integration.
+
+Anonymous quotes are **indicative**: live API mark, requested collateral × leverage,
+and current on-chain opening and impact fees. They exclude collateral swaps,
+rent, network fees and subsequent borrow costs. The API simulates again for the
+funded owner at build time; an unfunded public-key probe returned HTTP 422
+`insufficient_funds`. This is not an executable anonymous API quote.
+
+The [Pool](https://developers.jup.ag/docs/perps/pool-account.md) and
+[Custody](https://developers.jup.ag/docs/perps/custody-account.md) accounts supply
+JLP AUM, available reserves, leverage/position limits and borrow rates. Short
+borrow rates use USDC custody; longs use the asset custody. Both the linear and
+jump borrow curves include outstanding lending debt. Impact fees include the
+rolling 60-second imbalance buffer. These are point-in-time estimates.
+
+`jupperps-accounts.json` contains only the Pool/Custody account layouts and their
+transitive types, converted to modern Anchor IDL format from the reference
+[IDL linked by Jupiter](https://github.com/julianfssen/jupiter-perps-anchor-idl-parsing/blob/630cfd72cad499f45453a53383d7ac6d3e09e022/src/idl/jupiter-perpetuals-idl.ts).
+Borrow and fee math follows that revision's `get-borrow-fee-and-funding-rate.ts`
+and `price-impact-fee.ts`. Account owner, discriminator, asset mint and pool are
+checked before use. No provider, wallet or secret key is instantiated.

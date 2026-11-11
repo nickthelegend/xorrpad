@@ -1,0 +1,624 @@
+{
+  "address": "PERPHjGBqRHArX4DySjwM6UJHiR3sWAatqfdBS2qQJu",
+  "metadata": {
+    "name": "perpetuals_read",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [],
+  "accounts": [
+    {
+      "name": "custody",
+      "discriminator": [
+        1,
+        184,
+        48,
+        81,
+        93,
+        131,
+        63,
+        145
+      ]
+    },
+    {
+      "name": "pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "custody",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "isStable",
+            "type": "bool"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleParams"
+              }
+            }
+          },
+          {
+            "name": "pricing",
+            "type": {
+              "defined": {
+                "name": "PricingParams"
+              }
+            }
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "Permissions"
+              }
+            }
+          },
+          {
+            "name": "targetRatioBps",
+            "type": "u64"
+          },
+          {
+            "name": "assets",
+            "type": {
+              "defined": {
+                "name": "Assets"
+              }
+            }
+          },
+          {
+            "name": "fundingRateState",
+            "type": {
+              "defined": {
+                "name": "FundingRateState"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "tokenAccountBump",
+            "type": "u8"
+          },
+          {
+            "name": "increasePositionBps",
+            "type": "u64"
+          },
+          {
+            "name": "decreasePositionBps",
+            "type": "u64"
+          },
+          {
+            "name": "maxPositionSizeUsd",
+            "type": "u64"
+          },
+          {
+            "name": "dovesOracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "jumpRateState",
+            "type": {
+              "defined": {
+                "name": "JumpRateState"
+              }
+            }
+          },
+          {
+            "name": "dovesAgOracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "priceImpactBuffer",
+            "type": {
+              "defined": {
+                "name": "PriceImpactBuffer"
+              }
+            }
+          },
+          {
+            "name": "borrowLendParameters",
+            "type": {
+              "defined": {
+                "name": "BorrowLendParams"
+              }
+            }
+          },
+          {
+            "name": "borrowsFundingRateState",
+            "type": {
+              "defined": {
+                "name": "FundingRateState"
+              }
+            }
+          },
+          {
+            "name": "debt",
+            "type": "u128"
+          },
+          {
+            "name": "borrowLendInterestsAccured",
+            "type": "u128"
+          },
+          {
+            "name": "borrowLimitInTokenAmount",
+            "type": "u64"
+          },
+          {
+            "name": "minInterestFeeBps",
+            "type": "u64"
+          },
+          {
+            "name": "minInterestFeeGracePeriodSeconds",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "custodies",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "aumUsd",
+            "type": "u128"
+          },
+          {
+            "name": "limit",
+            "type": {
+              "defined": {
+                "name": "Limit"
+              }
+            }
+          },
+          {
+            "name": "fees",
+            "type": {
+              "defined": {
+                "name": "Fees"
+              }
+            }
+          },
+          {
+            "name": "poolApr",
+            "type": {
+              "defined": {
+                "name": "PoolApr"
+              }
+            }
+          },
+          {
+            "name": "maxRequestExecutionSec",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "lpTokenBump",
+            "type": "u8"
+          },
+          {
+            "name": "inceptionTime",
+            "type": "i64"
+          },
+          {
+            "name": "parameterUpdateOracle",
+            "type": {
+              "defined": {
+                "name": "Secp256k1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "aumUsdUpdatedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oracleAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracleType",
+            "type": {
+              "defined": {
+                "name": "OracleType"
+              }
+            }
+          },
+          {
+            "name": "buffer",
+            "type": "u64"
+          },
+          {
+            "name": "maxPriceAgeSec",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OracleType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "None"
+          },
+          {
+            "name": "Test"
+          },
+          {
+            "name": "Pyth"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PricingParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tradeImpactFeeScalar",
+            "type": "u64"
+          },
+          {
+            "name": "buffer",
+            "type": "u64"
+          },
+          {
+            "name": "swapSpread",
+            "type": "u64"
+          },
+          {
+            "name": "maxLeverage",
+            "type": "u64"
+          },
+          {
+            "name": "maxGlobalLongSizes",
+            "type": "u64"
+          },
+          {
+            "name": "maxGlobalShortSizes",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Permissions",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowSwap",
+            "type": "bool"
+          },
+          {
+            "name": "allowAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "name": "allowRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "name": "allowIncreasePosition",
+            "type": "bool"
+          },
+          {
+            "name": "allowDecreasePosition",
+            "type": "bool"
+          },
+          {
+            "name": "allowCollateralWithdrawal",
+            "type": "bool"
+          },
+          {
+            "name": "allowLiquidatePosition",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Assets",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "feesReserves",
+            "type": "u64"
+          },
+          {
+            "name": "owned",
+            "type": "u64"
+          },
+          {
+            "name": "locked",
+            "type": "u64"
+          },
+          {
+            "name": "guaranteedUsd",
+            "type": "u64"
+          },
+          {
+            "name": "globalShortSizes",
+            "type": "u64"
+          },
+          {
+            "name": "globalShortAveragePrices",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FundingRateState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cumulativeInterestRate",
+            "type": "u128"
+          },
+          {
+            "name": "lastUpdate",
+            "type": "i64"
+          },
+          {
+            "name": "hourlyFundingDbps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JumpRateState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "minRateBps",
+            "type": "u64"
+          },
+          {
+            "name": "maxRateBps",
+            "type": "u64"
+          },
+          {
+            "name": "targetRateBps",
+            "type": "u64"
+          },
+          {
+            "name": "targetUtilizationRate",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceImpactBuffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "openInterest",
+            "type": {
+              "array": [
+                "i64",
+                60
+              ]
+            }
+          },
+          {
+            "name": "lastUpdated",
+            "type": "i64"
+          },
+          {
+            "name": "feeFactor",
+            "type": "u64"
+          },
+          {
+            "name": "exponent",
+            "type": "f32"
+          },
+          {
+            "name": "deltaImbalanceThresholdDecimal",
+            "type": "u64"
+          },
+          {
+            "name": "maxFeeBps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BorrowLendParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrowsLimitInBps",
+            "type": "u64"
+          },
+          {
+            "name": "maintainanceMarginBps",
+            "type": "u64"
+          },
+          {
+            "name": "protocolFeeBps",
+            "type": "u64"
+          },
+          {
+            "name": "liquidationMargin",
+            "type": "u64"
+          },
+          {
+            "name": "liquidationFeeBps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Limit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maxAumUsd",
+            "type": "u128"
+          },
+          {
+            "name": "tokenWeightageBufferBps",
+            "type": "u128"
+          },
+          {
+            "name": "buffer",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Fees",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "swapMultiplier",
+            "type": "u64"
+          },
+          {
+            "name": "stableSwapMultiplier",
+            "type": "u64"
+          },
+          {
+            "name": "addRemoveLiquidityBps",
+            "type": "u64"
+          },
+          {
+            "name": "swapBps",
+            "type": "u64"
+          },
+          {
+            "name": "taxBps",
+            "type": "u64"
+          },
+          {
+            "name": "stableSwapBps",
+            "type": "u64"
+          },
+          {
+            "name": "stableSwapTaxBps",
+            "type": "u64"
+          },
+          {
+            "name": "liquidationRewardBps",
+            "type": "u64"
+          },
+          {
+            "name": "protocolShareBps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolApr",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lastUpdated",
+            "type": "i64"
+          },
+          {
+            "name": "feeAprBps",
+            "type": "u64"
+          },
+          {
+            "name": "realizedFeeUsd",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Secp256k1Pubkey",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prefix",
+            "type": "u8"
+          },
+          {
+            "name": "key",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
