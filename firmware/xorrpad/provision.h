@@ -19,18 +19,17 @@
 // with the portal already closed and no way in but the reset gesture.
 class Provision {
 public:
-  // Returns true once Wi-Fi is connected (blocks in the portal until then).
+  // Starts the portal without blocking USB/BLE; poll() services it in loop().
   bool run(Settings &s) {
-    WiFiManagerParameter pUrl(
-      "url", "Backend URL — http://&lt;mac-ip&gt;:8080, or https://&lt;machine&gt;.ts.net",
-      s.backendUrl, 120);
-    WiFiManagerParameter pToken(
-      "token", "Pad token (blank if the backend has none)", s.padToken, 90);
-
+    _settings=&s;
+    _url=new WiFiManagerParameter("url", "Backend URL (http://LAN:port or https://machine.ts.net)",s.backendUrl,120);
+    _token=new WiFiManagerParameter("token", "Pad token",s.padToken,90);
     _wm.setTitle("xorr-pad");
-    _wm.addParameter(&pUrl);
-    _wm.addParameter(&pToken);
-    _wm.setConfigPortalBlocking(true);
+    _wm.addParameter(_url);
+    _wm.addParameter(_token);
+    _wm.setConfigPortalBlocking(false);
+    _wm.setSaveParamsCallback([this](){ saveParams(); });
+    _wm.setConnectTimeout(1);
     _wm.setConfigPortalTimeout(0);          // stay open until configured
     _wm.setBreakAfterConfig(true);
 
@@ -38,18 +37,10 @@ public:
                 ? _wm.autoConnect(PORTAL_AP_NAME, PORTAL_AP_PASS)
                 : _wm.autoConnect(PORTAL_AP_NAME);
 
-    // Only persist a URL that could actually work. A rejected one leaves the
-    // previous value in place rather than bricking the pad into a dead address.
-    const char *given = pUrl.getValue();
-    if (validUrl(given)) {
-      s.set(given, pToken.getValue());
-    } else {
-      Serial.printf("!! portal gave an unusable backend URL (%s) — keeping %s\n",
-                    given && *given ? given : "(blank)", s.backendUrl);
-      s.set(s.backendUrl, pToken.getValue());   // keep the URL, take the token
-    }
     return ok && WiFi.status() == WL_CONNECTED;
   }
+
+  void poll() { _wm.process(); }
 
   // Wipe the saved Wi-Fi so the next boot re-opens the portal.
   void resetWifi() { _wm.resetSettings(); }
@@ -90,4 +81,10 @@ public:
 
 private:
   WiFiManager _wm;
+  Settings *_settings=nullptr;
+  WiFiManagerParameter *_url=nullptr,*_token=nullptr;
+  void saveParams() {
+    const char *given=_url->getValue();
+    _settings->set(validUrl(given) ? given : _settings->backendUrl,_token->getValue());
+  }
 };

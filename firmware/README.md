@@ -5,7 +5,7 @@ confirm it with a physical ✓ — or hold the mic key and say it out loud. Wi-F
 and the backend address are set once through a captive portal and remembered in
 flash; **no recompile to change networks**.
 
-Sketch: [`orchestrator_pad/orchestrator_pad.ino`](orchestrator_pad/orchestrator_pad.ino).
+Sketch: [`xorrpad/xorrpad.ino`](xorrpad/xorrpad.ino).
 
 > **Nothing on this pad can move money on its own.** BUY and SELL raise a
 > decision; only ✓ executes it, only while the backend says it is armed, and the
@@ -118,7 +118,7 @@ pad's ESP32-S3 has 10 free. The SPI version of the same 2.4" ILI9341 panel (with
 XPT2046 touch) fits the pin budget; the pod is parametric (`MODULES` in
 `cad/part_display.py`), so another board is a few numbers.
 
-All pins live in [`orchestrator_pad/config.h`](orchestrator_pad/config.h) — change
+All pins live in [`xorrpad/config.h`](xorrpad/config.h) — change
 them there if your wiring differs.
 
 The 12-second record buffer is 384 KB and **lives in PSRAM**, so PSRAM must be
@@ -135,7 +135,7 @@ arduino-cli lib install "Adafruit ILI9341"
 
 arduino-cli compile \
   --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi \
-  firmware/orchestrator_pad
+  firmware/xorrpad
 ```
 
 **Those board options are not optional.** With the bare `esp32:esp32:esp32s3`
@@ -172,7 +172,7 @@ constraints as the FQBN above:
 
 **Steps:**
 
-1. Open [`orchestrator_pad/orchestrator_pad.ino`](orchestrator_pad/orchestrator_pad.ino).
+1. Open [`xorrpad/xorrpad.ino`](xorrpad/xorrpad.ino).
 2. Install WiFiManager, set the board options above, pick the port, **Upload**.
 3. First boot: join the **`xorr-pad-setup`** Wi-Fi from your phone. If the portal
    doesn't pop up, browse to `http://192.168.4.1`.
@@ -261,3 +261,43 @@ browser.
 **Not verifiable without hardware:** Wi-Fi provisioning on the device, I2S mic
 capture, amp playback, matrix scanning, and NVS persistence across a power
 cycle. Those are marked untested rather than assumed.
+
+
+## v1.0.0 pad link
+
+The [v1 protocol](../docs/v1/PAD-PROTOCOL.md) adds native USB-CDC JSON,
+NimBLE Nordic UART BLE and authenticated Wi-Fi NDJSON at the existing backend
+URL. The link manager prefers a responsive USB desk, then BLE, then Wi-Fi;
+15 seconds without a valid desk message expires a link. Trade inputs are never
+replayed on another transport after an uncertain result. Old HTTP key, voice,
+chart, speech and telnet paths remain available with older backends.
+
+The captive portal now runs without blocking the key scan or wired/BLE link.
+It still saves Wi-Fi, backend URL and token through WiFiManager/Preferences.
+The desk pushes a validated full 14-key map, saved in the `xorrkeys` NVS
+namespace. The TFT shows programmed labels after a change and the pressed
+label during use. MIC, KILL and yes/no retain their measured cells and hold
+behavior. The existing board has no wired rotary encoder; knob records are
+supported by the protocol and desk, not claimed as physical input.
+
+Pending signals display the desk's proposal and relative expiry countdown,
+with drawn green check/red cross controls. A check carries the displayed
+signal id to the backend gate. AUTO reflects desk policy only. Confirmed
+receipts show the real signature and explorer URL. No acknowledgment is drawn
+as a confirmed fill. Firmware 1.0.0 appears on boot and in hello.
+
+Mic audio streams as 16 kHz signed little-endian mono PCM chunks to `/voice`
+through the desk bridge; ordered TTS PCM goes to the existing I2S amp. Legacy
+raw-PCM HTTP voice remains available. Deepgram credentials stay on the desk;
+a missing key reports `Setup required: DEEPGRAM_API_KEY`.
+
+The **Mac mini/desk joins Tailscale; the ESP32 does not join the tailnet itself
+in v1**. Reach the desk over USB or LAN, a LAN relay, or the existing pinned-TLS
+Funnel URL. A bare ESP32 cannot route directly to `100.x` tailnet addresses.
+BLE central support uses optional `@abandonware/noble` when available on the
+Mac; the phone may relay the exact records to `/padlink`. This task does not
+claim a tested phone app integration. BLE and USB are local trusted links;
+backend token authentication remains required for Wi-Fi/phone relays.
+
+Radio, flash persistence, display orientation, mic and amp behavior still need
+the board. Compilation and software protocol tests cannot establish these.

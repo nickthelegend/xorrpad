@@ -1,6 +1,7 @@
 #pragma once
 #include <Adafruit_GFX.h>
 #include "padstate.h"
+#include "config.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ui.h — every pixel the pad draws, and nothing that knows about hardware.
@@ -222,6 +223,8 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   text(c, 12, 10, 3, INK, ascii(pad.market.length() ? pad.market : String("--")).c_str());
 
   int right = W - 12;
+  if (pad.autoAccept) right = pillSolid(c, right, 88, "AUTO", WARN, BG) - 6;
+  right = W - 12;
   if (!pad.armed)        right = pillSolid(c, right, 10, "STOPPED", DOWN, BG) - 6;
   else                   right = pill(c, right, 10, "ARMED", UP) - 6;
   if (pad.chain.length()) {
@@ -306,6 +309,12 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
 
   c.fillRect(0, 0, W, 4, accent);
   pillSolid(c, W - 12, 12, "CONFIRM", accent, BG);
+  if(pad.signalId.length()){
+    char countdown[24];int32_t left=(int32_t)(pad.signalDeadline-millis());
+    snprintf(countdown,sizeof countdown,"%lds left",(long)(left>0?(left+999)/1000:0));
+    textR(c,W-12,38,2,WARN,countdown);
+  }
+  if(pad.autoAccept)pillSolid(c,W-12,66,"AUTO",WARN,BG);
 
   // the ask, as large as it goes
   text(c, 12, 14, 3, accent, sell ? "SELL" : "BUY");
@@ -330,9 +339,11 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   // the two targets, mirroring the green and red keys under the operator's hand
   const int by = H - BANNER_H - 44;
   c.drawRoundRect(12, by, 130, 34, 8, UP);
-  text(c, 12 + (130 - tw(2, "YES")) / 2, by + 9, 2, UP, "YES");
+  c.drawLine(24,by+17,30,by+24,UP);c.drawLine(30,by+24,42,by+9,UP);
+  text(c, 55, by + 9, 2, UP, "YES");
   c.drawRoundRect(W - 12 - 130, by, 130, 34, 8, DOWN);
-  text(c, W - 12 - 130 + (130 - tw(2, "NO")) / 2, by + 9, 2, DOWN, "NO");
+  c.drawLine(188,by+10,204,by+24,DOWN);c.drawLine(204,by+10,188,by+24,DOWN);
+  text(c, 220, by + 9, 2, DOWN, "NO");
 
   drawHoursBanner(c, pad);
 }
@@ -350,7 +361,7 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
   c.setTextWrap(false);
 
   text(c, 14, 40, 4, INK, "xorr-pad");
-  text(c, 14, 82, 1, MUTE, "tokenized equities, on your desk");
+  text(c, 14, 82, 1, MUTE, "firmware " XORR_FW_VERSION);
 
   text(c, 14, 118, 1, GRID, "DISPLAY");
   char b[48];
@@ -375,8 +386,26 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   c.fillScreen(BG);
   c.setTextWrap(false);
   if (!pad.ok)          drawOffline(c);
+  else if(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0) {
+    text(c,12,14,3,UP,"RECEIPT");text(c,12,50,1,MUTE,"CONFIRMED SIGNATURE");
+    wrap(c,12,68,W-24,1,INK,pad.receiptSignature,4);
+    wrap(c,12,124,W-24,1,MUTE,pad.receiptExplorer,4);
+    banner(c,UP,"CONFIRMED","receipt from the desk");
+  }
   else if (pad.pending) drawConfirm(c, pad, ch);
+  else if((int32_t)(pad.keymapUntil-millis())>0){
+    text(c,12,12,2,INK,"PROGRAMMED KEYS");
+    for(int i=0;i<14;i++){
+      int x=8+(i%3)*104,y=42+(i/3)*30;
+      c.drawRoundRect(x,y,98,24,4,GRID);textClip(c,x+4,y+8,90,1,MUTE,pad.keyLabels[i]);
+    }
+    banner(c,UP,"SAVED","desk keymap stored in NVS");
+  }
   else                  drawHome(c, pad, ch);
+  if(!pad.pending && (int32_t)(pad.labelUntil-millis())>0) {
+    c.fillRect(0,H-76,W,36,BG);textClip(c,12,H-64,W-24,2,INK,pad.lastKeyLabel);
+  }
+  if(pad.link.length())textR(c,W-12,H-44,1,MUTE,pad.link.c_str());
 }
 
 }  // namespace ui

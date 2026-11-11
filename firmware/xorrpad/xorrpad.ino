@@ -25,6 +25,8 @@
 #include "config.h"
 #include "settings.h"
 #include "agents.h"
+#include "keymap.h"
+#include "link.h"
 #include "matrix.h"
 #include "audio.h"
 #include "telnet.h"
@@ -44,6 +46,11 @@ Telnet     telnet;
 Net        net;
 Provision  provision;
 Settings   settings;
+PadLink    padlink;
+bool telnetStarted=false, keymapShown=false;
+PadLink::Transport recTransport=PadLink::NONE;
+bool recStreaming=false;
+String ttsStream;uint32_t ttsSeq=0;
 
 int16_t   *recBuf = nullptr;
 const size_t REC_CAP = (size_t)AUDIO_SAMPLE_RATE * REC_SECONDS_MAX;
@@ -75,12 +82,62 @@ void ledFromState() {
   led(keyR / 3, keyG / 3, keyB / 3);
 }
 
+// Messages are applied on loop(), including BLE callbacks queued by link.h.
+void onPadMessage(JsonVariantConst d) {
+  String type=d["type"] | "";
+  if(type=="keymap") {
+    uint32_t previousRevision=keymapRevision;
+    bool ok=applyKeymap(d);
+    JsonDocument ack;ack["type"]="keymap_state";ack["revision"]=d["revision"];ack["ok"]=ok;padlink.send(ack);
+    if(ok && (!keymapShown || previousRevision!=keymapRevision)){
+      int i=0;for(int r=0;r<4;r++)for(int c=0;c<4;c++)if(liveKeys[r][c].role!=ROLE_NONE)pad.keyLabels[i++]=keyLabels[r][c];
+      pad.keymapUntil=millis()+4000;keymapShown=true;
+    }
+  } else if(type=="status") {
+    pad.ok=true;pad.armed=d["armed"] | false;pad.autoAccept=d["autoAccept"] | false;
+    pad.market=d["market"].as<String>();pad.agent=d["agent"].as<String>();pad.venue=d["venue"].as<String>();pad.link=padlink.name();
+    if(d["remembers"].is<bool>())pad.remembers=d["remembers"];
+  } else if(type=="signal") {
+    pad.signalId=d["signalId"].as<String>();pad.signalState="awaiting";
+    pad.signalDeadline=millis()+min((uint32_t)86400000,d["remainingMs"].as<uint32_t>());
+    pad.pending=d["remainingMs"].as<uint32_t>()>0;pad.market=d["market"].as<String>();
+    pad.verdict=d["side"].as<String>()+" $"+String(d["sizeUsd"].as<float>(),2)+" "+d["why"].as<String>();
+    pad.venue=d["venue"].as<String>();pad.receiptUntil=0;
+  } else if(type=="signal_state") {
+    if(d["signalId"].as<String>()==pad.signalId){pad.signalState=d["state"].as<String>();pad.pending=pad.signalState=="awaiting";}
+  } else if(type=="receipt") {
+    pad.pending=false;pad.receiptSignature=d["signature"].as<String>();pad.receiptExplorer=d["explorer"].as<String>();pad.receiptUntil=millis()+15000;
+  } else if(type=="result" && d["ok"]==false) {
+    pad.lastKeyLabel=d["error"].as<String>();pad.labelUntil=millis()+5000;
+  } else if(type=="tts") {
+    if(d["sampleRate"]!=16000)return;
+    String stream=d["stream"].as<String>();uint32_t seq=d["seq"];
+    if(seq==0){ttsStream=stream;ttsSeq=0;}
+    if(stream!=ttsStream || seq!=ttsSeq++) {ttsStream="";return;}
+    const char *base64=d["pcm"] | "";int16_t pcm[256];size_t bytes=0;
+    if(strlen(base64)>684 || mbedtls_base64_decode((unsigned char*)pcm,sizeof pcm,&bytes,(const unsigned char*)base64,strlen(base64)) || bytes%2)return;
+    audio.writeSpk(pcm,bytes/2);if(d["end"]==true)ttsStream="";
+  }
+  screenDirty=true;
+}
+
+bool sendLinkedKey(const String &action) {
+  if(!padlink.ready())return false;
+  JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]=action;d["edge"]="down";
+  if(action=="yes" || action=="no") {
+    if(!pad.pending || (int32_t)(pad.signalDeadline-millis())<=0)return true;
+    d["signalId"]=pad.signalId;
+  }
+  padlink.send(d);return true;
+}
+
 // ── recording ────────────────────────────────────────────────────────────────
 void startRecording(uint32_t autoStopMs = 0) {
   if (recording) return;
   // No "select an agent first" gate: the backend always has one holding the
   // baton, so a spoken order is never homeless. Refusing here would invent a
   // rule the backend does not have.
+  recTransport=padlink.active();recStreaming=padlink.ready();padlink.newVoice();
   recLen = 0;
   recording = true;
   recAutoStopAt = autoStopMs ? millis() + autoStopMs : 0;
@@ -95,6 +152,10 @@ void stopAndSend() {
   led(70, 40, 0);                       // amber = thinking
   audio.beep(700, 70);
   float secs = (float)recLen / AUDIO_SAMPLE_RATE;
+  if(recStreaming) {
+    if(padlink.active()==recTransport)padlink.voice(nullptr,0,true);
+    nextPoll=0;return;
+  }
   if (recLen < AUDIO_SAMPLE_RATE / 4) { // < 0.25 s
     telnet.logf("  … too short (%.2fs), ignored\n", secs);
     return;
@@ -120,6 +181,11 @@ void stopAndSend() {
 // out loud, rather than blinking something the operator has to interpret.
 void sendKey(const KeyBind &kb) {
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
+  pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
+  if(sendLinkedKey(kb.id))return;
+  if((kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE) && pad.signalId.length()){
+    pad.lastKeyLabel="Signal link offline";pad.labelUntil=millis()+4000;return;
+  }
   String err;
   if (net.key(kb.id, err)) {
     telnet.logf("  ▸ %s\n", kb.label);
@@ -274,6 +340,7 @@ void setup() {
   led(0, 0, 60);                        // blue = booting
 
   matrix.begin();
+  loadKeymap();
   screen.begin();                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
   if (!audio.begin()) Serial.println("!! audio init failed");
@@ -282,6 +349,8 @@ void setup() {
 
   settings.load();
   net.begin(&settings);
+  padlink.begin(&settings,onPadMessage);
+  Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();
   if (forcePortal) {
@@ -293,7 +362,7 @@ void setup() {
   }
 
   Serial.printf("provisioning… (join \"%s\" if the portal opens)\n", PORTAL_AP_NAME);
-  bool up = provision.run(settings);    // blocks in the portal until configured
+  bool up = provision.run(settings);    // portal stays available while USB/BLE work
 
   if (!up) {
     Serial.println("!! WiFi not connected");
@@ -302,7 +371,7 @@ void setup() {
   }
 
   Serial.printf("WiFi up: %s\n", WiFi.localIP().toString().c_str());
-  telnet.begin(TELNET_PORT);
+  telnet.begin(TELNET_PORT);telnetStarted=true;
   telnet.onCommand(onTelnetCommand);
   Serial.printf("telnet:  telnet %s %u\n", WiFi.localIP().toString().c_str(), TELNET_PORT);
   Serial.printf("backend: %s  (token %s)\n", settings.backendUrl, settings.padToken[0] ? "set" : "none");
@@ -327,12 +396,18 @@ void setup() {
 }
 
 void loop() {
+  provision.poll();padlink.tick();
+  if(WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
+  static uint32_t tickScreen=0;
+  if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}
+  if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
+  if(!padlink.ready() && !WiFi.isConnected())pad.ok=false;
   matrix.scan(onKey);
   telnet.poll();
 
   // One cheap poll a second keeps the light honest — armed, waiting on a ✓,
   // or forgotten. Skipped while recording so the mic never stutters.
-  if (!recording && millis() >= nextPoll) {
+  if (!recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
     nextPoll = millis() + PAD_POLL_MS;
     PadState fresh;
     if (net.pad(fresh)) pad = fresh; else pad.ok = false;
@@ -343,7 +418,7 @@ void loop() {
   // The display pod. The chart is hourly candles, so it is fetched once a
   // minute — or at once when the market in hand changes — while the screen
   // redraws after every poll so the price and the state stay live.
-  if (!recording && millis() >= nextChart) {
+  if (!recording && WiFi.isConnected() && !pad.pending && millis() >= nextChart) {
     nextChart = millis() + CHART_POLL_MS;
     ChartState fresh;
     if (net.chart(fresh)) {
@@ -367,7 +442,7 @@ void loop() {
   if (killHeldSince && millis() - killHeldSince >= HOLD_TO_KILL_MS) {
     killHeldSince = 0;
     String err;
-    if (net.key("kill", err)) { telnet.logf("  ▸ TRADING STOPPED\n"); net.speak("Trading stopped.", audio); }
+    if (sendLinkedKey("kill") || net.key("kill", err)) { telnet.logf("  ▸ TRADING STOPPED\n"); net.speak("Trading stopped.", audio); }
     else telnet.logf("  ✗ kill refused: %s\n", err.c_str());
     nextPoll = 0;
   }
@@ -375,6 +450,8 @@ void loop() {
   if (recording && recBuf) {
     int16_t block[256];
     size_t n = audio.readMic(block, 256);
+    if(recStreaming && padlink.active()!=recTransport){recording=false;pad.lastKeyLabel="Voice link lost";pad.labelUntil=millis()+4000;return;}
+    if(recStreaming && n)padlink.voice(block,n,false);
     for (size_t i = 0; i < n && recLen < REC_CAP; i++) recBuf[recLen++] = block[i];
     if (recLen >= REC_CAP) { telnet.logf("  (max length)\n"); stopAndSend(); }
     else if (recAutoStopAt && millis() >= recAutoStopAt) stopAndSend();
