@@ -9,7 +9,7 @@
  * there is no price API key and no invented number anywhere.
  */
 import { evaluateAll, AGENT_KINDS } from "./agents.mjs";
-import { decide } from "./decide.mjs";
+import { propose } from "./propose.mjs";
 import { active } from "./chains/index.mjs";
 import { SYMBOLS } from "./markets.mjs";
 import { prices as feedPrices } from "./scan.mjs";
@@ -141,8 +141,7 @@ export async function runOnce(mem, { execute = false, cfgs = {}, market } = {}) 
   const signals = evaluateAll(mkt, brief, cfgs).filter((s) => s.symbol !== "USDC");
   if (!signals.length) return { signals: [], verdict: null, fill: null, market: mkt };
 
-  const signal = signals[0];
-  const verdict = decide(signal, brief);
+  const {signal,verdict,routing} = await propose(signals[0],brief,{price:mkt.prices[signals[0].symbol]});
 
   // The proposal is journaled whether or not it executes — that history is
   // what reflection later turns into rules.
@@ -155,7 +154,7 @@ export async function runOnce(mem, { execute = false, cfgs = {}, market } = {}) 
     forward: { why: verdict.why },
   });
 
-  return { signals, signal, verdict, fill: null, market: mkt, brief };
+  return { signals, signal, verdict, routing, fill: null, market: mkt, brief };
 }
 
 export async function snapshot(mem) {

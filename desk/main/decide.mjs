@@ -63,6 +63,23 @@ export function decide(signal, brief) {
     why.push(`NO remembered limits — falling back to a timid $${NO_MEMORY_LIMITS.max_trade_usd}/trade`);
   }
 
+  if (!Number.isFinite(signal.sizeUsd) || signal.sizeUsd <= 0) {
+    return {action:"REJECT",sizeUsd:0,why:[...why,"size must be positive and finite"],memoryUsed};
+  }
+  if (signal.kind === "perp" && (!Number.isFinite(signal.leverage) || signal.leverage < 1 || signal.leverage > (limits.max_leverage ?? 1))) {
+    return {action:"REJECT",sizeUsd:0,why:[...why,`leverage exceeds permission cap (${limits.max_leverage ?? 1}) or is invalid`],memoryUsed};
+  }
+  if (signal.venue && limits.venues && !limits.venues.includes(signal.venue)) {
+    return {action:"REJECT",sizeUsd:0,why:[...why,`${signal.venue} is not in the venue allowlist`],memoryUsed};
+  }
+  if (limits.cooldown_seconds > 0 && (brief?.journal_recent || []).some(e => {
+    const acted = typeof e.acted === "string" ? safeParse(e.acted) : e.acted;
+    const age = Date.now() - Date.parse(e.ts);
+    return acted?.executed && age >= 0 && age < limits.cooldown_seconds * 1000;
+  })) {
+    return {action:"REJECT",sizeUsd:0,why:[...why,"trade cooldown is active"],memoryUsed};
+  }
+
   // 2. Allowlist.
   const allow = limits.allow || NO_MEMORY_LIMITS.allow;
   if (!allow.includes(signal.symbol)) {

@@ -3,7 +3,10 @@ import * as solana from "./solana.mjs";
 import * as pmamm from "./pmamm.mjs";
 import * as phoenix from "./phoenix.mjs";
 
-export const ALL = [solana, pmamm, phoenix];
+import * as meteora from "./meteora.mjs";
+import * as jupperps from "./jupperps.mjs";
+
+export const ALL = [solana, pmamm, phoenix, meteora, jupperps];
 
 /** Every venue, by id. */
 export const BY_ID = Object.fromEntries(ALL.map((c) => [c.id, c]));

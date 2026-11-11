@@ -17,7 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
 import { runOnce, getMarket, snapshot } from "./trader.mjs";
-import { decide } from "./decide.mjs";
+import { propose, buildRouted } from "./propose.mjs";
 import { evaluate, AGENT_KINDS } from "./agents.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
 import { prices as feedPrices } from "./scan.mjs";
@@ -209,8 +209,9 @@ export function createServer(mem) {
           return res.end(out2);
         }
         if (sig) {
-          verdict = decide(sig, brief);
-          state.pending = { sig, verdict, market };
+          const proposal = await propose(sig,brief,{price:market.prices[sig.symbol]});
+          verdict = proposal.verdict;
+          state.pending = { sig:proposal.signal, verdict, market, routing:proposal.routing };
           reply = verdict.action === "EXECUTE"
             ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. Press yes to confirm.`
             : `I can't. ${verdict.why.slice(-1)[0]}.`;
@@ -261,6 +262,17 @@ export function createServer(mem) {
       if (/^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
+      }
+      if (url.pathname === "/propose") {
+        const kind = body.kind || "spot", side = String(body.side || "").toUpperCase();
+        const sig = {agent:"agent",kind,side:kind==="predict"?"BUY":side,
+          symbol:kind==="predict"?`pmamm:${body.market}:${side.toLowerCase()}`:body.market,
+          market:body.market,outcomeSide:kind==="predict"?side.toLowerCase():undefined,
+          sizeUsd:Number(body.size),leverage:Number(body.leverage ?? 1),reason:body.reason || "agent propose tool"};
+        const proposal = await propose(sig,await mem.recallBrief());
+        state.pending = {sig:proposal.signal,verdict:proposal.verdict,routing:proposal.routing};
+        await mem.journal({evaluated:{signal:proposal.signal},acted:{action:proposal.verdict.action,executed:false},forward:{why:proposal.verdict.why}});
+        return send(200,proposal);
       }
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/venues") return send(200, { venues: await venues() });
@@ -601,7 +613,7 @@ export function createServer(mem) {
       // you can no longer see is not a decision you can consent to.
       if (url.pathname === "/pending")
         return send(200, state.pending
-          ? { pending: true, signal: state.pending.sig, verdict: state.pending.verdict }
+          ? { pending: true, signal: state.pending.sig, verdict: state.pending.verdict, routing:state.pending.routing }
           : { pending: false });
 
       // The last book run, whoever ran it. Without this a scan triggered from
@@ -771,9 +783,10 @@ export function createServer(mem) {
         // Key ids are lowercase, but market symbols are not (cbBTC, EURC).
         // Resolve a symbol case-insensitively before flattening the rest.
         const raw = String(body.id || "");
-        const asSymbol = SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
-          || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase());
-        return send(200, await onKey(mem, asSymbol || raw.toLowerCase()));
+        const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","kill","mic"]);
+        const asSymbol = !controls.has(raw.toLowerCase()) && (SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
+          || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase()));
+        return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body));
       }
 
       // Wrong-verb requests never reach here — ROUTE_METHODS is enforced
@@ -800,7 +813,7 @@ export function createServer(mem) {
 
 /** The deck. Every physical key lands here — and so does every UI click, so a
  *  dead switch never blocks a demo. */
-async function onKey(mem, id) {
+async function onKey(mem, id, options = {}) {
   const AGENTS = ["dca", "grid", "momentum", "rebalance", "yield", "risk"];
 
   if (AGENTS.includes(id)) {
@@ -837,21 +850,25 @@ async function onKey(mem, id) {
       const brief = await mem.recallBrief();
       const sig = { agent: top.strategy, side: top.side, symbol: top.symbol,
                     sizeUsd: state.sizeUsd, reason: top.rationale, confidence: top.confidence };
-      const verdict = decide(sig, brief);
-      state.pending = { sig, verdict, market: { prices: Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price])) } };
+      const proposal = await propose(sig,brief,{price:top.price});
+      const {verdict,routing} = proposal;
+      state.pending = {sig:proposal.signal,verdict,routing,market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}};
       note(`${sig.side} ${sig.symbol} $${sig.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-      return { ok: true, scan: r, signal: sig, verdict, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+      return { ok: true, scan: r, signal: state.pending.sig, verdict, routing:state.pending.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
     }
     return { ok: true, scan: r, signal: null, verdict: null };
   }
 
-  if (id === "buy" || id === "sell") {
+  if (["buy","sell","long","short"].includes(id)) {
     const brief = await mem.recallBrief();
-    const market = await getMarket([state.market]);
-    const sig = { agent: state.agent, side: id.toUpperCase(), symbol: state.market,
+    const selected = options.market || state.market;
+    const market = ["long","short"].includes(id) ? {prices:{}} : await getMarket([selected]);
+    const sig = { agent: state.agent, side: id.toUpperCase(), symbol: selected,
+                  kind:["long","short"].includes(id)?"perp":"spot",leverage:Number(options.leverage ?? 1),
                   sizeUsd: state.sizeUsd, reason: `${id} pressed on the pad`, confidence: 1 };
-    const verdict = decide(sig, brief);
-    state.pending = { sig, verdict, market };
+    const proposal = await propose(sig,brief,{price:market.prices[selected]});
+    const {verdict,routing} = proposal;
+    state.pending = {sig:proposal.signal,verdict,market,routing};
     // A refusal decided HERE used to leave no trace at all. The journal only
     // ever recorded what the operator rejected by pressing NO — never what the
     // gate itself refused — so the store could not answer "what did you turn
@@ -864,8 +881,8 @@ async function onKey(mem, id) {
                  ...(verdict.vetoedBy ? { vetoedBy: verdict.vetoedBy } : {}) },
         forward: { why: verdict.why },
       });
-    note(`${id.toUpperCase()} ${state.market} $${state.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-    return { ok: true, signal: sig, verdict, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+    note(`${id.toUpperCase()} ${selected} $${state.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
+    return { ok: true, signal: state.pending.sig, verdict, routing:state.pending.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
   }
 
   if (id === "yes" || id === "no") {
@@ -887,51 +904,22 @@ async function onKey(mem, id) {
     if (id === "no") { note(`rejected ${p.sig.side} ${p.sig.symbol}`); return { ok: true, rejected: true }; }
     if (p.verdict.action !== "EXECUTE") return { ok: false, error: "that signal was not executable" };
 
-    // ── the ✓ on a venue the pad cannot sign for ──────────────────────────
-    //
-    // Solana venues hand back an unsigned transaction rather than a
-    // receipt. The pad has reasoned its way to a trade and a person has agreed
-    // to it; what remains is a signature, and the key for that is not here.
-    //
-    // The quote is taken again at this moment rather than reused from the
-    // proposal. Seconds have passed since the gate ran — on a market that
-    // trades while its exchange is shut, that is exactly when a price moves —
-    // and confirming against a stale number would be signing for something
-    // other than what was shown.
-    {
-      const [sell, buy] = p.sig.side === "BUY"
-        ? [CHAIN.markets().quoteAsset, p.sig.symbol]
-        : [p.sig.symbol, CHAIN.markets().quoteAsset];
-      try {
-        const size = p.sig.side === "BUY" ? p.verdict.sizeUsd : p.verdict.sizeUsd / await CHAIN.price(p.sig.symbol);
-        const fresh = await CHAIN.quote(sell, buy, size);
-        const built = CHAIN.buildSwap ? await CHAIN.buildSwap(fresh).catch((e) => ({ error: String(e.message || e) })) : null;
-
-        // Journalled as handed off, never as filled. The pad does not watch the
-        // chain for this signature and must not claim an outcome it cannot see.
-        await mem.journal({
-          evaluated: { signal: p.sig, verdict: p.verdict, quote: { out: fresh.amountOut, price: fresh.price, route: fresh.route } },
-          acted: { action: "HANDED_OFF", usd: p.verdict.sizeUsd, executed: false },
-          forward: { venue: fresh.venue, signing: "external" },
-        });
-        note(`${p.sig.side} ${p.sig.symbol} $${p.verdict.sizeUsd} -> ${fresh.amountOut.toFixed(6)} via ${fresh.route} — built, unsigned`);
-
-        return {
-          ok: true,
-          handoff: true,
-          quote: { ...fresh, raw: undefined },
-          transaction: built?.unsignedTx ? { unsignedTx: built.unsignedTx, signWith: built.signWith, requestUrl: built.requestUrl, qrSvg: built.qrSvg } : null,
-          setupRequired: built?.setupRequired || null,
-          buildError: built?.error || null,
-          note: built?.unsignedTx
-            ? "built and unsigned — sign it with your own wallet; the pad holds no key"
-            : `quoted only — ${CHAIN.label} execution stays with you`,
-        };
-      } catch (e) {
-        return { ok: false, error: `could not price that on ${CHAIN.label}: ${String(e.message || e)}` };
-      }
-    }
-
+    // Refresh routing and remembered permissions at acceptance, then build only
+    // the selected venue's transaction. A wallet still owns signing.
+    try {
+      const fresh = await propose(p.sig,await mem.recallBrief());
+      if (fresh.verdict.action !== "EXECUTE") return {ok:false,error:fresh.verdict.why.at(-1),...fresh};
+      const best = fresh.routing.best;
+      const built = await buildRouted(fresh).catch(e=>({error:e.message}));
+      await mem.journal({evaluated:{signal:fresh.signal,verdict:fresh.verdict,quote:best},
+        acted:{action:built.unsignedTx?"HANDED_OFF":"QUOTED",usd:fresh.verdict.sizeUsd,executed:false},
+        forward:{venue:best.venue,signing:"external"}});
+      note(`${fresh.signal.side} ${fresh.signal.symbol} via ${best.venue} — ${built.unsignedTx?"built, unsigned":"quoted only"}`);
+      return {ok:true,handoff:!!built.unsignedTx,quote:best.quote,routing:fresh.routing,
+        transaction:built.unsignedTx?{unsignedTx:built.unsignedTx,signWith:built.signWith,requestUrl:built.requestUrl,qrSvg:built.qrSvg}:null,
+        setupRequired:built.setupRequired||null,buildError:built.error||null,
+        note:built.unsignedTx?"built and unsigned — sign with your own wallet":"quoted only — see buildError or setupRequired"};
+    } catch(e) {return {ok:false,error:e.message};}
   }
 
   if (id === "base") return onKey(mem, "scan");   // the white key runs the book
@@ -1043,7 +1031,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
-  "/route": ["GET"], "/venues": ["GET"],
+  "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],
