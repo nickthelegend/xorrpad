@@ -53,6 +53,7 @@ export class PadLink extends EventEmitter {
     signals?.on('event',this.onEvent);
     this.heartbeat = setInterval(() => {
       for (const peer of this.peers) {
+        for(const [id,s] of peer.streams)if(Date.now()-(s.at || peer.last)>15000 && !s.answering){s.live?.abort();peer.streams.delete(id);}
         if (!peer.streams.size && Date.now()-peer.last > 15000) this.remove(peer);
         else if (peer.device) this.send(peer,this.getStatus(peer));
       }
@@ -165,9 +166,9 @@ export class PadLink extends EventEmitter {
       if (!s || s.seq!==m.seq || s.bytes+pcm.length>384000) {s?.live?.abort();p.streams.delete(m.stream);throw new Error('voice sequence/limit');}
       s.seq++; s.at=Date.now(); s.bytes+=pcm.length;
       if (s.live) {
-        try {s.live.write(pcm);if(m.end)await s.live.finish();}
+        try {s.live.write(pcm);if(m.end){s.answering=true;await s.live.finish();}}
         catch(e){s.live.abort();p.streams.delete(m.stream);throw e;}
-        finally {if(m.end)p.streams.delete(m.stream);}
+        finally {if(m.end){p.streams.delete(m.stream);p.last=Date.now();}}
       } else {
         s.chunks.push(pcm);
         if (m.end) {p.streams.delete(m.stream); this.audio(p,await this.request('/voice',Buffer.concat(s.chunks),true));}

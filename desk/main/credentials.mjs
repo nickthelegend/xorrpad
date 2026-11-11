@@ -1,6 +1,7 @@
 /** API credentials are persisted only by Electron's OS-backed safeStorage. */
 import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
+import {randomUUID} from 'node:crypto';
 import { appDataDir } from './permissions.mjs';
 const NAMES = new Set(['anthropic','openai','deepgram','groq','tailscale','pad-token']);
 export class Credentials {
@@ -28,8 +29,9 @@ export class Credentials {
     if (!value.trim()) { await rm(file,{force:true}); return; }
     const encrypted = (await this.storage()).encryptString(value.trim());
     await mkdir(this.dir,{recursive:true,mode:0o700});
-    await writeFile(file+'.tmp',encrypted,{mode:0o600});
-    await rename(file+'.tmp',file);
+    const temp=file+'.'+randomUUID()+'.tmp';
+    try {await writeFile(temp,encrypted,{mode:0o600,flag:'wx'});await rename(temp,file);}
+    finally {encrypted.fill(0);await rm(temp,{force:true});}
   }
   async masked(name) { const key = await this.get(name); return key ? `••••${key.slice(-4)}` : ''; }
 }

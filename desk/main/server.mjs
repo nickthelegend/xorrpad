@@ -17,7 +17,7 @@ import { AgentSettings } from './agent-settings.mjs';
 import { LLM } from './llm.mjs';
 import { Agent } from './agent.mjs';
 import { Chats } from './chats.mjs';
-import { assemblePrompt } from './persona.mjs';
+import { assemblePrompt, proposalSpeech } from './persona.mjs';
 import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
@@ -31,7 +31,7 @@ import { propose } from "./propose.mjs";
 import { evaluate, AGENT_KINDS } from "./agents.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
 import { prices as feedPrices } from "./scan.mjs";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { stt, tts, think, parseIntent, pcmToWav, configureVoiceKeys } from "./voice.mjs";
 import { DeepgramVoice } from "./voice-deepgram.mjs";
@@ -51,7 +51,7 @@ import { route, venues } from "./aggregate.mjs";
 const CHAIN = activeChain();
 if (CHAIN.id !== "solana") throw new Error("The spot desk uses CHAIN=solana; prediction markets use /pm/*");
 
-const PORT = Number(process.env.PORT || 8080);
+const PORT = Number(process.env.PORT || 8710);
 const HOST = process.env.HOST || "0.0.0.0";
 /**
  * The pad listens on 0.0.0.0 so the hardware can reach it over Wi-Fi, which
@@ -143,7 +143,7 @@ export function createServer(mem) {
     journal:e => mem.journal(e),
     announce:async e => {
       if (!state.armed) throw new Error('disarmed — re-arm before trading');
-      const text = `Auto-accepting ${e.proposal.signal.side} ${e.proposal.signal.symbol} for ${e.proposal.verdict.sizeUsd} dollars.`;
+      const text = `Auto-accepting. ${proposalSpeech(e.proposal)}`;
       if (await credentials.get('deepgram')) await speakReply(text);
       else {
         const pcm = await tts(text);
@@ -158,11 +158,17 @@ export function createServer(mem) {
     if (e.type === 'receipt') { state.lastFill = e.receipt; note(`Confirmed ${e.receipt.signature} · ${e.receipt.explorer}`); }
     if (e.type === 'signal' && state.pending?.id === e.signal.id && ['refused','expired','executed','failed'].includes(e.signal.state)) state.pending = null;
   });
-  const speakReply = text => deepgram.speak(text,{onAudio:chunk => signals.publish({type:'speech_chunk',text,
-    ...chunk,pcm:chunk.pcm.toString('base64')})});
+  let speechTail=Promise.resolve();
+  const speakReply = text => {
+    const result=speechTail.then(() => deepgram.speak(text,{onAudio:chunk => signals.publish({type:'speech_chunk',text,
+      ...chunk,pcm:chunk.pcm.toString('base64')})}));
+    speechTail=result.catch(()=>{});return result;
+  };
   async function answerAgent(message,{chatId,title='Voice conversation'}={}) {
+    const existing=chatId ? chats.get(chatId) : null;
+    if(typeof message!=='string' || !message.trim() || message.length>16000)throw Object.assign(new Error('invalid chat message'),{status:400});
     const config=agentSettings.read();
-    const chat=chatId ? chats.get(chatId) : chats.create({title,model:config.model,provider:config.provider});
+    const chat=existing || chats.create({title,model:config.model,provider:config.provider});
     const agent = new Agent({llm:new LLM(config,{getKey:n => credentials.get(n)}),signals,
       publish:e => signals.publish({...e,chatId:chat.id}),request:async (route,body) => {
         const response=await fetch(`http://127.0.0.1:${srv.address().port}`+route,{
@@ -310,9 +316,9 @@ export function createServer(mem) {
           const proposal = await propose(sig,brief,{price:market.prices[sig.symbol]});
           verdict = proposal.verdict;
           state.pending = pendingSignal(signals,await signals.create(proposal),proposal,{market});
-          reply = verdict.action === "EXECUTE"
-            ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. ${state.pending ? "Press yes to confirm." : "See the signal status for execution."}`
-            : `I can't. ${verdict.why.slice(-1)[0]}.`;
+          reply = proposalSpeech(proposal)+(verdict.action === 'EXECUTE'
+            ? (state.pending ? ' Press yes to confirm.' : ' See the signal status for execution.')
+            : " That's a fade. The gate refused it.");
         } else {
           const answer = await think(transcript, brief, market, mem, {persona:agentSettings.read().persona});
           reply = answer.text;
@@ -480,6 +486,7 @@ export function createServer(mem) {
           return res.end(html);
         }
         if (req.method === "POST") {
+          if(req.headers.origin && req.headers.origin !== `http://${req.headers.host}`)return send(403,{error:'setup requires the local app origin'});
           const fields = {deepgram:body.deepgram, 'pad-token':body.token};
           const entries = Object.entries(fields).filter(([,v]) => typeof v === 'string' && v.trim());
           if (!entries.length) return send(400,{error:'nothing to save'});

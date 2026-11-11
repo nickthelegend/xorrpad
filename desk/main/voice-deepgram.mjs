@@ -36,8 +36,9 @@ export class DeepgramVoice {
         }
       }catch {fail(new Error('Deepgram returned invalid transcription data'));}
     });
-    ws.on('close',()=>{
+    ws.on('close',code=>{
       if(settled)return;
+      if(code!==1000)return fail(new Error('Deepgram transcription connection interrupted'));
       if(!ended)return fail(new Error('Deepgram transcription closed before finalization'));
       settled=true;cleanup();resolve(finals.join(' ').trim());
     });

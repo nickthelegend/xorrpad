@@ -811,12 +811,10 @@ async function micStop(){
     const action = r.headers.get("x-action") || "ANSWER";
     const reader=r.body.getReader();
     while(true){const {value,done}=await reader.read();if(done)break;queueDeskPcm(value);}
-    const audio = null;
     micSay(`<div class="verdict"><div class="vhead"><span class="vact ${action==="REJECT"?"rej":"exec"}" style="font-size:20px">` +
       `${esc(action === "UNHEARD" ? "Didn’t catch that" : action === "ANSWER" ? "Answer" : action)}</span></div>` +
       (heard ? `<div class="fnote"><span class="fnref">“</span><span>${esc(heard)}</span></div>` : "") +
       `<div class="fnote"><span class="fnref">—</span><span>${esc(said)}</span></div></div>`);
-    if(audio)playPcm(audio);
     await refresh();
     // A spoken order leaves a real decision waiting on a ✓, exactly as a key
     // press would. Pick it up so Confirm/Refuse act on it.
@@ -1758,7 +1756,7 @@ chatEl('chatForm').onsubmit=ev=>{ev.preventDefault();chatAction(async()=>{
   chatEl('chatSend').disabled=true;
   try {
     if(!selectedChat)showChat(await chatApi('/chats',{method:'POST',body:{}}));
-    try {await chatApi('/chats/'+selectedChat,{method:'POST',body:{message:chatEl('chatInput').value}});chatEl('chatInput').value='';}
+    try {const answer=await chatApi('/chats/'+selectedChat,{method:'POST',body:{message:chatEl('chatInput').value}});chatEl('chatInput').value='';if(answer.voiceError)throw new Error(answer.voiceError);}
     finally {showChat(await chatApi('/chats/'+selectedChat));await listChats();}
   }finally{chatEl('chatSend').disabled=false;}
 });};

@@ -615,3 +615,53 @@ The Mac mini/desk may be on Tailscale; **the ESP32 does not join the tailnet
 itself in v1**. It reaches the desk through LAN/USB or the existing HTTPS relay.
 All T4 test servers and PTY helpers closed. An unrelated listener in another
 project was left alone. No push or release tag was made.
+
+## v1 T3 — agent, conversation persistence and Deepgram voice
+
+Verification on 2026-11-12. No T3 test sends a blockchain transaction; no service
+responses or market data were mocked. The live-provider checks use only
+`process.env`, without loading `.env` or `~/.config`.
+
+```sh
+node --test desk/test/agent.test.mjs desk/test/agent.http.test.mjs \
+  desk/test/permissions.test.mjs desk/test/signals.test.mjs \
+  desk/test/signals.http.test.mjs desk/test/session-wallet.test.mjs \
+  desk/test/executor.test.mjs
+# 47 tests: 44 passed, 3 skipped, 0 failed
+
+node --test --test-name-pattern='framing|keymap validation|TCP: keymap|real serialport|voice chunks|Wi-Fi NDJSON' desk/test/padlink.test.mjs
+# 6 tests: 6 passed, 0 skipped, 0 failed
+```
+
+Total across those runs: **53 tests, 50 passed, 3 skipped, 0 failed**.
+T3 alone contributes 16 tests: 13 passed and 3 skipped; run with
+`cd desk && npm run test:agent`.
+
+Verified: provider configuration and missing-key errors; rejection of plaintext
+key persistence; real Electron safeStorage encryption/decryption, masked last-four
+listing and ciphertext; persona defaults/edit/reset and exact-number assembly;
+proposal speech with gate size, venue and risk; chat disk persistence, search,
+rename/delete/export, interrupted-tool recovery and turn locking; authenticated
+HTTP methods and setup origin checks; actual tool → HTTP → memory gate → refused
+signal; exact refusal explanation; missing T6 backtest setup; and existing T2
+policy, queue, wallet and executor checks. Pad regressions include actual TCP,
+Wi-Fi HTTP/WS, serialport over a PTY, and the legacy missing-key voice path.
+
+Skipped with explicit reasons:
+- Ollama is not reachable at `http://localhost:11434`.
+- `ANTHROPIC_API_KEY` is not set in the environment.
+- `DEEPGRAM_API_KEY` is not set in the environment.
+
+Consequently, live provider generation/model discovery and actual Nova-3/Aura
+speech have **not** been verified in this environment. The live Deepgram test is
+implemented as real Aura synthesis followed by streaming that generated PCM
+through Nova-3, with ordered chunk and raw-PCM assertions. No microphone or pad
+amp hardware claim is made. T6 is absent; the tool explicitly reports setup.
+
+Renderer inline scripts parse, and `git diff --check` passes. Visual browser
+verification was blocked: the browser host was unavailable, browser inventory
+was empty, and native Chrome returned `cgWindowNotFound`. The Impeccable detector
+ran in degraded regex mode (HTML parser modules unavailable); it reported existing
+font/type/transition warnings, so this is not visual or contrast certification.
+The real encryption test exposed an Electron ESM startup readiness deadlock;
+initialization was moved into the ready callback and the real OS check then passed.

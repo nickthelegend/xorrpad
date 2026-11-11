@@ -30,3 +30,7 @@ session-wallet.encrypted
 /desk/.t2-devnet/
 
 /desk/.t4-devnet/
+
+# OS-encrypted provider credentials are private app state.
+*.encrypted
+*.encrypted.*.tmp

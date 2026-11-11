@@ -84,7 +84,6 @@ export async function tts(text) {
 function usd(v) {
   const n = Number(v);
   if (!isFinite(n)) return "unknown";
-  const a = Math.abs(n);
   return "$" + String(v);
 }
 

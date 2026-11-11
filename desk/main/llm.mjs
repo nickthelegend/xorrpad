@@ -65,6 +65,7 @@ export class LLM {
   }
   async chat({messages,system = '',tools = []}) {
     const {provider} = this.config;
+    if (provider !== 'ollama' && !(await this.getKey(provider))) throw new Error(`Setup required: ${provider} API key`);
     let model = this.config.model;
     if (!model) {
       if (provider !== 'ollama') throw new Error('Setup required: select a model');

@@ -8,20 +8,11 @@
  */
 import { app, BrowserWindow, shell, dialog } from "electron";
 import { networkInterfaces } from "node:os";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
 
 import { Credentials } from './credentials.mjs';
-// safeStorage becomes available after Electron is ready. Never load plaintext key files.
-await app.whenReady();
-process.env.XORR_USER_DATA = app.getPath('userData');
-const credentials = new Credentials();
+// Defer keychain access and backend imports until ready, without blocking ESM startup.
 const PORT = Number(process.env.PORT || 8710);
-process.env.PORT = String(PORT);
-const TOKEN = await credentials.get('pad-token') || process.env.PAD_TOKEN || 'xorrpad-dev';
-process.env.PAD_TOKEN = TOKEN;
-const NEEDS_SETUP = !(await credentials.get('deepgram'));
-const { start } = await import('./server.mjs');
+let TOKEN, NEEDS_SETUP;
 
 function lanAddress() {
   for (const list of Object.values(networkInterfaces()))
@@ -34,6 +25,13 @@ let win, backend;
 
 async function boot() {
   try {
+    process.env.XORR_USER_DATA = app.getPath('userData');
+    process.env.PORT = String(PORT);
+    const credentials = new Credentials();
+    TOKEN = await credentials.get('pad-token') || process.env.PAD_TOKEN || 'xorrpad-dev';
+    process.env.PAD_TOKEN = TOKEN;
+    NEEDS_SETUP = !(await credentials.get('deepgram'));
+    const {start} = await import('./server.mjs');
     backend = await start();
   } catch (e) {
     // Opening a window onto a backend this app did not start would let the
@@ -53,7 +51,7 @@ async function boot() {
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   win.loadURL(NEEDS_SETUP
-    ? `http://127.0.0.1:${PORT}/setup`
+    ? `http://127.0.0.1:${PORT}/setup?token=${encodeURIComponent(TOKEN)}`
     : `http://127.0.0.1:${PORT}/?token=${encodeURIComponent(TOKEN)}`);
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
 }

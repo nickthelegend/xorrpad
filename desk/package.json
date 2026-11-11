@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "test:agent": "node --test test/agent.test.mjs test/agent.http.test.mjs",
     "test:memory": "node test/memory.test.mjs",
     "test:loadbearing": "node test/loadbearing.test.mjs",
     "test": "node --test test/*.test.mjs",
