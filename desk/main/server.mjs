@@ -485,7 +485,7 @@ export function createServer(mem) {
       if (url.pathname === '/agent/settings') {
         if (req.method === 'POST') return send(200,agentSettings.update(body));
         const keys = {};
-        for (const name of ['anthropic','openai','deepgram']) keys[name] = await credentials.masked(name);
+        for (const name of ['anthropic','openai','deepgram','groq','tailscale']) keys[name] = await credentials.masked(name);
         return send(200,{...agentSettings.read(),keys});
       }
       if (url.pathname === '/agent/keys' && req.method === 'POST') {
