@@ -34,6 +34,7 @@ import { keeperStats } from "./pmamm-stats.mjs";
 import { keeperCreator,keeperResolutions } from "./keeper-read.mjs";
 import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
+import { route, venues } from "./aggregate.mjs";
 
 /** Solana venues share the same read-only interface. */
 const CHAIN = activeChain();
@@ -261,6 +262,8 @@ export function createServer(mem) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
       }
+      if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
+      if (url.pathname === "/venues") return send(200, { venues: await venues() });
       if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
         await mem.recallBrief(), Object.fromEntries(url.searchParams)));
       if (url.pathname === "/perps/markets") return send(200, { markets: await phoenix.perpMarkets(), cluster: "mainnet-beta", mode: "read-only-mainnet", pollAfterMs: 15000 });
@@ -782,6 +785,7 @@ export function createServer(mem) {
       // Distinguish "the trade failed" from "the chain is not answering": they
       // need completely different things from the operator.
       const msg = String(e.message || e);
+      if (url.pathname === "/route" && /must be|required|invalid side|unambiguous|not traded/.test(msg)) return send(400, {error:msg});
       if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
         const setup = msg.startsWith("Setup required:");
         const invalid = /invalid |must |must be|side must|out of range|at most|rounds to zero|not found|not resolved|no liquidity|no shares|market does not use|unknown Phoenix|leverage exceeds|insufficient live|below one|no open Phoenix|specify subaccountIndex|Phoenix market is/.test(msg);
@@ -1039,6 +1043,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],

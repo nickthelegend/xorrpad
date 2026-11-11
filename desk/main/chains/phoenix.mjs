@@ -105,7 +105,9 @@ export async function perpQuote({ market, side, usd, leverage }) {
   const tier = m.leverageTiers.find(t => lots <= BigInt(t.maxSizeBaseLots));
   if (!tier || leverage > tier.maxLeverage) throw new Error(`leverage exceeds size tier maximum (${tier?.maxLeverage ?? "no available tier"})`);
   const baseUnits = baseLotsToBaseUnits(lots,m.baseLotsDecimals);
-  const execution = walk(await bookOf(m.market),side,baseUnits);
+  const book = await bookOf(m.market);
+  const execution = walk(book,side,baseUnits);
+  const liquidity = (side === "long" ? book.asks : book.bids).reduce((sum,[price,size])=>sum+price*size,0);
   const fee = execution.notionalUsd*m.takerFeeRate;
   const liquidationPrice = calculateLiquidationPriceUsd({ positionSize: side === "long" ? baseUnits : -baseUnits,
     entryPriceUsd: execution.entryPrice, leverage: tier.maxLeverage, maintenanceMarginBps: m.riskFactors.maintenanceBps,
@@ -113,6 +115,7 @@ export async function perpQuote({ market, side, usd, leverage }) {
   return { venue:id, cluster:"mainnet-beta", mode:"read-only-mainnet", market:m.market, side, collateralUsd:usd,
     leverage, baseLots:lots.toString(), baseUnits, baseUnitsDecimal:lotsDecimal(lots,m.baseLotsDecimals), ...execution, markPrice:m.markPrice,
     priceImpactPct:(execution.entryPrice/m.markPrice-1)*100, fee, feeRate:m.takerFeeRate,
+    liquidity, liquidityUnit:"USD visible orderbook depth on execution side",
     feeBasis:"standard taker fee; account discounts are not assumed", funding:m.funding,
     liquidationPrice, liquidationBasis:"SDK estimate for this position alone with the requested USD collateral, after entry fee; excludes other account positions, orders, SOL collateral and future funding",
     maxLeverage:tier.maxLeverage, observedAt:m.observedAt };
