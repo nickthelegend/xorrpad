@@ -44,8 +44,8 @@ const encode = m => JSON.stringify({v:1,...m},(_k,v) => typeof v === 'bigint' ? 
 
 export class PadLink extends EventEmitter {
   peers = new Set(); seen = new Map(); stopped = false;
-  constructor({baseUrl,token,signals,status = () => ({}),dir = appDataDir()} = {}) {
-    super(); Object.assign(this,{baseUrl,token,signals,status});
+  constructor({baseUrl,token,signals,voiceInput,status = () => ({}),dir = appDataDir()} = {}) {
+    super(); Object.assign(this,{baseUrl,token,signals,status,voiceInput});
     this.keymapFile = path.join(dir,'pad-keymap.json');
     try { this.keymap = validateKeymap(JSON.parse(readFileSync(this.keymapFile,'utf8'))); }
     catch (e) { if (e.code !== 'ENOENT') throw e; this.keymap = structuredClone(DEFAULT_KEYMAP); }
@@ -53,7 +53,7 @@ export class PadLink extends EventEmitter {
     signals?.on('event',this.onEvent);
     this.heartbeat = setInterval(() => {
       for (const peer of this.peers) {
-        if (Date.now()-peer.last > 15000) this.remove(peer);
+        if (!peer.streams.size && Date.now()-peer.last > 15000) this.remove(peer);
         else if (peer.device) this.send(peer,this.getStatus(peer));
       }
     },5000); this.heartbeat.unref();
@@ -68,7 +68,7 @@ export class PadLink extends EventEmitter {
     p.lines = new Lines(m => { p.tail = p.tail.then(() => this.receive(p,m)).catch(e => this.send(p,{type:'result',id:m.id,ok:false,error:e.message,status:e.message.startsWith('Setup required:')?'Setup required':undefined})); });
     this.peers.add(p); return p;
   }
-  remove(p) { if (this.peers.delete(p)) { p.streams.clear(); p.close(); } }
+  remove(p) { if (this.peers.delete(p)) { for(const s of p.streams.values())s.live?.abort(); p.streams.clear(); p.close(); } }
   send(p,m) {
     if (!this.peers.has(p)) return;
     const line = encode(m);
@@ -102,6 +102,7 @@ export class PadLink extends EventEmitter {
     for (const p of this.peers) if (p.device) {
       if (e.type === 'signal') this.signal(p,e.signal);
       if (e.type === 'receipt') this.send(p,{type:'receipt',signalId:e.id || e.signalId,...e.receipt});
+      if (e.type === 'speech_chunk') this.send(p,{type:'tts',stream:e.stream,seq:e.seq,end:e.end,sampleRate:16000,pcm:e.pcm});
       if (e.type === 'speech' && e.pcm) this.audio(p,Buffer.from(e.pcm,'base64'));
     }
   }
@@ -158,12 +159,19 @@ export class PadLink extends EventEmitter {
       const pcm = Buffer.from(m.pcm,'base64');
       if (pcm.length>512 || pcm.length%2) throw new Error('invalid PCM length');
       // One bounded utterance per connection. Idle streams expire even on a live link.
-      for (const [id,s] of p.streams) if (Date.now()-s.at>15000) p.streams.delete(id);
-      if (m.seq===0 && p.streams.size===0) p.streams.set(m.stream,{seq:0,chunks:[],bytes:0});
+      for (const [id,s] of p.streams) if (Date.now()-s.at>15000) {s.live?.abort();p.streams.delete(id);}
+      if (m.seq===0 && p.streams.size===0) p.streams.set(m.stream,{seq:0,chunks:[],bytes:0,live:await this.voiceInput?.(p.device)});
       const s = p.streams.get(m.stream);
-      if (!s || s.seq!==m.seq || s.bytes+pcm.length>384000) {p.streams.delete(m.stream);throw new Error('voice sequence/limit');}
-      s.seq++; s.at=Date.now(); s.bytes+=pcm.length; s.chunks.push(pcm);
-      if (m.end) {p.streams.delete(m.stream); this.audio(p,await this.request('/voice',Buffer.concat(s.chunks),true));}
+      if (!s || s.seq!==m.seq || s.bytes+pcm.length>384000) {s?.live?.abort();p.streams.delete(m.stream);throw new Error('voice sequence/limit');}
+      s.seq++; s.at=Date.now(); s.bytes+=pcm.length;
+      if (s.live) {
+        try {s.live.write(pcm);if(m.end)await s.live.finish();}
+        catch(e){s.live.abort();p.streams.delete(m.stream);throw e;}
+        finally {if(m.end)p.streams.delete(m.stream);}
+      } else {
+        s.chunks.push(pcm);
+        if (m.end) {p.streams.delete(m.stream); this.audio(p,await this.request('/voice',Buffer.concat(s.chunks),true));}
+      }
     }
     this.send(p,{type:'result',id:m.id,ok:true});
   }

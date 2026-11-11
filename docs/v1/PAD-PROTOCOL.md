@@ -28,8 +28,11 @@ do not start with `{` are ignored. A partial record is never an event.
 PCM is signed 16-bit little-endian mono, 16 kHz, no WAV header. A chunk contains
 at most 512 PCM bytes, always whole samples; an empty final chunk is allowed.
 At most 12 seconds / 384000 bytes per utterance; sequence gaps abort the stream.
-The desk assembles the utterance and calls the existing voice module through
-`/voice`; TTS comes back in ordered chunks for I2S playback. No provider key
+With a stored Deepgram key the desk sends each chunk immediately to Nova-3
+over WebSocket, publishes interim/final transcripts to `/events`, and sends
+Aura PCM back as ordered `tts` records while speech is generated. Without a
+stored key the original assembled `/voice` path remains the fallback. The desk
+plays the same streamed PCM through its audio context after a user gesture. No provider key
 ever travels to or is stored on the pad.
 
 The fixed scanned cells are rows 0/1 columns 0/1/2 and rows 2/3 columns 0/1/2/3.

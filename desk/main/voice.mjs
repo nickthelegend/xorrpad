@@ -25,8 +25,10 @@ const exec = promisify(execFile);
 // writes it into the environment after the modules have already loaded. It also
 // made the test suite report "DEEPGRAM_API_KEY missing" as a product failure
 // when the only thing missing was a shell export.
-const dgKey   = () => process.env.DEEPGRAM_API_KEY || "";
-const groqKey = () => process.env.GROQ_API_KEY || "";
+let savedKey = async () => '';
+export function configureVoiceKeys(getKey) { savedKey=getKey; }
+const dgKey = async () => await savedKey('deepgram') || process.env.DEEPGRAM_API_KEY || '';
+const groqKey = async () => await savedKey('groq') || process.env.GROQ_API_KEY || '';
 // The models this account can actually reach, newest first. Groq retires model
 // ids often, so try a list rather than pinning one that will 404 next month.
 const GROQ_MODELS = (process.env.GROQ_MODEL || "").split(",").filter(Boolean).length
@@ -55,10 +57,10 @@ export function pcmToWav(pcm, sampleRate = SR) {
 const DEADLINE = (ms) => ({ signal: AbortSignal.timeout(ms) });
 
 export async function stt(wav) {
-  if (!dgKey()) throw new Error("Setup required: DEEPGRAM_API_KEY");
+  if (!(await dgKey())) throw new Error("Setup required: DEEPGRAM_API_KEY");
   const r = await fetch(
     "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true",
-    { method: "POST", headers: { Authorization: `Token ${dgKey()}`, "content-type": "audio/wav" },
+    { method: "POST", headers: { Authorization: `Token ${(await dgKey())}`, "content-type": "audio/wav" },
       body: wav, ...DEADLINE(30_000) });
   if (!r.ok) throw new Error(`stt ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const j = await r.json();
@@ -66,10 +68,10 @@ export async function stt(wav) {
 }
 
 export async function tts(text) {
-  if (!dgKey()) throw new Error("Setup required: DEEPGRAM_API_KEY");
+  if (!(await dgKey())) throw new Error("Setup required: DEEPGRAM_API_KEY");
   const r = await fetch(
-    `https://api.deepgram.com/v1/speak?model=aura-2-thalia-en&encoding=linear16&sample_rate=${SR}`,
-    { method: "POST", headers: { Authorization: `Token ${dgKey()}`, "content-type": "application/json" },
+    `https://api.deepgram.com/v1/speak?model=aura-2-thalia-en&encoding=linear16&container=none&sample_rate=${SR}`,
+    { method: "POST", headers: { Authorization: `Token ${(await dgKey())}`, "content-type": "application/json" },
       body: JSON.stringify({ text }), ...DEADLINE(30_000) });
   if (!r.ok) throw new Error(`tts ${r.status}: ${(await r.text()).slice(0, 160)}`);
   return Buffer.from(await r.arrayBuffer());
@@ -157,7 +159,7 @@ async function brainGroq(question, context, system=SYSTEM) {
   for (const model of GROQ_MODELS) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${groqKey()}`, "content-type": "application/json" },
+      headers: { Authorization: `Bearer ${(await groqKey())}`, "content-type": "application/json" },
       body: JSON.stringify({ model, max_tokens: 80, messages: [
         { role: "system", content: system + "\n\n--- pad memory ---\n" + context },
         { role: "user", content: question }] }),
@@ -332,9 +334,9 @@ function brainFallback(question, brief, market) {
 export async function think(question, brief, market, mem = null, {persona} = {}) {
   const system=assemblePrompt({persona,brief,market});
   const context = groundIn(brief, market) + (await recallHistory(mem, question));
-  const order = BRAIN === "groq" && groqKey()
+  const order = BRAIN === "groq" && (await groqKey())
     ? [["groq", () => brainGroq(question, context, system)], ["claude", () => brainClaude(question, context, system)]]
-    : [["claude", () => brainClaude(question, context, system)], ["groq", () => groqKey() ? brainGroq(question, context, system) : Promise.reject(new Error("no groq key"))]];
+    : [["claude", () => brainClaude(question, context, system)], ["groq", async () => (await groqKey()) ? brainGroq(question, context, system) : Promise.reject(new Error("no groq key"))]];
 
   const tried = [];
   for (const [name, run] of order) {

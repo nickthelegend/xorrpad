@@ -495,6 +495,7 @@ nav .dot.on{background:var(--up)}
       <div class="cols side">
         <div>
           <form id="chatForm"><label for="chatInput">Talk to xorr</label><textarea id="chatInput" rows="3" maxlength="16000" required placeholder="Ask for a quote, positions, or a trade proposal"></textarea><button class="btn" id="chatSend">Send message</button></form>
+          <button type="button" class="btn secondary" id="deskAudio">Enable desk audio</button>
           <p id="chatStatus" role="status" aria-live="polite">Start a conversation. Tool calls appear with each reply.</p>
           <div id="chatMessages" aria-label="Conversation transcript"></div>
         </div>
@@ -808,12 +809,14 @@ async function micStop(){
     const heard = decodeURIComponent(r.headers.get("x-transcript") || "");
     const said  = decodeURIComponent(r.headers.get("x-reply") || "");
     const action = r.headers.get("x-action") || "ANSWER";
-    const audio = await r.arrayBuffer();
+    const reader=r.body.getReader();
+    while(true){const {value,done}=await reader.read();if(done)break;queueDeskPcm(value);}
+    const audio = null;
     micSay(`<div class="verdict"><div class="vhead"><span class="vact ${action==="REJECT"?"rej":"exec"}" style="font-size:20px">` +
       `${esc(action === "UNHEARD" ? "Didn’t catch that" : action === "ANSWER" ? "Answer" : action)}</span></div>` +
       (heard ? `<div class="fnote"><span class="fnref">“</span><span>${esc(heard)}</span></div>` : "") +
       `<div class="fnote"><span class="fnref">—</span><span>${esc(said)}</span></div></div>`);
-    playPcm(audio);
+    if(audio)playPcm(audio);
     await refresh();
     // A spoken order leaves a real decision waiting on a ✓, exactly as a key
     // press would. Pick it up so Confirm/Refuse act on it.
@@ -1770,4 +1773,38 @@ chatEl('chatExport').onclick=()=>chatAction(async()=>{
 });
 let chatSearchTimer;chatEl('chatSearch').oninput=()=>{clearTimeout(chatSearchTimer);chatSearchTimer=setTimeout(()=>chatAction(listChats),250);};
 listChats().catch(e=>{chatEl('chatStatus').textContent=e.message;});
+</script>
+
+<script>
+let deskAudioContext=null,deskAudioAt=0,deskAudioCarry=new Uint8Array(0);
+function enableDeskAudio() {
+  if(!deskAudioContext)deskAudioContext=new (window.AudioContext || window.webkitAudioContext)({sampleRate:16000});
+  return deskAudioContext.resume();
+}
+function queueDeskPcm(bytes) {
+  if(!deskAudioContext || deskAudioContext.state!=='running')return;
+  const pcm=new Uint8Array(deskAudioCarry.length+bytes.length);pcm.set(deskAudioCarry);pcm.set(bytes,deskAudioCarry.length);
+  const count=Math.floor(pcm.length/2);deskAudioCarry=pcm.slice(count*2);if(!count)return;
+  const buffer=deskAudioContext.createBuffer(1,count,16000),out=buffer.getChannelData(0),view=new DataView(pcm.buffer);
+  for(let i=0;i<count;i++)out[i]=view.getInt16(i*2,true)/32768;
+  const source=deskAudioContext.createBufferSource();source.buffer=buffer;source.connect(deskAudioContext.destination);
+  deskAudioAt=Math.max(deskAudioAt,deskAudioContext.currentTime+0.04);source.start(deskAudioAt);deskAudioAt+=buffer.duration;
+}
+chatEl('deskAudio').onclick=()=>enableDeskAudio().then(()=>{chatEl('deskAudio').textContent='Desk audio enabled';}).catch(e=>{chatEl('chatStatus').textContent=e.message;});
+// Prime playback during a user gesture so replies can play after network work.
+document.addEventListener('pointerdown',()=>{enableDeskAudio().catch(()=>{});},{once:true});
+let speechSocket;
+function connectSpeechEvents() {
+  if(!TOKEN)return;
+  speechSocket=new WebSocket(location.origin.replace(/^http/,'ws')+'/events',['xorrpad','pad-token.'+TOKEN]);
+  speechSocket.onmessage=ev=>{
+    const m=JSON.parse(ev.data);
+    if(m.type==='speech_chunk' || m.type==='speech') {
+      const raw=atob(m.pcm || ''),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));queueDeskPcm(bytes);
+    }
+    if(m.type==='transcript')chatEl('chatStatus').textContent=(m.final?'Heard: ':'Listening: ')+m.text;
+  };
+  speechSocket.onclose=()=>setTimeout(connectSpeechEvents,5000);
+}
+connectSpeechEvents();
 </script>

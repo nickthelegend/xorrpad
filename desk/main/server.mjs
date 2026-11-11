@@ -33,7 +33,8 @@ import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from 
 import { prices as feedPrices } from "./scan.mjs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
-import { stt, tts, think, parseIntent, pcmToWav } from "./voice.mjs";
+import { stt, tts, think, parseIntent, pcmToWav, configureVoiceKeys } from "./voice.mjs";
+import { DeepgramVoice } from "./voice-deepgram.mjs";
 import { scan } from "./scan.mjs";
 import { klines } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
@@ -129,6 +130,9 @@ async function chainPrice(symbol) {
 
 export function createServer(mem) {
   const credentials = new Credentials(), agentSettings = new AgentSettings(), chats = new Chats();
+  configureVoiceKeys(n => credentials.get(n));
+  const deepgram = new DeepgramVoice({getKey:() => credentials.get('deepgram')});
+  const voiceChats=new Map();
   const permissions = new Permissions();
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
@@ -140,9 +144,11 @@ export function createServer(mem) {
     announce:async e => {
       if (!state.armed) throw new Error('disarmed — re-arm before trading');
       const text = `Auto-accepting ${e.proposal.signal.side} ${e.proposal.signal.symbol} for ${e.proposal.verdict.sizeUsd} dollars.`;
-      if (!process.env.DEEPGRAM_API_KEY) throw new Error('Setup required: DEEPGRAM_API_KEY for auto-accept speech');
-      const pcm = await tts(text);
-      signals.publish({type:'speech',text,pcm:pcm.toString('base64'),sampleRate:16000});
+      if (await credentials.get('deepgram')) await speakReply(text);
+      else {
+        const pcm = await tts(text);
+        signals.publish({type:'speech',text,pcm:pcm.toString('base64'),sampleRate:16000});
+      }
       note(text);
     },
   });
@@ -152,6 +158,42 @@ export function createServer(mem) {
     if (e.type === 'receipt') { state.lastFill = e.receipt; note(`Confirmed ${e.receipt.signature} · ${e.receipt.explorer}`); }
     if (e.type === 'signal' && state.pending?.id === e.signal.id && ['refused','expired','executed','failed'].includes(e.signal.state)) state.pending = null;
   });
+  const speakReply = text => deepgram.speak(text,{onAudio:chunk => signals.publish({type:'speech_chunk',text,
+    ...chunk,pcm:chunk.pcm.toString('base64')})});
+  async function answerAgent(message,{chatId,title='Voice conversation'}={}) {
+    const config=agentSettings.read();
+    const chat=chatId ? chats.get(chatId) : chats.create({title,model:config.model,provider:config.provider});
+    const agent = new Agent({llm:new LLM(config,{getKey:n => credentials.get(n)}),signals,
+      publish:e => signals.publish({...e,chatId:chat.id}),request:async (route,body) => {
+        const response=await fetch(`http://127.0.0.1:${srv.address().port}`+route,{
+          method:body?'POST':'GET',headers:{authorization:`Bearer ${TOKEN}`,'content-type':'application/json'},
+          ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(60000)});
+        const result=await response.json();
+        if(!response.ok)throw Object.assign(new Error(result.error || `tool HTTP ${response.status}`),{status:response.status});
+        return result;
+      }});
+    const result=await chats.turn(chat.id,async c => agent.reply({message,messages:c.messages,
+      system:assemblePrompt({persona:config.persona,brief:await mem.recallBrief()}),
+      onMessage:m => chats.append(c.id,{...m,model:m.model || config.model,provider:m.provider || config.provider})}));
+    return {chatId:chat.id,...result};
+  }
+  async function voiceAnswer(transcript,device) {
+    if(!transcript.trim())return "I didn't catch that. Say it again, ser.";
+    let answer;
+    try {
+      answer=await answerAgent(transcript,{chatId:voiceChats.get(device),title:`Voice · ${device}`});
+      voiceChats.set(device,answer.chatId);
+    } catch(e) {
+      // A configuration error is actionable; do not silently substitute another model.
+      if(e.message.startsWith('Setup required:'))throw e;
+      // Preserve the original voice brain as an explicitly labelled fallback.
+      const brief=await mem.recallBrief();
+      const fallback=await think(transcript,brief,{},mem,{persona:agentSettings.read().persona});
+      signals.publish({type:'voice_fallback',brain:fallback.brain});
+      return fallback.text;
+    }
+    return answer.text;
+  }
   const srv = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     // Raw chain amounts can be bigints; JSON has no bigint, so
@@ -211,10 +253,20 @@ export function createServer(mem) {
 
     if (url.pathname === "/voice" && req.method === "POST") {
       const chunks = [];
-      for await (const c of req) chunks.push(c);
+      let bytes=0;
+      for await (const c of req) {bytes+=c.length;if(bytes>384000)return send(413,{error:'voice utterance exceeds 12 seconds'});chunks.push(c);}
       const pcm = Buffer.concat(chunks);
       // A request with no audio in it is not a question.
       if (pcm.length === 0) return send(400, { error: "no audio in the request body" });
+      if (url.searchParams.get('fallback') !== 'legacy' && await credentials.get('deepgram')) {
+        try {
+          const transcript=await deepgram.transcribe(pcm,{onTranscript:t => signals.publish({type:'transcript',device:'desk',...t})});
+          const reply=await voiceAnswer(transcript,'desk');
+          res.writeHead(200,{'content-type':'application/octet-stream','x-transcript':encodeURIComponent(transcript),'x-reply':encodeURIComponent(reply),'x-action':'ANSWER'});
+          await deepgram.speak(reply,{onAudio:chunk => {if(!res.destroyed && chunk.pcm.length)res.write(chunk.pcm);}});
+          return res.end();
+        }catch(e){if(!res.headersSent)return send(e.message.startsWith('Setup required:')?503:502,{error:e.message});res.destroy();return;}
+      }
       try {
         const transcript = await stt(pcmToWav(pcm));
         // Deepgram heard nothing — silence, or noise it could not resolve. Say
@@ -395,21 +447,11 @@ export function createServer(mem) {
         }
       }
       if (url.pathname === '/agent/chat' || (chatMatch && req.method === 'POST')) {
-        const config=agentSettings.read();
-        const chat=chatMatch ? chats.get(chatMatch[1]) : body.chatId ? chats.get(body.chatId) : chats.create({model:config.model,provider:config.provider});
-        const agent = new Agent({llm:new LLM(agentSettings.read(),{getKey:n => credentials.get(n)}),signals,
-          publish:e => signals.publish(e),request:async (route,body) => {
-            const response = await fetch(`http://127.0.0.1:${srv.address().port}`+route,{
-              method:body?'POST':'GET',headers:{authorization:`Bearer ${TOKEN}`,'content-type':'application/json'},
-              ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(60000)});
-            const result = await response.json();
-            if (!response.ok) throw Object.assign(new Error(result.error || `tool HTTP ${response.status}`),{status:response.status});
-            return result;
-          }});
-        const result=await chats.turn(chat.id,async c => agent.reply({message:body.message,messages:c.messages,
-          system:assemblePrompt({persona:config.persona,brief:await mem.recallBrief()}),
-          onMessage:m => chats.append(c.id,{...m,model:m.model || config.model,provider:m.provider || config.provider})}));
-        return send(200,{chatId:chat.id,...result});
+        const result=await answerAgent(body.message,{chatId:chatMatch?.[1] || body.chatId,title:'New conversation'});
+        if(body.speak !== false) {
+          try {await speakReply(result.text);}catch(e){result.voiceError=e.message;}
+        }
+        return send(200,result);
       }
       if (url.pathname === '/agent/settings') {
         if (req.method === 'POST') return send(200,agentSettings.update(body));
@@ -926,7 +968,14 @@ export function createServer(mem) {
   const refreshPadBrief=() => mem.recallBrief().then(b => {padBrief=b;}).catch(() => {padBrief=null;});
   refreshPadBrief();const padBriefTimer=setInterval(refreshPadBrief,5000);padBriefTimer.unref();
   srv.once('close',() => clearInterval(padBriefTimer));
-  srv.padlink = new PadLink({token:TOKEN,signals,status:() => ({armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
+  srv.padlink = new PadLink({token:TOKEN,signals,voiceInput:async device => {
+    if(!(await credentials.get('deepgram')))return null;
+    const live=await deepgram.transcribeLive({onTranscript:t => signals.publish({type:'transcript',device,...t})});
+    return {write:pcm => live.write(pcm),abort:() => live.abort(),finish:async () => {
+      const transcript=await live.finish();
+      await speakReply(await voiceAnswer(transcript,device));
+    }};
+  },status:() => ({armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
   srv.padlink.bind(srv);
   return srv;
