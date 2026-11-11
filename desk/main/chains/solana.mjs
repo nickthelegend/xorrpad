@@ -22,6 +22,8 @@
  */
 import { XSTOCKS, REJECTED, USDC, SOL, mintOf, isStock, SYMBOLS, marketHours } from "../xstocks.mjs";
 
+import { walletHandoff } from "../wallet-requests.mjs";
+
 export const id = "solana";
 export const label = "Solana";
 export const chainId = 501;                      // Solana coin type
@@ -151,7 +153,7 @@ export async function price(symbol, notional = 50) {
  * as fee payer, ready for a wallet to sign. Without an address there is nothing
  * to build, and saying so is better than returning something unusable.
  */
-export async function buildSwap(q, signer = address) {
+export async function buildSwap(q, signer = address, { request = true } = {}) {
   if (!signer) throw new Error("Setup required: SOLANA_ADDRESS");
   const r = await fetch(`${JUP}/swap/v1/swap`, {
     method: "POST", headers: { "content-type": "application/json", ...UA },
@@ -169,6 +171,8 @@ export async function buildSwap(q, signer = address) {
     prioritizationFeeLamports: j.prioritizationFeeLamports,
     signWith: signer,
     note: "unsigned — the pad does not hold this key",
+    ...(request ? walletHandoff(signer, async () => buildSwap(await quote(q.sell, q.buy, q.amountIn), signer, { request: false }),
+      { label: "xorrpad Jupiter · Solana", variable: "SOLANA_PAY_PUBLIC_URL" }) : {}),
   };
 }
 

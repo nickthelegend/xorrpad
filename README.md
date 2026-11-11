@@ -50,6 +50,7 @@ exchange is open.
 | | chain | venue | what it trades |
 |---|---|---|---|
 | **Solana** | mainnet reads | Jupiter | 17 Backed Finance xStocks — SPYx, NVDAx, TSLAx, AAPLx … |
+| **Solana** | devnet | pm-AMM | Live prediction markets, YES / NO |
 
 ```bash
 CHAIN=solana ./desk/run.sh      # default
@@ -58,6 +59,47 @@ CHAIN=solana ./desk/run.sh      # default
 Same keys, same gate, same memory, same screen. `chains/index.mjs` keeps the
 venue interface open to more Solana venues. The desk builds unsigned
 transactions for a wallet to sign; it never signs or submits.
+
+---
+
+## Prediction markets (pm-AMM, devnet)
+
+The [PREDICT pm-AMM SDK](https://github.com/sparkfun-labs/pm-amm/blob/main/doc/api-reference.md)
+reads markets and builds unsigned transactions for YES/NO purchases, market
+creation and winning-token claims. Program:
+`GV1FMGHRYBjQLaghE5fnGuYCuCcpdt3GD5xEX3TwN16y`; collateral is 6-decimal devnet
+mUSDC, `3WQ8hCqTNwjrh8WzE2XyoZoUrd1miPcwWfMkmFPUMEWZ`.
+
+| Endpoint | Input |
+|---|---|
+| `GET /pm/markets` | Live markets, YES prices, end times and actual vault liquidity |
+| `GET /pm/quote` | `market`, `side=yes\|no`, `usdc` query parameters |
+| `GET /pm/positions` | `owner` public key (or `SOLANA_ADDRESS`) |
+| `POST /pm/swap` | JSON: `owner`, `market`, `side`, `usdc`, optional `slippageBps` (100 default) |
+| `POST /pm/create` | JSON: `owner`, `name`, `durationSecs`, `initialPriceBps`, `depositUsdc` |
+| `POST /pm/claim` | JSON: `owner`, `market`; requires an already resolved market |
+
+These routes use the existing pad bearer token. Set `PMAMM_RPC` to a devnet
+RPC if needed; the adapter verifies the genesis hash and refuses other clusters.
+Amounts are human mUSDC with at most six decimal places. Quotes use the
+[official helpers](https://predict-pm-amm.dev/helpers/pm-amm-helpers.ts), including
+time decay and the 2% fee. Poll at least 15 seconds apart; reads are cached for
+15 seconds. Missing setup is named explicitly.
+
+Set `PMAMM_PUBLIC_URL` to this desk's publicly reachable HTTPS origin for the
+phone wallet. Builds return base64 `unsignedTx`, `requestUrl` and `qrSvg`.
+Without that URL they still return the unsigned transaction and
+`Setup required: PMAMM_PUBLIC_URL`. Solana Pay's `GET /pm/request/:id` returns
+wallet metadata; `POST` with `{ "account": "<owner pubkey>" }` returns a fresh
+unsigned transaction. Those unguessable URLs expire after 90 seconds, require
+the matching owner and never include the pad token. The desk never signs or
+submits. Jupiter builds use the same protocol with `SOLANA_PAY_PUBLIC_URL` and
+`/wallet/request/:id`.
+
+No resolver is implemented in this milestone. Tests use real devnet reads and
+simulations, with explicit skips when devnet or a funded throwaway public
+address is unavailable. See [TESTING.md](TESTING.md) for measured results and
+remaining setup.
 
 ---
 
@@ -144,7 +186,7 @@ cd desk && npm install && ./run.sh
 open "http://localhost:8080/?token=xorrpad-dev"
 
 # 3. check it end to end, against the live venues
-node test/verify.mjs          # 49 checks, nothing mocked
+node test/verify.mjs          # live checks, nothing mocked
 ```
 
 The pad itself joins over Wi-Fi and points at the same URL — its captive portal
@@ -175,12 +217,12 @@ firmware/xorrpad/     ESP32-S3 sketch — 4×4 matrix, I2S mic + amp, ILI9341
   display.h           the device: SPI, panel, PSRAM canvas, one blit per frame
   padstate.h          what the pad knows, as plain data
 desk/
-  main/chains/        solana.mjs (Jupiter) · index.mjs
+  main/chains/        solana.mjs (Jupiter) · pmamm.mjs (devnet) · index.mjs
   main/xstocks.mjs    the verified book, and when the NYSE is shut
   main/decide.mjs     the gate — memory in, verdict out
   main/memory.mjs     Sibyl, over a Python sidecar
   renderer/           the desk app
-  test/verify.mjs     49 checks against the running product
+  test/verify.mjs     live checks against the running product
 tools/uipreview/      compile ui.h on a laptop, get PNGs
 cad/                  the printable case, parametric, no CSG
 ```

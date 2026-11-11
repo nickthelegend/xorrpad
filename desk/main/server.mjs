@@ -28,10 +28,12 @@ import { scan } from "./scan.mjs";
 import { klines } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
+import * as pmamm from "./chains/pmamm.mjs";
 import { marketHours, XSTOCKS as XSTOCKS_BOOK } from "./xstocks.mjs";
 
 /** Solana venues share the same read-only interface. */
 const CHAIN = activeChain();
+if (CHAIN.id !== "solana") throw new Error("The spot desk uses CHAIN=solana; prediction markets use /pm/*");
 
 const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -127,7 +129,8 @@ export function createServer(mem) {
     const open = url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
       || url.pathname === "/favicon.ico"
-      || url.pathname.startsWith("/fonts/");
+      || url.pathname.startsWith("/fonts/")
+      || /^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname);
     if (!open && TOKEN) {
       const auth = req.headers.authorization || "";
       const given = auth.startsWith("Bearer ") ? auth.slice(7) : req.headers["x-pad-token"];
@@ -146,7 +149,8 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = ROUTE_METHODS[url.pathname];
+    const allowedMethods = /^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+      ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
       return send(405, {
@@ -248,6 +252,16 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (/^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
+        const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
+        return send(result.status, result.body);
+      }
+      if (url.pathname === "/pm/markets") return send(200, { markets: await pmamm.markets(), cluster: "devnet", pollAfterMs: 15000 });
+      if (url.pathname === "/pm/quote") return send(200, await pmamm.quote(Object.fromEntries(url.searchParams)));
+      if (url.pathname === "/pm/positions") return send(200, { positions: await pmamm.positions(url.searchParams.get("owner")), cluster: "devnet", pollAfterMs: 15000 });
+      if (url.pathname === "/pm/swap") return send(200, await pmamm.buildSwap(body));
+      if (url.pathname === "/pm/create") return send(200, await pmamm.buildCreateMarket(body));
+      if (url.pathname === "/pm/claim") return send(200, await pmamm.buildClaim(body));
       // ── first run: no credentials anywhere ──────────────────────────────
       // A packaged app has no .env and no shell environment. Without this the
       // window opens onto a working-looking desk whose mic silently fails.
@@ -750,6 +764,11 @@ export function createServer(mem) {
       // Distinguish "the trade failed" from "the chain is not answering": they
       // need completely different things from the operator.
       const msg = String(e.message || e);
+      if (url.pathname.startsWith("/pm/")) {
+        const setup = msg.startsWith("Setup required:");
+        const invalid = /invalid |must |must be|side must|out of range|at most|rounds to zero|not found|not resolved|no liquidity|no shares|market does not use/.test(msg);
+        return send(setup ? 503 : invalid ? 400 : 502, { error: msg, ...(setup ? { status: "Setup required" } : {}) });
+      }
       if (/timed out|took too long|fetch failed|ECONNREFUSED/i.test(msg))
         return send(503, { error: "the Solana service did not answer in time. Nothing was traded." });
       return send(500, { error: msg.split("\n")[0] });
@@ -879,7 +898,8 @@ async function onKey(mem, id) {
           ok: true,
           handoff: true,
           quote: { ...fresh, raw: undefined },
-          transaction: built?.unsignedTx ? { unsignedTx: built.unsignedTx, signWith: built.signWith } : null,
+          transaction: built?.unsignedTx ? { unsignedTx: built.unsignedTx, signWith: built.signWith, requestUrl: built.requestUrl, qrSvg: built.qrSvg } : null,
+          setupRequired: built?.setupRequired || null,
           buildError: built?.error || null,
           note: built?.unsignedTx
             ? "built and unsigned — sign it with your own wallet; the pad holds no key"
@@ -1001,6 +1021,8 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  "/pm/markets": ["GET"], "/pm/quote": ["GET"], "/pm/positions": ["GET"],
+  "/pm/swap": ["POST"], "/pm/create": ["POST"], "/pm/claim": ["POST"],
   "/pad/chart": ["GET"],
   "/health": ["GET"], "/pad": ["GET"], "/speak": ["GET"], "/portfolio": ["GET"],
   "/markets": ["GET"], "/memory": ["GET"], "/memory/full": ["GET"], "/log": ["GET"],
