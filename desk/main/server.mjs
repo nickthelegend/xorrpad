@@ -15,6 +15,7 @@ import http from "node:http";
 import { Credentials } from './credentials.mjs';
 import { AgentSettings } from './agent-settings.mjs';
 import { LLM } from './llm.mjs';
+import { Agent } from './agent.mjs';
 import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
@@ -372,6 +373,18 @@ export function createServer(mem) {
       // ── first run: no credentials anywhere ──────────────────────────────
       // A packaged app has no .env and no shell environment. Without this the
       // window opens onto a working-looking desk whose mic silently fails.
+      if (url.pathname === '/agent/chat') {
+        const agent = new Agent({llm:new LLM(agentSettings.read(),{getKey:n => credentials.get(n)}),signals,
+          publish:e => signals.publish(e),request:async (route,body) => {
+            const response = await fetch(`http://127.0.0.1:${srv.address().port}`+route,{
+              method:body?'POST':'GET',headers:{authorization:`Bearer ${TOKEN}`,'content-type':'application/json'},
+              ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(60000)});
+            const result = await response.json();
+            if (!response.ok) throw Object.assign(new Error(result.error || `tool HTTP ${response.status}`),{status:response.status});
+            return result;
+          }});
+        return send(200,await agent.reply({message:body.message}));
+      }
       if (url.pathname === '/agent/settings') {
         if (req.method === 'POST') return send(200,agentSettings.update(body));
         const keys = {};
@@ -1120,7 +1133,7 @@ const ROUTE_METHODS = {
   "/tick": ["POST"], "/size": ["POST"], "/memory/wipe": ["POST"], "/memory/seed": ["POST"],
   "/memory/decay": ["POST"], "/reflect/accept": ["POST"], "/reflect/reject": ["POST"],
   "/setup": ["GET", "POST"],
-  '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
+  '/agent/chat':['POST'], '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
 };
 
 export async function start() {
