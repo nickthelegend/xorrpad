@@ -988,3 +988,20 @@ form > * {
 .chart-caption { padding:0 22px 18px; color:var(--muted); min-height:38px; }
 #market-list { max-height:390px; overflow:auto; }
 @media(max-width:1150px) { .trade-terminal { grid-template-columns:minmax(0,1fr); } }
+
+/* The mirror carries the enclosure, key travel and display of the physical pad. */
+.device-wrap { padding-bottom:14px; perspective:1100px; }
+.device { border:1px solid color-mix(in srgb,var(--line) 80%,white); background:linear-gradient(150deg,color-mix(in srgb,var(--raised) 92%,white),var(--raised) 40%); box-shadow:inset 0 2px 1px #ffffff20,inset 0 -6px 5px #0006,0 9px 3px #0005,0 22px 28px #0004; }
+.pad-key { background:linear-gradient(170deg,color-mix(in srgb,var(--panel) 88%,white),var(--panel) 50%); box-shadow:inset 0 1px 1px #ffffff26,0 3px 3px #0005; transition:transform 160ms cubic-bezier(.16,1,.3,1),box-shadow 160ms ease,background 160ms ease; }
+.pad-key:active,.pad-key.pressed { transform:translateY(3px); box-shadow:inset 0 2px 4px #0005,0 1px 1px #0004; background:var(--accent);color:var(--accent-ink); }
+.pad-key.pressed span { color:var(--accent-ink); }
+.tft { position:relative; isolation:isolate; color:#daf4e6; background:#080f0c; box-shadow:inset 0 2px 9px #000b,0 1px 1px #ffffff20; text-shadow:0 1px 5px #81ffc044; }
+.tft::after { content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,transparent 0 3px,#0002 3px 4px);border-radius:inherit; }
+.tft .eyebrow,.tft .tft-meta { color:#a9c5b6; }
+.tft-confirm,.tft-answers { display:flex;justify-content:space-between;gap:10px;color:#a7e6be;font:10px Azeret,monospace;margin:9px 0; }
+.tft-confirm b { border:1px solid currentColor;padding:2px 4px; }
+.tft-answers span:last-child { color:#ff9287; }
+.knob { position:relative;border-color:#49544b;background:radial-gradient(circle at 35% 25%,#58635b,#252e29 65%,#141b17);box-shadow:inset 0 1px 3px #ffffff40,0 5px 7px #0008; }
+.knob-marker { position:absolute;inset:0;border-radius:50%;transition:transform 180ms cubic-bezier(.16,1,.3,1); }
+.knob-marker::before { content:"";position:absolute;top:4px;left:calc(50% - 2px);width:4px;height:14px;border-radius:2px;background:var(--accent); }
+@media(prefers-reduced-motion:reduce) { .pad-key,.knob-marker { transition:none; } }

@@ -38,17 +38,17 @@ export async function mount({ el, api, subscribe, signal }) {
     pressed,
     pressedTimer,
     receipt,
-    receiptAt = 0;
+    receiptAt = 0,
+    knobAngle = 0,
+    knobSize = null;
   const entries = new Map();
   function screen() {
     const d = link.devices[0],
       s = d?.status;
-    if (!d)
-      return '<span class="eyebrow">NO PAD CONNECTED</span><strong>Awaiting device</strong><span class="mono">Setup required: connect pad</span>';
     const pending = [...entries.values()]
       .filter((e) => e.state === "awaiting" && e.expiresAt > Date.now())
       .at(-1);
-    const head = `<span class="eyebrow">${esc(d.link.toUpperCase())} / ${esc(d.firmware)}</span>`;
+    const head = `<span class="eyebrow">${d ? esc(d.link.toUpperCase())+' / '+esc(d.firmware) : 'NO PAD CONNECTED'}</span>`;
     if (receipt && Date.now() - receiptAt < 15000)
       return (
         head +
@@ -60,9 +60,10 @@ export async function mount({ el, api, subscribe, signal }) {
         a = p.signal;
       return (
         head +
-        `<strong>${esc(a.kind === "predict" ? (a.outcomeSide || "").toUpperCase() + " OUTCOME" : a.side + " " + a.symbol)}</strong><span class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${Math.max(0, Math.ceil((pending.expiresAt - Date.now()) / 1000))} seconds</span><span class="tft-meta">${esc(a.venue || p.routing?.best?.venue || "")} · Press ✓ / ✗</span>`
+        `<div class="tft-confirm"><span>${esc(a.side)}</span><b>CONFIRM</b></div><strong>${esc(a.kind === "predict" ? (a.outcomeSide || "").toUpperCase() + " OUTCOME" : a.symbol || a.market)}</strong><span class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${Math.max(0, Math.ceil((pending.expiresAt - Date.now()) / 1000))}s left</span><span class="tft-meta">WHY · ${esc((v.why || []).join(' · '))}</span><span class="tft-answers"><span>✓ YES</span><span>✗ NO</span></span><span class="tft-meta">${esc(a.venue || p.routing?.best?.venue || "")} · Press ✓ / ✗</span>`
       );
     }
+    if (!d) return head+'<strong>Awaiting device</strong><span class="mono">Setup required: connect pad</span>';
     return (
       head +
       `<strong>${esc(s.market || "No market")}</strong><span class="mono">${fmt(s.sizeUsd, "USD")}</span><span class="tft-meta">${esc(s.agent || "")} · ${s.armed ? "ARMED" : "DISARMED"} · ${s.autoAccept ? "AUTO" : "MANUAL"}</span>`
@@ -80,7 +81,7 @@ export async function mount({ el, api, subscribe, signal }) {
     const d = link.devices[0],
       s = d?.status;
     $("#mirror", el).innerHTML =
-      `<div class="device-wrap"><div class="device"><div class="device-top"><div class="tft" aria-live="polite">${screen()}</div><div><div class="knob" aria-label="Physical size knob">│</div><span class="eyebrow">SIZE / USD</span></div></div><div class="key-grid">${map.keys.map((k, i) => `<button class="pad-key ${selected === i ? "selected" : ""} ${pressed === i ? "pressed" : ""}" style="grid-row:${k.row + 1};grid-column:${k.col + 1}" data-key="${i}" aria-pressed="${selected === i}" aria-label="Key row ${k.row + 1}, column ${k.col + 1}: ${esc(k.label)}"><span>${String(i + 1).padStart(2, "0")} ${locked.has(k.action) ? "· FIXED" : ""}</span>${esc(k.label)}</button>`).join("")}</div><div class="device-caption"><span>XOR / PAD</span><span>${d ? esc(d.device) : "USB · BLE · WI-FI"}</span></div></div></div><div class="hero-note"><span>${d ? "Live transport: " + esc(d.link) : "Setup required: connect the ESP32-S3 pad"}</span><span>Keymap revision ${map.revision}</span></div>`;
+      `<div class="device-wrap"><div class="device"><div class="device-top"><div class="tft" aria-live="polite">${screen()}</div><div><div class="knob" aria-label="Physical size knob"><span class="knob-marker" style="transform:rotate(${knobAngle}deg)"></span></div><span class="eyebrow">SIZE / USD</span></div></div><div class="key-grid">${map.keys.map((k, i) => `<button class="pad-key ${selected === i ? "selected" : ""} ${pressed === i ? "pressed" : ""}" style="grid-row:${k.row + 1};grid-column:${k.col + 1}" data-key="${i}" aria-pressed="${selected === i}" aria-label="Key row ${k.row + 1}, column ${k.col + 1}: ${esc(k.label)}"><span>${String(i + 1).padStart(2, "0")} ${locked.has(k.action) ? "· FIXED" : ""}</span>${esc(k.label)}</button>`).join("")}</div><div class="device-caption"><span>XOR / PAD</span><span>${d ? esc(d.device) : "USB · BLE · WI-FI"}</span></div></div></div><div class="hero-note"><span>${d ? "Live transport: " + esc(d.link) : "Setup required: connect the ESP32-S3 pad"}</span><span>Keymap revision ${map.revision}</span></div>`;
     for (const b of el.querySelectorAll("[data-key]")) {
       b.onclick = () => {
         selected = Number(b.dataset.key);
@@ -187,8 +188,13 @@ export async function mount({ el, api, subscribe, signal }) {
       }
       if (m.type === "knob") {
         const d = link.devices.find((d) => d.device === e.device);
+        const previous = knobSize ?? d?.status?.sizeUsd ?? m.sizeUsd;
+        knobAngle += Math.sign(m.sizeUsd - previous) * 18;
+        knobSize = m.sizeUsd;
         if (d) d.status.sizeUsd = m.sizeUsd;
-        mirror();
+        const marker = $('.knob-marker', el);
+        if (marker) marker.style.transform = `rotate(${knobAngle}deg)`;
+        paintScreen();
       }
       if (m.type === "keymap_state") refresh();
     }
