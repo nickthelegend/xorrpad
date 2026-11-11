@@ -21,6 +21,7 @@ export function losingSide(position, outcome) {
   return null;
 }
 export async function proposeHedges(authority, brief, { usdc, traderPdaIndex } = {}) {
+  authority = phoenix.authorityKey(authority);
   if (usdc != null) pmamm.rawUsdc(usdc);
   const [positions, markets] = await Promise.all([phoenix.positions(authority,{traderPdaIndex}),pmamm.markets()]);
   const limits = brief?.limits || NO_MEMORY_LIMITS;

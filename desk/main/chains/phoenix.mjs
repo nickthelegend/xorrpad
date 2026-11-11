@@ -183,7 +183,7 @@ export async function buildOpen(input, { request = true } = {}) {
     ? ["Setup required: PHOENIX_AUTHORITY (registered, enabled and funded Phoenix trader)"] : [];
   return serialize(authority,built.instruction,{quote:q,slippageBps,traderPdaIndex,subaccountIndex,reduceOnly:false,setupRequirements,
     collateralNote:"USD is the sizing budget; this order does not deposit or transfer collateral. Actual leverage is account-wide."},
-    ()=>buildOpen(input,{request:false}),request);
+    ()=>buildOpen({...input,authority,traderPdaIndex,subaccountIndex},{request:false}),request);
 }
 export async function buildClose(input, { request = true } = {}) {
   const authority = authorityKey(input.authority), m = await marketOf(input.market), slippageBps = tolerance(input.slippageBps);
@@ -194,5 +194,5 @@ export async function buildClose(input, { request = true } = {}) {
   const built = await orderInstruction({authority,market:m.market,side,baseUnits:p.baseUnitsDecimal,
     priceLimit:execution.worstPrice*(1+(side==="long"?1:-1)*slippageBps/10000),reduceOnly:true,traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex});
   return serialize(authority,built.instruction,{market:m.market,side,baseUnits:p.baseUnits,reduceOnly:true,slippageBps,
-    traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex},()=>buildClose({...input,subaccountIndex:p.subaccountIndex},{request:false}),request);
+    traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex},()=>buildClose({...input,authority,traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex},{request:false}),request);
 }

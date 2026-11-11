@@ -147,3 +147,96 @@ symlink; dependencies now install into the ignored local directory.
 - `docs/screens/solana-setup-before-1440.png`
 - `docs/screens/solana-setup-before-375.png`
 - `tools/uipreview/preview.cpp`
+
+## Worker brief 2 — Phoenix, all markets
+
+Run on 2026-11-12 (Asia/Kolkata), Node 26.5.0, Rise 0.7.10.
+
+| Run | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| `npm test --prefix desk` | 23 | 20 | 0 | 3 |
+| `phoenix.live.test.mjs` within that run | 5 | 3 | 0 | 2 |
+| Phoenix HTTP protocol checks | 1 | 1 | 0 | 0 |
+| Phoenix, identity and hedge-direction unit checks | 4 | 4 | 0 | 0 |
+| Expanded Jupiter live checks | 1 | 1 | 0 | 0 |
+
+The preceding milestone's 12 tests still run; none were deleted or weakened.
+The registry assertion now explicitly expects the additional Phoenix venue.
+
+### Real observations
+
+- The adapter's complete set of **109** Phoenix markets matched an independent
+  Rise API market-list request. Marks, funding and leverage came from real API
+  responses, rather than a fixed subset or invented values.
+- Real SOL quotes were read for long and short, using orderbook depth and the
+  live taker fee. Liquidation values used the SDK's margin helper and state
+  their hypothetical single-position collateral assumptions.
+- An open order was serialized to **542 bytes**, deserialized, and checked for
+  the expected authority, Phoenix program and all-zero signatures.
+- Real mainnet `simulateTransaction` was called with `sigVerify:false` and
+  `replaceRecentBlockhash:true`. Its result was **`AccountNotFound`** for the
+  throwaway authority. The successful-simulation test was skipped, not passed.
+  No transaction was submitted, and no signing key was generated or read.
+- The final-run Phoenix throwaway public key was
+  `3CDbtMUYibAbLW2CEY96Tv4MsNiNinCdQkryZ4Zdnm1a`.
+- An unregistered authority's actual trader snapshot was `uninitialized`.
+  Position/close validation was skipped with `Setup required: PHOENIX_AUTHORITY`.
+  The code reads every cross/isolated subaccount for the selected trader PDA
+  index; close quantities come from signed raw position lots and use ReduceOnly.
+- The real local HTTP server used **127.0.0.1:8712** and was closed afterward.
+  Authentication, methods, JSON validation, invalid authorities, expired wallet
+  links, wrong-wallet refusal, metadata and a matching-wallet unsigned rebuild
+  passed. As in the earlier protocol test, localhost HTTPS was used for URL
+  syntax and the local HTTP endpoint was exercised directly. Public TLS and a
+  phone connection were not claimed to have been tested.
+- Every one of the **7,550** catalog spot mint identities was covered by the
+  expanded allowlist. Repeated symbols require an exact mint or a qualified
+  key; unusual ticker text cannot become an inline HTML handler key.
+- Real Jupiter quotes succeeded for SOL and HYPE; actual mint decimals were 9
+  for both. Final-run routes included BisonFi and GoonFi V2. No mock quote,
+  success response or price was supplied to a service client.
+- The existing pm-AMM tests read **95** live devnet markets in this run. Their
+  successful-simulation check remained skipped after real `AccountNotFound`
+  and the devnet SOL faucet's HTTP 410 response.
+
+### Hedge limits and setup
+
+`/hedge` only proposes. It parses recognized numeric questions whose named
+expiry matches the on-chain end time, pairs their payout direction against
+actual position entry prices, derives premium size from real pm-AMM quotes,
+and calls the existing `decide()` gate. Tests cover every supported comparison
+operator on both position sides, mismatched assets/expiry, ambiguous conditions,
+allowlist refusal, size caps and exhausted daily budget. Pure logic inputs are
+unit-test parameters; no external API response is mocked.
+
+A hedge outcome is permissioned under its exact
+`pmamm:<market pubkey>:<yes|no>` key. A gate refusal remains a refusal and is
+returned with its reasons. Mainnet Phoenix positions and devnet mUSDC outcomes
+are explicitly labelled **not an economic hedge**. Market-name interpretation
+is not a verified oracle; creator resolution, expiry gaps and threshold gaps
+remain visible limitations.
+
+**BLOCKED:**
+
+- Successful Phoenix simulation, live close and real-position hedge exercise:
+  `Setup required: PHOENIX_AUTHORITY`, with an enabled, registered trader,
+  adequate collateral, SOL for fees and an open position for close/hedge checks.
+  Set `PHOENIX_TRADER_PDA_INDEX` / `PHOENIX_SUBACCOUNT_INDEX` for non-default
+  accounts. No private key is needed or accepted by the desk.
+- Phone-wallet end to end: `Setup required: PHOENIX_PUBLIC_URL`, a public HTTPS
+  origin serving this backend. The unsigned build still works without it.
+- Economic mainnet hedging: pm-AMM is intentionally devnet-only in the current
+  adapter. Devnet mUSDC cannot cover mainnet USD losses.
+- The earlier `PMAMM_TEST_OWNER` funding/faucet limitation remains unchanged.
+
+### Additional renderer evidence
+
+Only the existing market-class mapping changed so equities retain their class
+inside the expanded mixed spot catalog. Fonts, palette, layout and components
+were unchanged. These are static renderer captures with the backend visibly
+disconnected; no service response was replaced:
+
+- 1440: [before](docs/screens/phoenix-spot-before-1440.png),
+  [after](docs/screens/phoenix-spot-after-1440.png).
+- 375: [before](docs/screens/phoenix-spot-before-375.png),
+  [after](docs/screens/phoenix-spot-after-375.png).

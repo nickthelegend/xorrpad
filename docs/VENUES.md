@@ -85,3 +85,28 @@ For example, a same-named token in the catalog does not establish that a guest's
 KET/NEIRO/CHONKY pitch refers to that mint. Equity suffixes are mapped to Phoenix
 underlyings only when the catalog identifies an equity; `stORE` is never
 silently treated as the same asset as `ORE`.
+
+## Implemented integration
+
+The adapter exposes every discovered Phoenix market, real depth-based quotes,
+unsigned open/ReduceOnly-close builders, and position reads across all
+subaccounts for a selected trader PDA index. `usd` is the requested collateral
+sizing budget; target notional is `usd × leverage`, rounded down to base lots.
+No deposit or account-wide leverage change is implied by an order. The SDK
+liquidation estimate uses the applicable tier maximum, live maintenance/uPnL
+factors, that budget and estimated entry fee; it is not an actual cross-account
+liquidation guarantee.
+
+The production and SDK beta program addresses were both absent on public
+devnet. The beta check used `phDEVv4w6BcfkLrLNeXr8HhhgQxnxziVGXpGPcaadMf`
+at devnet slot 521219273 and also returned `value: null`.
+
+Spot routes pin every catalog mint, including tokenized equities beyond the
+original xStock list. Historical liquidity warnings stay attached to their
+identities; live quotes remain necessary. Price polling does not request all
+7,550 tokens. The renderer received only a functional asset-class mapping fix.
+
+The mainnet Phoenix / devnet pm-AMM pairing is proposal research, explicitly
+not an economic hedge. The `/hedge` route never creates a transaction. It passes
+the quoted proposal through the existing memory gate, with exact outcome
+allowlist keys. See [measured tests and setup limits](../TESTING.md#worker-brief-2--phoenix-all-markets).
