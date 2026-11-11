@@ -1,8 +1,9 @@
 /** Solana venue registry. Every venue reads and builds; none signs. */
 import * as solana from "./solana.mjs";
 import * as pmamm from "./pmamm.mjs";
+import * as phoenix from "./phoenix.mjs";
 
-export const ALL = [solana, pmamm];
+export const ALL = [solana, pmamm, phoenix];
 
 /** Every venue, by id. */
 export const BY_ID = Object.fromEntries(ALL.map((c) => [c.id, c]));

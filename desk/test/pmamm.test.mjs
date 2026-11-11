@@ -12,7 +12,7 @@ test("mUSDC conversion preserves six decimals and refuses rounding or overflow",
 });
 test("every registered Solana venue refuses signing and has no signing call", async () => {
   assert.equal(await assertNeverSigns(),true);
-  assert.deepEqual(ALL.map(v=>v.id),["solana","pmamm"]);
+  assert.deepEqual(ALL.map(v=>v.id),["solana","pmamm","phoenix"]);
   assert.throws(()=>pick("unknown"),/unknown chain/);
   for(const venue of ALL) {
     const source = await readFile(new URL(`../main/chains/${venue.id}.mjs`,import.meta.url),"utf8");

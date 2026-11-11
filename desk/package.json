@@ -23,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@anchor-lang/core": "1.0.1",
+    "@ellipsis-labs/rise": "0.7.10",
     "@pm-amm/sdk": "0.2.0",
     "@solana/spl-token": "0.4.14",
     "@solana/web3.js": "1.98.4"
