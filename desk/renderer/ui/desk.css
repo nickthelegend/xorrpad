@@ -1017,3 +1017,9 @@ form > * {
 [data-theme="neon"] .market-price,[data-theme="neon"] .stat b,[data-theme="neon"] td,[data-theme="neon"] input[type="number"] { font-family:Azeret,monospace;font-variant-numeric:tabular-nums; }
 [data-theme="neon"] .tft { color:#d1fbff;text-shadow:0 1px 6px #54f4ff44; }
 [data-theme="neon"] .tft-confirm { color:var(--accent); }
+
+.empty { gap:12px; }
+.empty-art { width:128px;height:82px;color:var(--accent);margin-bottom:6px; }
+.empty > span { max-width:60ch;overflow-wrap:anywhere; }
+.empty .actions { margin-top:8px; }
+.empty button,.empty a.button { width:fit-content; }

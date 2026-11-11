@@ -60,7 +60,7 @@ export async function mount({ el, api, subscribe, signal }) {
               `<article class="message"><div class="eyebrow">${esc(m.role)}${m.name ? " / " + esc(m.name) : ""}</div>${m.content ? `<p>${esc(m.content)}</p>` : ""}${(m.toolCalls || []).map((t) => detail("Tool call / " + t.name, t.arguments)).join("")}<span class="hint">${esc(m.model || "")} · ${esc(m.at || "")}</span></article>`,
           )
           .join("")
-      : empty("Conversation ready", "Send a message to begin.");
+      : empty("Conversation ready", "Send your first message in this conversation.", {target:'#chat-composer textarea',label:'Write a message'});
   }
   async function open(id) {
     selected = id;

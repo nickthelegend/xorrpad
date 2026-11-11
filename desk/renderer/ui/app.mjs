@@ -247,3 +247,14 @@ $("#panic").onclick = (e) =>
 window.addEventListener("hashchange", render);
 stream();
 render();
+
+document.addEventListener('click', e => {
+  const retry=e.target.closest('[data-empty-retry]');
+  if(retry){render();return;}
+  const button=e.target.closest('[data-empty-target]');
+  if(!button)return;
+  const target=$(button.dataset.emptyTarget);
+  if(!target){notice('Setup required: load this workspace before continuing');return;}
+  target.scrollIntoView({behavior:'smooth',block:'center'});
+  if(target.tagName==='BUTTON')target.click();else target.focus();
+});
