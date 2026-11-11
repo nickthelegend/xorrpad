@@ -30,7 +30,7 @@ function spotFees(q,market){
  return {usd,basis:'included in quoted output',details};
 }
 const REGISTRY=[
- {venue:'jupiter',kind:'spot',network:'mainnet-beta',signing:'external unsigned',list:()=>jupiter.markets().symbols},
+ {venue:'jupiter',kind:'spot',network:'mainnet-beta',signing:'external unsigned',list:()=>jupiter.markets().symbols,health:()=>jupiter.quote('USDC','SOL',1)},
  {venue:'meteora',kind:'spot',network:'mainnet-beta',signing:'external unsigned',list:()=>meteora.markets()},
  {venue:'phoenix',kind:'perp',network:'mainnet-beta',signing:'external unsigned',list:()=>phoenix.perpMarkets()},
  {venue:'jupperps',kind:'perp',network:'mainnet-beta',signing:'external unsigned API build',list:()=>jupperps.perpMarkets()},
@@ -38,10 +38,11 @@ const REGISTRY=[
 ];
 export async function venues(){
  return Promise.all(REGISTRY.map(v=>bounded(async()=>{
-  const rows=await v.list();
+  const [rows]=await Promise.all([v.list(),v.health?.()]);
   return {venue:v.venue,kind:v.kind,network:v.network,signing:v.signing,ok:true,
    marketCount:new Set(rows.map(r=>typeof r==='string'?r:r.market)).size,
-   ...(v.venue==='meteora'?{poolCount:rows.length}:{}),observedAt:new Date().toISOString()};
+   ...(v.venue==='meteora'?{poolCount:rows.length}:{}),
+   ...(v.venue==='jupiter'?{marketCountSource:'pinned mint catalog; each market still requires a live quote'}:{}),observedAt:new Date().toISOString()};
  }).catch(e=>({venue:v.venue,kind:v.kind,network:v.network,signing:v.signing,ok:false,marketCount:null,error:e.message}))));
 }
 export async function route({kind,market,side,size,leverage=1}){
@@ -57,13 +58,13 @@ export async function route({kind,market,side,size,leverage=1}){
  const results=await Promise.all(candidates.map(v=>bounded(async()=>{
   let q,liquidity=null,liquidityUnit=null;
   if(kind==='spot'){
-   if(v.venue==='meteora'&&!(await meteora.markets(market)).length)return {venue:v.venue,status:'unlisted',error:'market has no direct USDC DLMM pool'};
+   if(v.venue==='meteora'&&!(await meteora.markets(market)).length)return {venue:v.venue,status:'unlisted',error:'market has no direct USDC DLMM pool',why:['no direct USDC DLMM listing']};
    const adapter=v.venue==='jupiter'?jupiter:meteora;
    q=await adapter.quote(side==='buy'?'USDC':market,side==='buy'?market:'USDC',size);
   }else{
    const adapter=v.venue==='phoenix'?phoenix:v.venue==='jupperps'?jupperps:pmamm;
    const rows=await v.list(),m=rows.find(m=>m.market===market);
-   if(!m)return {venue:v.venue,status:'unlisted',error:'market is not listed'};
+   if(!m)return {venue:v.venue,status:'unlisted',error:'market is not listed',why:['venue does not list this market']};
    liquidity=m.liquidity??m.poolLiquidityUsd??null;
    liquidityUnit=m.liquidityUnit??(m.poolLiquidityUsd!=null?'USD JLP AUM':null);
    q=kind==='perp'?await adapter.perpQuote({market,side,usd:size,leverage}):await pmamm.quote({market,side,usdc:size});
