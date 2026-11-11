@@ -24,7 +24,7 @@ import { XSTOCKS, REJECTED, USDC, SOL, mintOf, isStock, SYMBOLS, marketHours } f
 
 export const id = "solana";
 export const label = "Solana";
-export const chainId = 501;                      // as OKX indexes it; Solana has no EVM chain id
+export const chainId = 501;                      // Solana coin type
 
 const RPC = process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 const JUP = process.env.JUPITER_API || "https://lite-api.jup.ag";
@@ -73,7 +73,7 @@ export async function info() {
  * would be inventing a number.
  */
 export async function balances() {
-  if (!address) return {};
+  if (!address) throw new Error("Setup required: SOLANA_ADDRESS");
   const out = {};
   const lamports = await rpc("getBalance", [address]).catch(() => null);
   const sol = lamports == null ? 0 : (lamports.value ?? lamports) / 1e9;
@@ -152,7 +152,7 @@ export async function price(symbol, notional = 50) {
  * to build, and saying so is better than returning something unusable.
  */
 export async function buildSwap(q, signer = address) {
-  if (!signer) throw new Error("no SOLANA_ADDRESS — nothing to build a transaction for");
+  if (!signer) throw new Error("Setup required: SOLANA_ADDRESS");
   const r = await fetch(`${JUP}/swap/v1/swap`, {
     method: "POST", headers: { "content-type": "application/json", ...UA },
     body: JSON.stringify({

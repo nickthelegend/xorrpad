@@ -2,7 +2,7 @@
  * verify.mjs — the whole product, checked against what is actually running.
  *
  * Not unit tests. This drives the live HTTP API, the live Jupiter router, the
- * live OKX aggregator, a real Solana RPC and a real SQLite store. Every number
+ * a real Solana RPC and a real SQLite store. Every number
  * it prints came back over a wire.
  *
  *   ./run.sh &            backend on :8080
@@ -13,7 +13,6 @@
  * the reason this device is safe to leave on a desk.
  */
 import * as sol from "../main/chains/solana.mjs";
-import * as xl from "../main/chains/xlayer.mjs";
 import { BY_ID, assertNeverSigns, survey } from "../main/chains/index.mjs";
 import { XSTOCKS, REJECTED, mintOf, marketHours, SYMBOLS } from "../main/xstocks.mjs";
 
@@ -83,12 +82,12 @@ section("B. /pad — what the hardware reads");
 }
 
 // ── C. the venues ───────────────────────────────────────────────────────────
-section("C. both venues, live");
+section("C. Solana venues, live");
 {
   const v = await j("/chains");
   const venues = v.b?.venues || [];
-  chk("C1 /chains reports every venue", venues.length === 2, venues.map((x) => x.id).join(", "));
-  chk("C2 both are reachable", venues.every((x) => x.ok),
+  chk("C1 /chains reports every venue", venues.length === Object.keys(BY_ID).length, venues.map((x) => x.id).join(", "));
+  chk("C2 venues are reachable", venues.every((x) => x.ok),
       venues.map((x) => `${x.id}:${x.ok ? "up" : "down"}`).join(" "));
 
   const i = await sol.info();
@@ -103,19 +102,7 @@ section("C. both venues, live");
   chk("C5 round trip is sane", back.amountOut > 0 && spread < 3,
       `50 -> ${q.amountOut.toFixed(6)} -> $${back.amountOut.toFixed(2)} (${spread.toFixed(2)}% round trip)`);
 
-  const x = await xl.info();
-  if (!x.cli || !x.loggedIn) block("C6 x layer quote", `onchainos not usable: ${x.reason || "not logged in"}`);
-  else {
-    const xq = await xl.quote("USDT", "WOKB", 50);
-    chk("C6 okx aggregator quotes", xq.amountOut > 0,
-        `$50 USDT -> ${xq.amountOut.toFixed(5)} WOKB @ $${(50 / xq.amountOut).toFixed(2)} via ${xq.route}`);
-    const bal = await xl.balances();
-    chk("C7 x layer balances are real", Object.keys(bal).length > 0,
-        Object.entries(bal).map(([k, b]) => `${k} ${b.amount.toFixed(2)}`).join(", ") || "none");
-  }
-
-  // Whatever the active venue actually lists — asking Solana for WOKB, or
-  // X Layer for TSLAx, tests nothing but the hardcoding in this file.
+  // Quote a market from the active venue book.
   const padNow = (await j("/pad")).b || {};
   const venue = BY_ID[padNow.chain];
   const qa = venue.markets().quoteAsset;
@@ -180,23 +167,13 @@ section("F. it cannot sign");
   let s = false; try { await sol.swap(); } catch (e) { s = /never signs/.test(e.message); }
   chk("F2 solana refuses by name", s, "swap() explains why rather than failing oddly");
 
-  let x = false; try { await xl.swap(); } catch (e) { x = /quotes only/.test(e.message); }
-  chk("F3 x layer refuses by name", x, "the funded mainnet account is not one keypress away");
-
-  // Structural, not textual. Grepping for the word "execute" flagged the
-  // refusal message that exists precisely to say the module will not execute —
-  // the check was reading prose and calling it a call site. Look instead at the
-  // verbs actually handed to the CLI, and at the RPC methods actually sent.
   const { readFileSync } = await import("node:fs");
   const read = (f) => readFileSync(new URL(`../main/chains/${f}`, import.meta.url), "utf8");
-
-  const CLI_VERBS = [...read("xlayer.mjs").matchAll(/\[\s*"(swap|wallet|token)"\s*,\s*"([a-z-]+)"/g)]
-    .map((m) => `${m[1]} ${m[2]}`);
-  const READONLY_VERBS = ["swap quote", "swap liquidity", "swap chains", "swap check-approvals",
-                          "wallet status", "wallet balance", "wallet addresses", "token search", "token info"];
-  const writeVerbs = CLI_VERBS.filter((v) => !READONLY_VERBS.includes(v));
-  chk("F4 the CLI is only ever asked read-only verbs", writeVerbs.length === 0,
-      writeVerbs.length ? `calls: ${writeVerbs.join(", ")}` : `only ${[...new Set(CLI_VERBS)].join(", ")}`);
+  for (const venue of Object.values(BY_ID)) {
+    const source = read(`${venue.id}.mjs`);
+    chk(`F3 ${venue.id} has no signing call`,
+      !/\.signTransaction\(|\.sendAndConfirm\(|\.sendRawTransaction\(|\.send\.\w+\(/.test(source), "unsigned builders only");
+  }
 
   const RPC_METHODS = [...read("solana.mjs").matchAll(/rpc\(\s*"([A-Za-z]+)"/g)].map((m) => m[1]);
   const writeRpc = RPC_METHODS.filter((m) => /^send|^request|^simulate/.test(m));
@@ -216,20 +193,12 @@ section("G. propose -> gate -> confirm");
   if (v?.action === "EXECUTE") {
     const yes = await j("/key", { method: "POST", body: JSON.stringify({ id: "yes" }) });
     const d = yes.b || {};
-    const onSolana = (await j("/pad")).b?.chain === "solana";
     chk("G3 ✓ hands off without signing", d.ok === true && d.handoff === true,
         `${d.quote?.amountOut?.toFixed(6)} ${d.quote?.buy} via ${d.quote?.route}`);
-    if (onSolana) {
-      chk("G4 solana builds an unsigned transaction", !!d.transaction?.unsignedTx && !!d.transaction?.signWith,
-          `${d.transaction?.unsignedTx?.length || 0}b, to sign with ${String(d.transaction?.signWith).slice(0, 12)}...`);
-    } else {
-      // X Layer is quote-only on purpose. `onchainos swap swap` would return
-      // transaction data, but its own help describes itself as
-      // "quote -> sign -> broadcast" and the account behind it holds real
-      // money on mainnet, so it is not called to find out which it means.
-      chk("G4 x layer hands back a quote and says so", d.transaction === null && /stays with you/.test(d.note || ""),
-          `"${d.note}"`);
-    }
+    if (d.buildError?.includes("Setup required: SOLANA_ADDRESS"))
+      block("G4 unsigned transaction", d.buildError);
+    else chk("G4 solana builds an unsigned transaction", !!d.transaction?.unsignedTx && !!d.transaction?.signWith,
+          `${d.transaction?.unsignedTx?.length || 0}b`);
     chk("G5 it re-quoted at confirmation", typeof d.quote?.price === "number",
         `priced at ✓, not at proposal`);
 
@@ -260,7 +229,7 @@ section("H. memory");
   const d = m.b || {};
   chk("H1 memory answers", m.s === 200 && !!d.limits, `max $${d.limits?.max_trade_usd}/trade`);
   chk("H2 the allowlist is this venue's",
-      (d.limits?.allow || []).includes("SPYx") || (d.limits?.allow || []).includes("WOKB"),
+      (d.limits?.allow || []).includes("SPYx"),
       `${(d.limits?.allow || []).length} markets`);
   chk("H3 the journal grew", Array.isArray(d.journal_recent) && d.journal_recent.length > 0,
       `${d.journal_recent?.length} events`);

@@ -10,13 +10,9 @@
  */
 import { evaluateAll, AGENT_KINDS } from "./agents.mjs";
 import { decide } from "./decide.mjs";
-import { quote, swap, ROUTE } from "./dex.mjs";
-import { balances, chainInfo, IS_FORK } from "./chain.mjs";
-import { TOKENS } from "./tokens.mjs";
+import { active } from "./chains/index.mjs";
 import { SYMBOLS } from "./markets.mjs";
 import { prices as feedPrices } from "./scan.mjs";
-import { withTradeLock, dayBudget } from "./lock.mjs";
-import { NO_MEMORY_LIMITS } from "./memory.mjs";
 
 /**
  * Real prices for every tradeable market.
@@ -30,10 +26,8 @@ export async function getMarket(symbols = SYMBOLS) {
   const prices = {}, failed = {}, source = {};
   for (const s of symbols) {
     try {
-      const probe = s === "cbBTC" ? 0.005 : s === "ETH" ? 0.1 : 10;
-      const q = await quote(s, "USDC", probe);
-      prices[s] = q.amountOut / probe;
-      source[s] = "pool";
+      prices[s] = await active().price(s);
+      source[s] = "jupiter";
     } catch (e) { failed[s] = String(e.message || e).slice(0, 80); }
   }
   const missing = symbols.filter((s) => prices[s] == null);
@@ -132,12 +126,9 @@ export async function applyFill(mem, { symbol, side, usd, price, agent, fill = n
   }
 }
 
-/**
- * One pass of the loop.
- * @param opts.execute  actually sign (fork: true by default; mainnet: never
- *                      without an explicit confirmation upstream)
- */
-export async function runOnce(mem, { execute = IS_FORK, cfgs = {}, market } = {}) {
+/** One proposal pass. Signing always belongs to the operator's wallet. */
+export async function runOnce(mem, { execute = false, cfgs = {}, market } = {}) {
+  if (execute) throw new Error("the desk never signs — confirm with your wallet");
   const brief = await mem.recallBrief();
   const mkt = market || await getMarket();
   // Everything settles against USDC, so a signal naming USDC as the asset to
@@ -164,57 +155,15 @@ export async function runOnce(mem, { execute = IS_FORK, cfgs = {}, market } = {}
     forward: { why: verdict.why },
   });
 
-  let fill = null;
-  if (verdict.action === "EXECUTE" && execute) {
-    if (!IS_FORK) throw new Error("refusing to auto-execute on mainnet — needs explicit confirmation");
-
-    // Everything from here to the journalled fill runs alone. The verdict above
-    // was reasoned against a spend figure another execution may already have
-    // moved, so the day's room is read again now that nothing else is in
-    // flight. See lock.mjs for what overlapping without this actually cost.
-    return await withTradeLock(async () => {
-      const day = await dayBudget(mem, { NO_MEMORY_LIMITS });
-      if (day.left <= 0) {
-        const why = [`$${day.spent} already executed today (journal)`, "daily budget exhausted"];
-        const rejected = { action: "REJECT", sizeUsd: 0, why, memoryUsed: true };
-        await mem.journal({ evaluated: { signal, market: mkt.prices },
-                            acted: { action: "REJECT", usd: 0, executed: false },
-                            forward: { why } });
-        return { signals, signal, verdict: rejected, fill: null, market: mkt, brief };
-      }
-      // Same clamp decide() applies, against the number as it stands now.
-      if (verdict.sizeUsd > day.left) {
-        verdict.why = [...(verdict.why || []),
-                       `clamped $${verdict.sizeUsd} -> $${day.left} (the day's room, re-read at execution)`];
-        verdict.sizeUsd = day.left;
-      }
-
-      const px = mkt.prices[signal.symbol];
-      const [sell, buy] = signal.side === "BUY"
-        ? ["USDC", signal.symbol] : [signal.symbol, "USDC"];
-      const amountIn = signal.side === "BUY"
-        ? verdict.sizeUsd                       // spend USD
-        : verdict.sizeUsd / px;                 // sell this much of the asset
-      fill = await swap(sell, buy, Number(amountIn.toFixed(TOKENS[sell].decimals > 8 ? 8 : 6)));
-      await applyFill(mem, { symbol: signal.symbol, side: signal.side, usd: verdict.sizeUsd, price: px, agent: signal.agent, fill });
-      await mem.journal({
-        evaluated: { signal },
-        acted: { action: "FILL", usd: verdict.sizeUsd, executed: true, hash: fill.hash },
-        forward: { received: fill.received, symbol: fill.receivedSymbol },
-      });
-      return { signals, signal, verdict, fill, market: mkt, brief };
-    });
-  }
-
-  return { signals, signal, verdict, fill, market: mkt, brief };
+  return { signals, signal, verdict, fill: null, market: mkt, brief };
 }
 
 export async function snapshot(mem) {
   const [info, bal, brief, px] = await Promise.all([
-    chainInfo(), balances(), mem.recallBrief(),
+    active().info(), active().balances(), mem.recallBrief(),
     // Cached candle closes — cheap, and it means the market strip has prices
     // on first paint instead of waiting for someone to press SCAN.
     feedPrices().catch(() => ({})),
   ]);
-  return { chain: info, route: ROUTE, balances: bal, memory: brief, agents: AGENT_KINDS, prices: px };
+  return { chain: info, route: "jupiter", balances: bal, memory: brief, agents: AGENT_KINDS, prices: px };
 }

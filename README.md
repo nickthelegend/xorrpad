@@ -45,21 +45,19 @@ exchange is open.
 
 ---
 
-## Two venues, one deck
+## Solana venues, one deck
 
 | | chain | venue | what it trades |
 |---|---|---|---|
-| **Solana** | mainnet | Jupiter | 17 Backed Finance xStocks — SPYx, NVDAx, TSLAx, AAPLx … |
-| **X Layer** | 196 | OKX DEX aggregator | WOKB, USDT, USDC, WETH |
+| **Solana** | mainnet reads | Jupiter | 17 Backed Finance xStocks — SPYx, NVDAx, TSLAx, AAPLx … |
 
 ```bash
 CHAIN=solana ./desk/run.sh      # default
-CHAIN=xlayer ./desk/run.sh
 ```
 
-Same keys, same gate, same memory, same screen. The venue is a module with
-seven functions on it (`chains/index.mjs`); nothing above that layer knows which
-chain it is talking to.
+Same keys, same gate, same memory, same screen. `chains/index.mjs` keeps the
+venue interface open to more Solana venues. The desk builds unsigned
+transactions for a wallet to sign; it never signs or submits.
 
 ---
 
@@ -97,16 +95,14 @@ It is excluded by name, with the reason kept in the file.
 
 ## Signing
 
-**The pad holds no key. Neither venue can execute.**
+**The pad holds no key. No venue can execute.**
 
 It quotes, it prices, it reads balances, it reasons, and it builds an unsigned
 transaction. Then it stops. `chains/index.mjs` asserts this at startup rather
-than trusting it, and `test/verify.mjs` checks the CLI is only ever handed
-read-only verbs and the RPC only read methods.
+than trusting it, and `test/verify.mjs` checks that venues refuse to sign and the RPC uses only read methods.
 
 That is not a limitation dressed up as a feature. This is a device that sits on
-a desk within reach of anyone walking past it, and the X Layer account behind it
-is funded with real money on mainnet. A trading terminal must not be one
+a desk within reach of anyone walking past it, where the watched wallet may hold real money. A trading terminal must not be one
 keypress from spending a balance.
 
 On ✓ the trade is **re-quoted at that moment** rather than reused from the
@@ -179,7 +175,7 @@ firmware/xorrpad/     ESP32-S3 sketch — 4×4 matrix, I2S mic + amp, ILI9341
   display.h           the device: SPI, panel, PSRAM canvas, one blit per frame
   padstate.h          what the pad knows, as plain data
 desk/
-  main/chains/        solana.mjs (Jupiter) · xlayer.mjs (OKX) · index.mjs
+  main/chains/        solana.mjs (Jupiter) · index.mjs
   main/xstocks.mjs    the verified book, and when the NYSE is shut
   main/decide.mjs     the gate — memory in, verdict out
   main/memory.mjs     Sibyl, over a Python sidecar
@@ -193,10 +189,6 @@ cad/                  the printable case, parametric, no CSG
 
 ## Known limits
 
-- **X Layer is quote-only.** `onchainos swap swap` would return transaction
-  data, but its own help describes itself as "quote → sign → broadcast" and the
-  account behind it holds real money on mainnet. It is not called to find out
-  which of those it means. Solana builds a full unsigned transaction.
 - **Balances need an address.** Set `SOLANA_ADDRESS` to watch a wallet;
   without it the pad quotes and reasons but reports no holdings.
 - **The hardware sweep is incomplete.** One key (`RUN`, r2c1) is dead at the

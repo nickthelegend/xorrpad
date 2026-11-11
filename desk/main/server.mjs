@@ -16,37 +16,22 @@ import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
-import { runOnce, getMarket, snapshot, applyFill } from "./trader.mjs";
+import { runOnce, getMarket, snapshot } from "./trader.mjs";
 import { decide } from "./decide.mjs";
 import { evaluate, AGENT_KINDS } from "./agents.mjs";
-import { swap, spendable } from "./dex.mjs";
-import { IS_FORK, fundOnFork, chainReachable, pub, READ_ONLY } from "./chain.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
 import { prices as feedPrices } from "./scan.mjs";
-import { withTradeLock, dayBudget } from "./lock.mjs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { stt, tts, think, parseIntent, pcmToWav } from "./voice.mjs";
 import { scan } from "./scan.mjs";
 import { klines } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
-import { STOCKS, STOCKS_UNLISTED, STOCK_SYMBOLS, isStock, stockBlocker, stockPrices } from "./stocks.mjs";
-import { usable } from "./routers/index.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import { marketHours, XSTOCKS as XSTOCKS_BOOK } from "./xstocks.mjs";
 
-/** The venue in hand — Solana by default, X Layer with CHAIN=xlayer. */
+/** Solana venues share the same read-only interface. */
 const CHAIN = activeChain();
-
-/**
- * Is an aggregator available? Equities need one; the six crypto markets do not.
- *
- * This used to test for an API key, and so was always false. KyberSwap's
- * aggregator needs no key, so the honest question is whether a router that can
- * reach concentrated-liquidity venues is built and enabled — not whether the
- * operator has bought credentials.
- */
-const HAS_AGGREGATOR = usable().some((r) => r.name !== "uniswap");
 
 const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -67,28 +52,12 @@ function lanAddress() {
 }
 const TOKEN = process.env.PAD_TOKEN || randomBytes(16).toString("hex");
 
-/**
- * The market the pad opens on.
- *
- * It used to be hardcoded "ETH", which on a Solana build meant the panel led
- * with a ticker the venue cannot trade and a price from a different chain's
- * feed. It comes from the active venue now — and never its quote asset: on
- * X Layer the book lists USDT first, and symbols[0] opened the pad on "buy
- * USDT with USDT", a market that prices at exactly 1.00 and means nothing.
- */
+/** Open on a tradeable asset from the venue book. */
 const DEFAULT_MARKET = process.env.MARKET
   || CHAIN.markets().symbols.find((sym) => sym !== CHAIN.markets().quoteAsset)
   || CHAIN.markets().symbols[0];
 
-/**
- * The risk limits a fresh store is seeded with, for THIS build.
- *
- * DEFAULT_LIMITS carries Base's allowlist, and seeding it on a Solana build
- * meant the gate refused every real market with "SPYx is not in the allowlist
- * [ETH, WETH, USDC, cbBTC, ...]" — a correct refusal for an incorrect reason.
- * An allowlist is a statement about what may be traded, so it has to be drawn
- * from what this venue can trade at all.
- */
+/** Seed the gate from the Solana book. */
 const CHAIN_LIMITS = {
   ...DEFAULT_LIMITS,
   allow: [...CHAIN.markets().symbols, CHAIN.markets().quoteAsset],
@@ -138,7 +107,7 @@ async function chainPrice(symbol) {
 export function createServer(mem) {
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    // viem hands back bigints (wei, raw balances); JSON has no bigint, so
+    // Raw chain amounts can be bigints; JSON has no bigint, so
     // serialise them as strings rather than crashing the server.
     const jsonSafe = (_k, v) => (typeof v === "bigint" ? v.toString() : v);
     const send = (code, body) => {
@@ -295,7 +264,7 @@ export function createServer(mem) {
           // What was sent is checked before where it would go: a submission that
           // is empty is the caller's mistake either way, and answering 500 for
           // it points the finger at the wrong side.
-          const fields = { DEEPGRAM_API_KEY: body.deepgram, PAD_TOKEN: body.token, CHAIN_MODE: body.chainMode };
+          const fields = { DEEPGRAM_API_KEY: body.deepgram, PAD_TOKEN: body.token };
           const lines = Object.entries(fields)
             .filter(([, v]) => typeof v === "string" && v.trim())
             .map(([k, v]) => `${k}=${v.trim()}`);
@@ -402,12 +371,12 @@ export function createServer(mem) {
       //
       // It deliberately touches NEITHER the chain nor a swap quote: prices come
       // from the cached candle feed. A pad whose status light goes dark every
-      // time the Base node hiccups is worse than no light at all, so this route
+      // time the Solana service hiccups is worse than no light at all, so this route
       // must not be able to 503.
       if (url.pathname === "/pad" && req.method === "GET") {
         const brief = await mem.recallBrief().catch(() => null);
         const px = await feedPrices().catch(() => ({}));
-        // NYSE hours describe the market behind a tokenized SHARE. WOKB has no
+        // NYSE hours describe the market behind a tokenized SHARE. A token has no
         // listing and no closing bell, and telling the operator it is "shut on
         // the NYSE" would be describing an exchange this asset was never on.
         const equity = CHAIN.markets().kind === "tokenized-equity";
@@ -418,7 +387,7 @@ export function createServer(mem) {
           short: "always open - no closing bell",
         };
         // Reachability and price both come from the venue in hand. Asking the
-        // Base fork whether Solana is up produced `chainOk: false` next to a
+        // different service whether Solana is up produced `chainOk: false` next to a
         // live Jupiter quote — two true-looking fields disagreeing about the
         // same chain.
         const [chainOk, livePrice] = await Promise.all([
@@ -433,7 +402,7 @@ export function createServer(mem) {
         for (const [sym, pos] of Object.entries(brief?.positions || {})) {
           if (!(pos.qty > 0)) continue;
           held++;
-          const p = sym === "USDC" ? 1 : px[sym] ?? (sym === "WETH" ? px.ETH : null);
+          const p = sym === "USDC" ? 1 : px[sym];
           if (p == null) continue;
           priced++;
           open  += pos.qty * p;
@@ -472,7 +441,7 @@ export function createServer(mem) {
           // a price imply the exchange is open.
           chain: CHAIN.id,
           chainLabel: CHAIN.label,
-          venue: CHAIN.id === "solana" ? "jupiter" : "okx-dex",
+          venue: "jupiter",
           signing: "external",       // no venue here can sign; see chains/index.mjs
           // Flat as well as nested, on purpose: the firmware parses this body
           // by hand with a flat scanner (net.h), and giving it a nested object
@@ -618,10 +587,9 @@ export function createServer(mem) {
       }
 
       if (url.pathname === "/markets") {
-        // The venue's own book, priced live. Serving Base's six coins under a
+        // The venue's own book, priced live. Serving a different book under a
         // Solana session had the Markets page listing markets this build cannot
         // reach, above equities marked "NOT YET" that it can.
-        if (CHAIN.id !== "base") {
           const m = CHAIN.markets();
           const tradeable = m.symbols.filter((sym) => sym !== m.quoteAsset);
           const prices = {};
@@ -629,7 +597,7 @@ export function createServer(mem) {
             const p = await chainPrice(sym);
             if (p) prices[sym] = p;
           }));
-          const book = CHAIN.id === "solana" ? XSTOCKS_BOOK : CHAIN.TOKENS;
+          const book = XSTOCKS_BOOK;
           return send(200, {
             chain: CHAIN.id, chainLabel: CHAIN.label, kind: m.kind,
             quoteAsset: m.quoteAsset, active: state.market,
@@ -645,21 +613,6 @@ export function createServer(mem) {
             rejected: CHAIN.REJECTED || {},
             prices,
           });
-        }
-        return send(200, {
-          markets: MARKETS, delisted: DELISTED, active: state.market,
-          // Shown, priced and explained — never silently omitted. A judge should
-          // see that the equities are real and why the pad will not trade them
-          // from a fork.
-          equities: STOCKS, equitiesUnlisted: STOCKS_UNLISTED,
-          // Read from each equity's own pool. The B20 token reverts on a fork
-          // but the pool is ordinary bytecode, so these are real prices even
-          // here — and they are the POOL's price, which is what you would pay,
-          // not the share price on an exchange.
-          equityPrices: await stockPrices(pub).catch(() => ({})),
-          equitiesBlocked: Object.fromEntries(STOCK_SYMBOLS.map((s) =>
-            [s, stockBlocker(s, { isFork: IS_FORK, hasAggregator: HAS_AGGREGATOR })])),
-        });
       }
 
       if (url.pathname === "/reflect" && req.method === "GET")
@@ -749,7 +702,6 @@ export function createServer(mem) {
       // reporting "the Base node at :8545 did not answer" over a backend that
       // was happily quoting Jupiter the whole time.
       if (url.pathname === "/portfolio") {
-        if (CHAIN.id === "base") return send(200, await snapshot(mem));
         const [info, bal, brief] = await Promise.all([
           CHAIN.info().catch((e) => ({ chain: CHAIN.id, label: CHAIN.label, error: String(e.message || e) })),
           CHAIN.balances().catch(() => ({})),
@@ -762,14 +714,14 @@ export function createServer(mem) {
           .map(async (sym) => { const p = await chainPrice(sym); if (p) prices[sym] = p; }));
         return send(200, {
           chain: { ...info, mode: CHAIN.id, label: CHAIN.label, signing: "external" },
-          route: CHAIN.id === "solana" ? "jupiter" : "okx-dex",
+          route: "jupiter",
           balances: bal, memory: brief, agents: AGENT_KINDS, prices,
           markets: CHAIN.markets(),
         });
       }
 
       if (url.pathname === "/tick" && req.method === "POST") {
-        const r = await runOnce(mem, { execute: state.armed && IS_FORK });
+        const r = await runOnce(mem, { execute: false });
         if (r.fill) { state.lastFill = r.fill; note(`FILL ${r.fill.hash.slice(0, 12)}… ${Number(r.fill.received).toFixed(6)} ${r.fill.receivedSymbol}`); }
         return send(200, r);
       }
@@ -785,9 +737,7 @@ export function createServer(mem) {
         // Resolve a symbol case-insensitively before flattening the rest.
         const raw = String(body.id || "");
         const asSymbol = SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
-          || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase())
-          || STOCK_SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
-          || Object.keys(STOCKS_UNLISTED).find((k) => k.toLowerCase() === raw.toLowerCase());
+          || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase());
         return send(200, await onKey(mem, asSymbol || raw.toLowerCase()));
       }
 
@@ -801,7 +751,7 @@ export function createServer(mem) {
       // need completely different things from the operator.
       const msg = String(e.message || e);
       if (/timed out|took too long|fetch failed|ECONNREFUSED/i.test(msg))
-        return send(503, { error: "the Base node at :8545 did not answer in time. Nothing was traded." });
+        return send(503, { error: "the Solana service did not answer in time. Nothing was traded." });
       return send(500, { error: msg.split("\n")[0] });
     }
   });
@@ -822,16 +772,10 @@ async function onKey(mem, id) {
 
   // Pick which market the buy/sell keys act on. The pad has one knob and a
   // fixed deck, so the market cycles rather than needing a key each.
-  if (id === "market" || SYMBOLS.includes(id) || DELISTED[id] || isStock(id) || STOCKS_UNLISTED[id]) {
+  if (id === "market" || SYMBOLS.includes(id) || DELISTED[id]) {
     const next = id === "market"
       ? SYMBOLS[(SYMBOLS.indexOf(state.market) + 1) % SYMBOLS.length]
       : id;
-    // Tokenized equities are real markets with real depth, but they cannot be
-    // reached from here yet — and the two reasons are different, so say which.
-    if (isStock(next) || STOCKS_UNLISTED[next]) {
-      const why = stockBlocker(next, { isFork: IS_FORK, hasAggregator: HAS_AGGREGATOR });
-      if (why) return { ok: false, error: why };
-    }
     if (!MARKETS[next]) {
       const why = delistReason(next);
       return { ok: false, error: why ? `${next} is delisted — ${why}` : `unknown market '${next}'` };
@@ -904,7 +848,7 @@ async function onKey(mem, id) {
 
     // ── the ✓ on a venue the pad cannot sign for ──────────────────────────
     //
-    // Solana and X Layer both hand back an unsigned transaction rather than a
+    // Solana venues hand back an unsigned transaction rather than a
     // receipt. The pad has reasoned its way to a trade and a person has agreed
     // to it; what remains is a signature, and the key for that is not here.
     //
@@ -913,12 +857,13 @@ async function onKey(mem, id) {
     // trades while its exchange is shut, that is exactly when a price moves —
     // and confirming against a stale number would be signing for something
     // other than what was shown.
-    if (CHAIN.id !== "base") {
+    {
       const [sell, buy] = p.sig.side === "BUY"
         ? [CHAIN.markets().quoteAsset, p.sig.symbol]
         : [p.sig.symbol, CHAIN.markets().quoteAsset];
       try {
-        const fresh = await CHAIN.quote(sell, buy, p.verdict.sizeUsd);
+        const size = p.sig.side === "BUY" ? p.verdict.sizeUsd : p.verdict.sizeUsd / await CHAIN.price(p.sig.symbol);
+        const fresh = await CHAIN.quote(sell, buy, size);
         const built = CHAIN.buildSwap ? await CHAIN.buildSwap(fresh).catch((e) => ({ error: String(e.message || e) })) : null;
 
         // Journalled as handed off, never as filled. The pad does not watch the
@@ -945,62 +890,6 @@ async function onKey(mem, id) {
       }
     }
 
-    // A read-only mainnet session has no wallet at all. Say that here, before
-    // the balance check below — otherwise the refusal reads "no USDC to spend",
-    // which is true of the zero address but describes the wrong problem, and
-    // would let a funded WATCH_ADDRESS get further than it should.
-    if (READ_ONLY)
-      return { ok: false, error:
-        "this is a read-only mainnet session — there is no signing key, so nothing can be executed. " +
-        "Set AGENT_PRIVATE_KEY to trade." };
-
-    const px = p.market.prices[p.sig.symbol];
-    const [sell, buy] = p.sig.side === "BUY" ? ["USDC", p.sig.symbol] : [p.sig.symbol, "USDC"];
-    let amountIn = p.sig.side === "BUY" ? p.verdict.sizeUsd : p.verdict.sizeUsd / px;
-    // On a fork, top the quote asset up rather than running dry mid-session.
-    // fundOnFork only replenishes below its floor and is a no-op on mainnet by
-    // construction, so this can never mint money where money is real. Without
-    // it the wallet drained over a long session and the next buy came back
-    // "insufficient USDC: need 25, have 0.000034" — which reads as a broken app
-    // and is really a sandbox that ran out of pretend money.
-    if (IS_FORK && sell === "USDC" && (await spendable("USDC")) < amountIn) {
-      const f = await fundOnFork().catch((e) => ({ funded: false, quoteAsset: e.message }));
-      note(f.funded ? `topped the fork wallet up to ${Number(f.usdc || 0).toFixed(2)} USDC`
-                    : `could not top up the fork wallet: ${f.quoteAsset || f.reason}`);
-    }
-
-    // The operator's ✓ and the automation spend the same day's money, so they
-    // take the same lock and re-read the same number. Without it a YES landing
-    // mid-tick reasons against a spend figure the tick is about to change.
-    return await withTradeLock(async () => {
-      const day = await dayBudget(mem, { NO_MEMORY_LIMITS });
-      if (day.left <= 0) {
-        note(`YES refused — $${day.spent} already executed today, the day's budget is gone`);
-        return { ok: false, error: `daily budget exhausted — $${day.spent} of $${day.max} already executed today` };
-      }
-      if (p.verdict.sizeUsd > day.left) {
-        note(`clamped to the day's room: $${p.verdict.sizeUsd} -> $${day.left}`);
-        p.verdict.sizeUsd = day.left;
-        amountIn = p.sig.side === "BUY" ? day.left : day.left / px;
-      }
-
-      // clamp to what the wallet actually holds, so an over-sized proposal
-      // degrades to a smaller real trade instead of reverting
-      const have = await spendable(sell);
-      if (have <= 0) return { ok: false, error: `no ${sell} to spend` };
-      if (amountIn > have) { note(`clamped to balance: ${amountIn.toFixed(4)} -> ${have.toFixed(4)} ${sell}`); amountIn = have * 0.999; }
-      const fill = await swap(sell, buy, Number(amountIn.toFixed(6)));
-      // The fill, not the proposal: amountIn above may have been clamped twice
-      // over — to the day's remaining room and again to the wallet balance —
-      // and the position has to record the trade that happened.
-      await applyFill(mem, { symbol: p.sig.symbol, side: p.sig.side, usd: p.verdict.sizeUsd, price: px, agent: p.sig.agent, fill });
-      await mem.journal({ evaluated: { signal: p.sig },
-                          acted: { action: "FILL", usd: p.verdict.sizeUsd, executed: true, hash: fill.hash },
-                          forward: { received: fill.received } });
-      state.lastFill = fill;
-      note(`FILL ${fill.hash.slice(0, 12)}… ${Number(fill.received).toFixed(6)} ${fill.receivedSymbol}`);
-      return { ok: true, fill };
-    });
   }
 
   if (id === "base") return onKey(mem, "scan");   // the white key runs the book
@@ -1108,25 +997,6 @@ export async function briefing(mem) {
 
 
 /**
- * Touch everything the pad will read, so the fork answers from its own state.
- * Same job as warm.mjs, run automatically at boot rather than by hand.
- */
-async function warmFork() {
-  const t0 = Date.now();
-  const { quote } = await import("./dex.mjs");
-  const { balances } = await import("./chain.mjs");
-  const { SYMBOLS } = await import("./markets.mjs");
-  const jobs = [balances().then(() => true).catch(() => false)];
-  for (const sym of SYMBOLS) {
-    jobs.push(quote("USDC", sym, 25).then(() => true).catch(() => false));
-    jobs.push(quote(sym, "USDC", sym === "cbBTC" ? 0.0005 : sym === "ETH" ? 0.01 : 5)
-      .then(() => true).catch(() => false));
-  }
-  const done = await Promise.all(jobs);
-  return { ok: done.filter(Boolean).length, total: done.length, ms: Date.now() - t0 };
-}
-
-/**
  * Which verbs each route answers. Used only to turn a wrong-method request into
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
@@ -1177,28 +1047,7 @@ export async function start() {
       console.log(`  set PAD_TOKEN in the environment to keep it stable across restarts.`);
     }
   }
-  // A fork's wallet starts with nothing the pad can spend: anvil's account #0
-  // holds no USDC in Base mainnet state, so the operator's very first buy came
-  // back "insufficient USDC" on a freshly-started fork. Top it up at boot —
-  // never on mainnet, where fundOnFork is a no-op by construction.
-  // Only when the Base venue is the one in hand. On a Solana or X Layer build
-  // there is no fork to fund, and trying produced two alarming lines at every
-  // boot ("fork wallet could NOT be funded", "0/13 reads cached") describing a
-  // chain this run never touches.
-  if (IS_FORK && CHAIN.id === "base") {
-    const f = await fundOnFork().catch((e) => ({ funded: false, quoteAsset: e.message }));
-    if (f.funded) console.log(`  fork wallet: ${f.usdc?.toFixed(2) ?? "?"} USDC${f.swapped ? " (topped up)" : ""}`);
-    else console.log(`  fork wallet could NOT be funded: ${f.quoteAsset || f.reason}`);
-
-    // Pull every pool and balance the pad will touch into the fork's cache,
-    // in the background. anvil fetches state lazily from a rate-limited
-    // upstream, so the FIRST read of an uncached slot can take 30s or simply
-    // time out — and it happens mid-trade, which reads as the app hanging.
-    // Leaving this to the operator to remember running by hand is not a
-    // property you want a demo to depend on. It does not block the bind.
-    warmFork().then((r) => console.log(`  fork warmed: ${r.ok}/${r.total} reads cached in ${r.ms}ms`))
-              .catch((e) => console.log(`  fork could not be warmed: ${String(e.message || e).slice(0, 80)}`));
-  }
+  await assertNeverSigns();
 
   // A listener from here on keeps a late socket error from taking the app down.
   srv.on("error", (e) => console.error("[server]", e.message));

@@ -1,23 +1,7 @@
-/**
- * chains/index.mjs — which chain the pad is trading on right now.
- *
- * The pad is one device with one deck of keys, and it points at one chain at a
- * time. `CHAIN` selects it; the keys, the gate, the memory and the display do
- * not change, because none of them should have to care.
- *
- *   CHAIN=solana   tokenized US equities through Jupiter          (the default)
- *   CHAIN=xlayer   OKX's zkEVM through the OKX DEX aggregator
- *
- * A venue is an object with the same seven things on it — id, label, info,
- * balances, quote, price, markets — so everything above this file can be
- * written once. Neither venue signs; both hand an unsigned transaction back to
- * a human. That is a property of the product, not of a particular chain, and
- * `assertNeverSigns()` below exists so it stays true as venues are added.
- */
+/** Solana venue registry. Every venue reads and builds; none signs. */
 import * as solana from "./solana.mjs";
-import * as xlayer from "./xlayer.mjs";
 
-export const ALL = [solana, xlayer];
+export const ALL = [solana];
 
 /** Every venue, by id. */
 export const BY_ID = Object.fromEntries(ALL.map((c) => [c.id, c]));
@@ -52,7 +36,7 @@ export async function survey() {
   return Promise.all(ALL.map(async (c) => {
     try {
       const i = await c.info();
-      return { id: c.id, label: c.label, ok: true, ...i, markets: c.markets() };
+      return { id: c.id, label: c.label, ok: true, ...i, markets: await c.markets() };
     } catch (e) {
       return { id: c.id, label: c.label, ok: false, error: String(e.message || e).slice(0, 140) };
     }

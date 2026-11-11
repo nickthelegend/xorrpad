@@ -181,19 +181,6 @@ int main(int argc, char **argv) {
     shot("05-stopped-wiped", "kill switch on, memory gone");
   }
 
-  // 6. X Layer
-  {
-    PadState p; ChartState ch;
-    p.ok = true; p.armed = true; p.remembers = true; p.chainOk = true;
-    p.agent = "grid"; p.market = "WOKB"; p.chain = "xlayer"; p.venue = "okx-dex";
-    p.price = 117.88f; p.spentToday = 0; p.dayLimit = 300;
-    p.hoursState = "WEEKEND"; p.marketOpen = false; p.nyTime = "15:17";
-    p.hoursNote = "crypto - no exchange hours apply";
-    fillChart(ch, "WOKB", 116.0f, 0.016f);
-    ui::drawFrame(c, p, ch);
-    shot("06-xlayer", "the other venue, same deck");
-  }
-
   // 7. offline
   {
     PadState p; ChartState ch;

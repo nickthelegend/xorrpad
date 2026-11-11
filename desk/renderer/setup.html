@@ -72,13 +72,11 @@
     <label>
       <span class="k">Chain</span>
       <select id="chainMode">
-        <option value="fork">Base mainnet fork — real contracts, no real money</option>
-        <option value="mainnet">Base mainnet — real money</option>
+        <option value="solana">Solana — external wallet signing</option>
       </select>
       <span class="hint">
-        Mainnet additionally needs <code>AGENT_PRIVATE_KEY</code> set in the
-        environment, and it will refuse to start without one. Automation never
-        fires on mainnet; every trade waits for a physical ✓.
+        The desk builds unsigned transactions. Sign on your own wallet;
+        the desk never holds a signing key.
       </span>
     </label>
 
@@ -104,7 +102,6 @@
         body: JSON.stringify({
           deepgram: $("deepgram").value,
           token: $("token").value,
-          chainMode: $("chainMode").value,
         }),
       });
       const j = await r.json();
@@ -132,7 +129,7 @@
     if (!tok) {
       try { tok = (await (await fetch("/setup", { method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ chainMode: $("chainMode").value }) })).json()).token || ""; } catch { /* keep blank */ }
+        body: JSON.stringify({ token: $("token").value }) })).json()).token || ""; } catch { /* keep blank */ }
     }
     location.href = "/?token=" + encodeURIComponent(tok);
   });

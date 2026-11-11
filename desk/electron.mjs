@@ -32,7 +32,6 @@ const PORT = Number(process.env.PORT || 8080);
 // provisioned once with the old value — starts getting 401s with no clue why.
 const TOKEN = process.env.PAD_TOKEN || "xorrpad-dev";
 process.env.PAD_TOKEN = TOKEN;
-const IS_FORK = (process.env.CHAIN_MODE || "fork") === "fork";
 // Where /setup writes what the operator types. The backend will not write
 // anywhere else.
 process.env.XORR_USER_DATA = app.getPath("userData");
@@ -44,7 +43,6 @@ const NEEDS_SETUP = !process.env.DEEPGRAM_API_KEY;
 // module scope, so importing it first captures `undefined` and the backend mints
 // a random token that nothing else in the system knows.
 const { start } = await import("./server.mjs");
-const { ensureFork } = await import("./fork.mjs");
 
 function lanAddress() {
   for (const list of Object.values(networkInterfaces()))
@@ -53,17 +51,10 @@ function lanAddress() {
   return "127.0.0.1";
 }
 
-let win, backend, fork;
+let win, backend;
 
 async function boot() {
   try {
-    // The fork has to be answering before the backend boots: start() reads the
-    // chain to warm its caches, and a backend that came up against a dead node
-    // shows an empty portfolio rather than an error.
-    if (IS_FORK) fork = await ensureFork({
-      rpc: process.env.RPC_URL || "http://127.0.0.1:8545",
-      stateDir: app.getPath("userData"),
-    });
     backend = await start();
   } catch (e) {
     // Opening a window onto a backend this app did not start would let the
@@ -92,7 +83,5 @@ app.whenReady().then(boot);
 app.on("window-all-closed", () => {
   backend?.srv?.close();
   backend?.mem?.stop();
-  // Only ours. A fork the operator started by hand keeps running.
-  if (fork?.started) fork.stop();
   app.quit();
 });

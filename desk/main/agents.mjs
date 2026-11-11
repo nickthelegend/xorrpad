@@ -13,7 +13,7 @@ export const AGENT_KINDS = ["dca", "grid", "momentum", "rebalance", "yield", "ri
 
 /** Recurring buy. Fires when the configured interval has elapsed. */
 function dca(market, brief, cfg = {}) {
-  const symbol = cfg.symbol || "ETH";
+  const symbol = cfg.symbol || "SPYx";
   const sizeUsd = cfg.sizeUsd ?? 25;
   const everyMs = cfg.everyMs ?? 24 * 3600e3;
   const last = brief.baton?.dca_last_ms ?? 0;
@@ -24,7 +24,7 @@ function dca(market, brief, cfg = {}) {
 
 /** Ladder: buy each rung down, sell each rung up, from the remembered entry. */
 function grid(market, brief, cfg = {}) {
-  const symbol = cfg.symbol || "ETH";
+  const symbol = cfg.symbol || "SPYx";
   const step = cfg.stepPct ?? 3;
   const pos = brief.positions?.[symbol];
   const px = market.prices?.[symbol];
@@ -41,7 +41,7 @@ function grid(market, brief, cfg = {}) {
 
 /** Trend: act on short-window momentum. */
 function momentum(market, brief, cfg = {}) {
-  const symbol = cfg.symbol || "ETH";
+  const symbol = cfg.symbol || "SPYx";
   const th = cfg.thresholdPct ?? 2;
   const ch = market.change24hPct?.[symbol];
   if (ch == null) return null;
@@ -60,7 +60,7 @@ const QUOTE = "USDC";
 
 /** Drift the book back toward the remembered target weights. */
 function rebalance(market, brief, cfg = {}) {
-  const target = cfg.target || { ETH: 0.5, USDC: 0.5 };
+  const target = cfg.target || { SPYx: 0.5, USDC: 0.5 };
   const band = cfg.bandPct ?? 10;
   const val = {};
   let total = 0;
@@ -136,7 +136,7 @@ function rebalance(market, brief, cfg = {}) {
  */
 function yieldAgent(market, brief, cfg = {}) {
   const buffer = cfg.bufferUsd ?? 100;
-  const symbol = cfg.symbol || "ETH";
+  const symbol = cfg.symbol || "SPYx";
   const usdc = brief.positions?.[QUOTE]?.qty ?? 0;
   if (usdc <= buffer) return null;
   if (!market.prices?.[symbol]) return null;

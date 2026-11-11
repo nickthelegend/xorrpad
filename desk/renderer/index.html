@@ -539,7 +539,7 @@ nav .dot.on{background:var(--up)}
 const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const H = {"content-type":"application/json","authorization":"Bearer "+TOKEN};
 const CLASS_LABEL = {crypto:"crypto", forex:"forex", defi:"defi", ai:"ai agents"};
-let MARKETS = {}, activeMarket = "ETH", lastPrices = {}, lastScanAt = null;
+let MARKETS = {}, activeMarket = "SPYx", lastPrices = {}, lastScanAt = null;
 let pending = null, armed = true, agentNow = "momentum";
 const el = (id) => document.getElementById(id);
 
@@ -751,7 +751,7 @@ async function micToggle(){
   el("micbtn").textContent = "Send what you said";
   el("micbtn").className = "btn primary";
   micSay(`<div class="verdict"><div class="vhead"><span class="vact exec" style="font-size:20px">Listening</span></div>` +
-    `<div class="fnote"><span class="fnref">—</span><span>Ask it something, or say an order like “buy fifty dollars of ETH”. Press again to send.</span></div></div>`);
+    `<div class="fnote"><span class="fnref">—</span><span>Ask it something, or say an order like “buy fifty dollars of SPYx”. Press again to send.</span></div></div>`);
 }
 
 async function micStop(){
@@ -835,8 +835,8 @@ function settle(msg, kind, hash, fill){
   // it used to be invisible here. `fellBack` only covers the case where a
   // router WON and then failed to build; when one fails at the quote instead,
   // wonBy is null and fellBack is null, so both branches below were skipped and
-  // the card said a bare "route uniswap". That reads exactly like a fair
-  // comparison uniswap won, when in truth nothing else was standing.
+  // the card omitted the failed route. That reads exactly like a fair
+  // comparison, when no other route was available.
   const failedQuotes = (fill?.comparison?.quotes || []).filter((q) => q.error);
   const compared = (fill?.comparison?.quotes || []).filter((q) => !q.error).length;
   const route = fill?.route
@@ -1255,7 +1255,7 @@ function drawMarkets(){
     el("mkts").innerHTML = entries.map(([sym,m])=>
       `<div class="lrow" role="button" tabindex="0" data-sym="${sym}" onclick="pickMarket('${sym}')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMarket('${sym}')}"
-          style="cursor:pointer" title="${esc(m.label)}${m.venue ? ` · ${esc(m.venue)}` : ` · Uniswap V3 ${m.fee/10000}% tier`}">
+          style="cursor:pointer" title="${esc(m.label)}${m.venue ? ` · ${esc(m.venue)}` : ` · Jupiter`}">
         ${markHtml(sym)}
         <div class="lmain"><span class="lp"><span class="sym">${esc(sym)}</span><span class="hand"></span></span>
           <span class="ls">${esc(m.label)} · ${CLASS_LABEL[m.class]||m.class}</span></div>
@@ -1292,8 +1292,7 @@ async function pickMarket(sym){
  */
 function drawEquities(mk){
   const eq = mk?.equities || {}, blocked = mk?.equitiesBlocked || {};
-  // Read from each equity's own pool. These work even on a fork: the B20 token
-  // reverts there, but the pool behind it is ordinary bytecode.
+  // Prices come from the verified SPL venue.
   const eqpx = mk?.equityPrices || {};
   const syms = Object.keys(eq);
   if (!syms.length) { el("equities").innerHTML = ""; el("eqnote").hidden = true; return; }
@@ -1366,7 +1365,7 @@ function drawHome(p, brief, log, mem){
     let total = 0, coins = [];
     for (const [sym, v] of Object.entries(p.balances)) {
       if (!(v.amount > 0.000001)) continue;
-      const px = STABLE[sym] ?? lastPrices[sym] ?? (sym === "WETH" ? lastPrices.ETH : null);
+      const px = STABLE[sym] ?? lastPrices[sym] ?? null;
       const usd = px != null ? v.amount * px : null;
       if (usd != null) total += usd;
       coins.push({ sym, amount: v.amount, usd, px });
@@ -1381,7 +1380,7 @@ function drawHome(p, brief, log, mem){
     const held = Object.entries(mem?.positions || {});
     let open = 0, basis = 0;
     for (const [sym, pos] of held) {
-      const px = STABLE[sym] ?? lastPrices[sym] ?? (sym === "WETH" ? lastPrices.ETH : null);
+      const px = STABLE[sym] ?? lastPrices[sym] ?? null;
       if (px == null || !(pos.qty > 0)) continue;
       open  += pos.qty * px;
       basis += pos.qty * Number(pos.avg_entry_usd || 0);
@@ -1541,9 +1540,8 @@ async function refresh(){
   rk.setAttribute("aria-label", armed
     ? "stop all trading — engage the kill switch"
     : "the kill switch is engaged — activate to re-arm trading");
-  // The venue names itself. Hardcoding "Base fork" here put that label under a
-  // Solana session whose every other field said jupiter.
-  el("railchain").textContent = h.chainLabel || (h.mode === "fork" ? "Base fork" : h.mode || "—");
+  // The venue names itself.
+  el("railchain").textContent = h.chainLabel || h.mode || "—";
   el("armlabel").textContent = armed ? "armed" : "disarmed";
   el("killbtn").textContent = armed ? "Stop all trading" : "Re‑arm trading";
   el("killbtn").className = "btn " + (armed ? "danger" : "primary");
@@ -1568,9 +1566,8 @@ async function refresh(){
 
   const p = await get("/portfolio");
   if (p?.prices) { lastPrices = { ...lastPrices, ...p.prices }; drawMarkets(); }
-  // Solana has slots where an EVM chain has blocks; show whichever the venue
-  // actually reports rather than a dash next to a healthy connection.
-  el("railblock").textContent = p?.chain?.block ?? p?.chain?.slot ?? "—";
+  // Display the Solana slot returned by the venue.
+  el("railblock").textContent = p?.chain?.slot ?? "—";
   el("railaddr").textContent = p?.chain?.address
     ? p.chain.address.slice(0, 6) + "…" + p.chain.address.slice(-4) : "—";
 
@@ -1580,10 +1577,7 @@ async function refresh(){
   if (!MARKETS.__fromServer) {
     const mk = await get("/markets");
     if (mk) {
-      // Two shapes reach here. Base sends `markets` + `equities`; the Solana
-      // and X Layer venues send one `book` of what they can actually trade.
-      // Translate the second into the first so the views below stay one
-      // implementation rather than two that drift apart.
+      // The Solana venue supplies the verified SPL book.
       if (mk.book) {
         MARKETS = Object.fromEntries(Object.entries(mk.book).map(([sym, t]) => [sym, {
           label: t.name || sym,
@@ -1601,12 +1595,6 @@ async function refresh(){
           n.textContent = `${Object.keys(mk.book).length} on ${mk.chainLabel}`
             + (hrs ? ` · ${hrs.open ? "NYSE open" : hrs.short}` : ``);
         });
-      } else {
-        MARKETS = mk.markets;
-        drawEquities(mk);
-        const d = Object.entries(mk.delisted || {});
-        el("delisted").innerHTML = `<b>Delisted for thin liquidity.</b> ` +
-          d.map(([k,v])=>`${esc(k)} <span class="dim">(${esc(v.reason)})</span>`).join("; ") + `.`;
       }
       MARKETS.__fromServer = true; activeMarket = mk.active || activeMarket;
       drawMarkets(); }
@@ -1662,10 +1650,8 @@ async function refresh(){
 // ── first paint ────────────────────────────────────────────────────────────
 // Nothing here depends on the server, so draw it immediately. Waiting for the
 // first refresh left the page looking ready while every click fell through.
-const BOOT_MARKETS = { ETH:{label:"Ethereum",class:"crypto",fee:100}, cbBTC:{label:"Bitcoin",class:"crypto",fee:500},
-  EURC:{label:"Euro",class:"forex",fee:500}, AERO:{label:"Aerodrome",class:"defi",fee:500},
-  MORPHO:{label:"Morpho",class:"defi",fee:10000}, VIRTUAL:{label:"Virtuals",class:"ai",fee:3000} };
-MARKETS = BOOT_MARKETS;
+// The book arrives from the venue; no placeholder markets.
+MARKETS = {};
 pickTab(hashTab()); history.replaceState({ tab: tab }, "", "#/" + tab);
 drawMarkets(); drawAgents("momentum");
 el("store").innerHTML = `<div class="krow"><span class="k dim">recalling…</span></div>`;

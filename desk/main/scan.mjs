@@ -24,6 +24,7 @@ export async function scan({ symbols = SYMBOLS } = {}) {
     const m = MARKETS[sym];
     if (!m) continue;
     try {
+      if (!m.binance) throw new Error(`Setup required: SOLANA_CANDLE_API — no verified candle source for ${sym}`);
       const c = await klines(m.binance);
       const closes = c.map((x) => x.close);
       const price = closes[closes.length - 1];
@@ -62,14 +63,10 @@ export async function scan({ symbols = SYMBOLS } = {}) {
 
 /** Prices only, straight from the same candles the strategies read. */
 export async function prices(symbols = SYMBOLS) {
+  const { active } = await import("./chains/index.mjs");
   const out = { USDC: 1 };
-  for (const sym of symbols) {
-    const m = MARKETS[sym];
-    if (!m) continue;
-    try {
-      const c = await klines(m.binance, { limit: 2 });
-      out[sym] = c[c.length - 1].close;
-    } catch { /* a market with no reference feed simply has no price here */ }
-  }
+  await Promise.all(symbols.map(async (s) => {
+    try { out[s] = await active().price(s); } catch { /* unavailable, never invented */ }
+  }));
   return out;
 }

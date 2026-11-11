@@ -10,10 +10,9 @@
   "scripts": {
     "test:memory": "node test/memory.test.mjs",
     "test:loadbearing": "node test/loadbearing.test.mjs",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "start": "electron .",
     "backend": "node --env-file-if-exists=../.env main/server.mjs",
-    "fork": "./fork.sh",
     "shots": "electron shots.mjs",
     "verify": "node test/verify.mjs",
     "warm": "node warm.mjs",
@@ -22,13 +21,11 @@
     "pack": "electron-builder --dir"
   },
   "license": "MIT",
-  "dependencies": {
-    "viem": "^2.56.3"
-  },
+  "dependencies": {},
   "main": "main/electron.mjs",
   "devDependencies": {
-    "electron-builder": "^26.15.3",
-    "electron": "^44.2.0"
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "finance.xorr.pad",
@@ -54,20 +51,8 @@
         "to": "memory"
       },
       {
-        "from": "fork.sh",
-        "to": "fork.sh"
-      },
-      {
         "from": "../.venv",
         "to": ".venv"
-      },
-      {
-        "from": ".fork-state.json",
-        "to": "fork-state.json"
-      },
-      {
-        "from": ".fork-block",
-        "to": "fork-block"
       }
     ],
     "mac": {

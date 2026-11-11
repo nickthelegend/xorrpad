@@ -2,10 +2,8 @@
  * xstocks.mjs — tokenized US equities on Solana, and when Wall Street is shut.
  *
  * These are Backed Finance xStocks: SPL tokens, each collateralised 1:1 by a
- * real share held with a regulated custodian. Unlike the Base B20 equities in
- * stocks.mjs — which are implemented by the node itself and therefore cannot
- * exist on a fork — these are ordinary SPL mints. They quote, route and settle
- * like any other Solana token, which is why the pad can actually trade them.
+ * real share held with a regulated custodian. They are ordinary SPL mints
+ * that quote, route and settle like other Solana tokens.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * THE IMPOSTORS
