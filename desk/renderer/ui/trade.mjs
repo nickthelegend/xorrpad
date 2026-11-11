@@ -24,9 +24,9 @@ export function signalView(s) {
   const p = s.proposal || {},
     v = p.verdict || {},
     a = p.signal || {};
-  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p><p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())}</p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
+  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p><p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())} · <span data-countdown="${s.expiresAt}">${Math.max(0,Math.ceil((s.expiresAt-Date.now())/1000))}s left</span></p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
 }
-export function bindSignals(root, api, refresh) {
+export function bindSignals(root, api, refresh, handoff = root) {
   for (const b of root.querySelectorAll("[data-accept],[data-refuse]"))
     b.onclick = () =>
       action(b, async () => {
@@ -41,7 +41,7 @@ export function bindSignals(root, api, refresh) {
             `Signal ${result.state}`,
         );
         if (result.execution?.transaction)
-          walletView(root, result.execution, api, id);
+          walletView(handoff, result.execution, api, id);
         else await refresh();
       });
 }

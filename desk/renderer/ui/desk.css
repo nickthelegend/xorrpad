@@ -1023,3 +1023,12 @@ form > * {
 .empty > span { max-width:60ch;overflow-wrap:anywhere; }
 .empty .actions { margin-top:8px; }
 .empty button,.empty a.button { width:fit-content; }
+
+#signal-toast { position:fixed;bottom:58px;right:22px;width:min(410px,calc(100vw - 32px));max-height:70vh;overflow:auto;z-index:22;background:var(--panel);border:1px solid var(--accent);border-radius:12px;box-shadow:0 12px 32px #0006; }
+.signal-toast-head { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;color:var(--accent);border-bottom:1px solid var(--line); }
+#view-signals { margin:0 20px 18px; }
+#signal-drawer { position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--panel);border-left:1px solid var(--line);z-index:24;overflow:auto;box-shadow:-12px 0 32px #0005; }
+#signal-drawer > .panel-head { position:sticky;top:0;z-index:1;background:var(--panel); }
+#signal-wallet:empty { display:none; }
+#signal-drawer [data-countdown],#signal-toast [data-countdown] { color:var(--accent); }
+@media(max-width:700px) { #signal-trigger { font-size:12px;padding:8px; } .topbar .status { font-size:0; } .topbar .status::before { margin:0; } }

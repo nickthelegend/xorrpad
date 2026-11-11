@@ -87,6 +87,9 @@ export async function mount({ el, api, subscribe, signal }) {
         selected = Number(b.dataset.key);
         mirror();
         settings();
+        const key = map.keys[selected];
+        const pending = [...entries.values()].filter(e=>e.state==='awaiting'&&e.expiresAt>Date.now()).at(-1);
+        if(pending && ['yes','no'].includes(key.action)) window.dispatchEvent(new CustomEvent('xorr-answer-signal',{detail:{id:pending.id,accept:key.action==='yes'}}));
       };
       b.ondragover = (e) => {
         if (!locked.has(map.keys[Number(b.dataset.key)].action))
