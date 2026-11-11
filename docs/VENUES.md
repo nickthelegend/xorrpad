@@ -70,12 +70,12 @@ contained **7,550 mint identities**; the floor payload contained **16 distinct
 asset labels** across trades and pitches. These are snapshots, not invented
 fixtures or promises that illiquid tokens have executable routes.
 
-`desk/main/markets.solana.json` records the source URLs, observation time,
-TradingFloor mapping, Phoenix market identities and every catalog spot mint.
-`node tools/sync-solana-markets.mjs` refreshes it from the real public APIs.
-Only market identities are saved; unrelated site configuration and wallet data
-are excluded. Phoenix runtime discovery remains live, so a new market need not
-wait for this snapshot to be regenerated.
+`desk/main/markets.solana.json` now stores only the spot fields consumed by the
+code: symbol, name, mint, asset class and whether a Jupiter quote is applicable.
+`node tools/sync-solana-markets.mjs` refreshes those identities from the real
+[spot catalog](https://perp.so/api/spot/asset-catalog). The earlier full snapshot
+was recorded in commit `c353ad2`; its observed floor mapping is preserved below.
+Phoenix discovery remains live and is not duplicated in this spot snapshot.
 
 Jupiter mappings mean **quote required**, not a claimed successful fill. Use
 exact mint addresses, fetch mint decimals from Solana, then obtain a real quote.
@@ -110,3 +110,25 @@ The mainnet Phoenix / devnet pm-AMM pairing is proposal research, explicitly
 not an economic hedge. The `/hedge` route never creates a transaction. It passes
 the quoted proposal through the existing memory gate, with exact outcome
 allowlist keys. See [measured tests and setup limits](../TESTING.md#worker-brief-2--phoenix-all-markets).
+
+
+### Recorded TradingFloor mapping (2026-11-12)
+
+| Floor label | Phoenix perp | Jupiter mint / status |
+|---|---|---|
+| AAVE | AAVE | `AavE1kKKnesPw4MuRJmJ9jZs9QzEE8CPxQ3ViczUDfc1` (live quote required) |
+| ANYTHING | — | not routable |
+| ARX | — | `ARXwZkNAtzPfdcoqQiduJn8EPv9fKiDfGn2KyggyDrFs` (live quote required) |
+| BABAON | BABA | `1zvb9ELBFShBCWKEk5jRTJAaPAwtVt7quEXx1X4ondo` (live quote required) |
+| BONK | — | `DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263` (live quote required) |
+| BP | BP | `BPxxfRCXkUVhig4HS1Lh7kZqV6SPJhzfEk4x6fVBjPCy` (live quote required) |
+| CHONKY | — | not routable |
+| HOOD | HOOD | `HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A` (live quote required) |
+| KET | — | not routable |
+| LLY | LLY | `LLYuwZ33keFihgwoxXsBawy31AiRFLFSva32TYq5TvD` (live quote required) |
+| LLYX | LLY | `Xsnuv4omNoHozR6EEW5mXkw8Nrny5rB3jVfLqi6gKMH` (live quote required) |
+| NEIRO | — | not routable |
+| ORE | ORE | `oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp` (live quote required) |
+| PAPER | — | not routable |
+| SOL | SOL | `So11111111111111111111111111111111111111112` (live quote required) |
+| TTWO | — | `TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo` (live quote required) |

@@ -323,3 +323,18 @@ fetched this transaction and its history from real devnet RPC.
   public creator metadata and evidence. No renderer files changed in this brief.
 - The cycle attempt exited, all test servers closed, and no listeners remained
   on ports 8710–8719. No mainnet transaction was submitted and nothing was pushed.
+
+### Slim snapshot verification
+
+`node tools/sync-solana-markets.mjs --slim-current` reduced the snapshot from
+**2733361 to 1019141 bytes** (62.7% smaller). All **7550** entries retained exactly the same mint,
+symbol, name, asset class and Jupiter eligibility. Unread metadata and repeated
+output-mint/status fields were removed; the generator now writes the same slim,
+minified form. The original floor mapping remains in `docs/VENUES.md`, and
+Phoenix market discovery remains live. No renderer values or styles changed.
+
+Post-compaction regression run:
+`node --test desk/test/phoenix.test.mjs keeper/test/keeper.test.mjs` —
+**11 tests, 11 passed, 0 failed, 0 skipped**. This rechecked every catalog mint,
+duplicate ticker handling, the desk gate, exact keeper expiry interpretation,
+key isolation and the real devnet guard after the snapshot/schema change.
