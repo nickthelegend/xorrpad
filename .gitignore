@@ -15,3 +15,5 @@ __pycache__/
 tools/uipreview/preview
 tools/uipreview/out/
 firmware/build/
+# Loom's local state (event log, attachments, machine config)
+.loom/
