@@ -350,6 +350,14 @@ nav .dot.on{background:var(--up)}
 .padkv b{font-weight:500;word-break:break-all;text-align:right}
 .padclose{margin-top:14px;width:100%;background:var(--control);color:var(--ink);border:0;border-radius:9px;padding:9px;font:inherit;font-weight:500;cursor:pointer}
 #railpad{width:100%;background:var(--control);color:var(--ink);border:0;border-radius:9px;padding:8px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:8px}
+#chatInput {width:100%;resize:vertical;background:var(--control);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:12px;font:inherit;}
+#chatMessages article {padding:16px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere;}
+#chatMessages pre {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;}
+#chatList {display:grid;gap:8px;margin:16px 0;}
+#chatList button {text-align:left;overflow-wrap:anywhere;white-space:normal;}
+#chatStatus {color:var(--ink70);}
+#p-chats label {display:block;margin:12px 0 6px;}
+#p-chats :focus-visible {outline:2px solid var(--up);outline-offset:3px;}
 </style>
 
 <div id="app">
@@ -483,6 +491,25 @@ nav .dot.on{background:var(--up)}
      </div>
     </div></section>
 
+    <section class="pane" id="p-chats"><div class="wrap">
+      <div class="cols side">
+        <div>
+          <form id="chatForm"><label for="chatInput">Talk to xorr</label><textarea id="chatInput" rows="3" maxlength="16000" required placeholder="Ask for a quote, positions, or a trade proposal"></textarea><button class="btn" id="chatSend">Send message</button></form>
+          <p id="chatStatus" role="status" aria-live="polite">Start a conversation. Tool calls appear with each reply.</p>
+          <div id="chatMessages" aria-label="Conversation transcript"></div>
+        </div>
+        <div>
+          <button class="btn secondary" id="chatNew">New conversation</button>
+          <label for="chatSearch">Search conversations</label><input id="chatSearch" type="search" maxlength="200">
+          <div id="chatList"></div>
+          <label for="chatTitle">Conversation title</label><input id="chatTitle" maxlength="200">
+          <button class="btn secondary" id="chatRename">Rename</button>
+          <button class="btn secondary" id="chatExport">Export Markdown</button>
+          <button class="btn danger" id="chatDelete">Delete conversation</button>
+        </div>
+      </div>
+    </div></section>
+
     <!-- ══ MEMORY ══ -->
     <section class="pane" id="p-memory"><div class="wrap">
      <div class="cols side">
@@ -599,6 +626,7 @@ function orb(a, size, {face=true, bloom=false}={}){
    Five destinations. The icons are 21px inline SVG on a 24-box, 1.8 stroke,
    round cap and join, no fill — active and label share `currentColor`. */
 const TABS = [
+  {id:'chats',label:'Chats',title:'Chats',sub:'quotes, tools, and gated proposals',d:'<path d="M4 4h16v12H8l-4 4z"/>'},
   { id:"home", label:"Portfolio", title:"Portfolio", sub:"what it holds and what it did",
     d:`<path d="M3 10.5 L12 3.5 L21 10.5 V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9.5 21v-6h5v6"/>` },
   { id:"markets", label:"Markets", title:"Markets", sub:"the venue's book",
@@ -1696,4 +1724,50 @@ async function togglePadCode(){
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !el("padcode").hidden) togglePadCode();
 });
+</script>
+
+<script>
+let selectedChat=null;
+const chatEl=id=>document.getElementById(id);
+async function chatApi(route,{method='GET',body}={}) {
+  const r=await fetch(route,{method,headers:{authorization:'Bearer '+TOKEN,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error || 'HTTP '+r.status);return j;
+}
+function showChat(c) {
+  selectedChat=c.id;chatEl('chatTitle').value=c.title;
+  chatEl('chatMessages').replaceChildren(...c.messages.map(m=>{
+    const a=document.createElement('article'),h=document.createElement('strong'),p=document.createElement('pre');
+    h.textContent=m.role+(m.name?' · '+m.name:'')+(m.model?' · '+m.model:'');
+    p.textContent=m.content || '';a.append(h,p);
+    for(const call of m.toolCalls || []) {const d=document.createElement('pre');d.textContent=call.name+' '+JSON.stringify(call.arguments,null,2);a.append(d);}return a;
+  }));
+}
+async function listChats() {
+  const rows=await chatApi('/chats?search='+encodeURIComponent(chatEl('chatSearch').value));
+  chatEl('chatList').replaceChildren(...rows.map(c=>{const b=document.createElement('button');b.className='btn secondary';b.textContent=c.title;b.onclick=()=>chatAction(async()=>showChat(await chatApi('/chats/'+c.id)));return b;}));
+  if(!rows.length)chatEl('chatList').textContent='No conversations found.';
+}
+async function chatAction(fn) {
+  chatEl('chatStatus').textContent='Working…';
+  try {await fn();chatEl('chatStatus').textContent='Ready.';}catch(e){chatEl('chatStatus').textContent=e.message;}
+}
+chatEl('chatForm').onsubmit=ev=>{ev.preventDefault();chatAction(async()=>{
+  chatEl('chatSend').disabled=true;
+  try {
+    if(!selectedChat)showChat(await chatApi('/chats',{method:'POST',body:{}}));
+    try {await chatApi('/chats/'+selectedChat,{method:'POST',body:{message:chatEl('chatInput').value}});chatEl('chatInput').value='';}
+    finally {showChat(await chatApi('/chats/'+selectedChat));await listChats();}
+  }finally{chatEl('chatSend').disabled=false;}
+});};
+chatEl('chatNew').onclick=()=>chatAction(async()=>{showChat(await chatApi('/chats',{method:'POST',body:{}}));await listChats();});
+chatEl('chatRename').onclick=()=>chatAction(async()=>{if(!selectedChat)throw new Error('Select a conversation first.');showChat(await chatApi('/chats/'+selectedChat,{method:'PATCH',body:{title:chatEl('chatTitle').value}}));await listChats();});
+chatEl('chatDelete').onclick=()=>chatAction(async()=>{if(!selectedChat)throw new Error('Select a conversation first.');if(!confirm('Delete this conversation permanently?'))return;await chatApi('/chats/'+selectedChat,{method:'DELETE'});selectedChat=null;chatEl('chatMessages').replaceChildren();chatEl('chatTitle').value='';await listChats();});
+chatEl('chatExport').onclick=()=>chatAction(async()=>{
+  if(!selectedChat)throw new Error('Select a conversation first.');
+  const r=await fetch('/chats/'+selectedChat+'?export=markdown',{headers:{authorization:'Bearer '+TOKEN}});
+  if(!r.ok)throw new Error('Export failed.');
+  const u=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=u;a.download=selectedChat+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+});
+let chatSearchTimer;chatEl('chatSearch').oninput=()=>{clearTimeout(chatSearchTimer);chatSearchTimer=setTimeout(()=>chatAction(listChats),250);};
+listChats().catch(e=>{chatEl('chatStatus').textContent=e.message;});
 </script>

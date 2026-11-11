@@ -16,6 +16,7 @@ import { Credentials } from './credentials.mjs';
 import { AgentSettings } from './agent-settings.mjs';
 import { LLM } from './llm.mjs';
 import { Agent } from './agent.mjs';
+import { Chats } from './chats.mjs';
 import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
@@ -126,7 +127,7 @@ async function chainPrice(symbol) {
 }
 
 export function createServer(mem) {
-  const credentials = new Credentials(), agentSettings = new AgentSettings();
+  const credentials = new Credentials(), agentSettings = new AgentSettings(), chats = new Chats();
   const permissions = new Permissions();
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
@@ -198,7 +199,7 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = /^\/signals\/[^/]+\/(?:accept|refuse|sign)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+    const allowedMethods = /^\/chats\/[^/]+$/.test(url.pathname) ? ['GET','POST','PATCH','DELETE'] : /^\/signals\/[^/]+\/(?:accept|refuse|sign)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
       ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
@@ -373,7 +374,28 @@ export function createServer(mem) {
       // ── first run: no credentials anywhere ──────────────────────────────
       // A packaged app has no .env and no shell environment. Without this the
       // window opens onto a working-looking desk whose mic silently fails.
-      if (url.pathname === '/agent/chat') {
+      if (url.pathname === '/chats') {
+        if (req.method === 'GET') return send(200,chats.list(url.searchParams.get('search') || ''));
+        const config=agentSettings.read();
+        return send(201,chats.create({title:body.title,model:config.model,provider:config.provider}));
+      }
+      const chatMatch=url.pathname.match(/^\/chats\/([^/]+)$/);
+      if (chatMatch) {
+        const id=chatMatch[1];
+        if (req.method === 'DELETE') {chats.delete(id);return send(200,{ok:true});}
+        if (req.method === 'PATCH') return send(200,chats.rename(id,body.title));
+        if (req.method === 'GET') {
+          if (url.searchParams.get('export') === 'markdown') {
+            const markdown=chats.markdown(id);
+            res.writeHead(200,{'content-type':'text/markdown; charset=utf-8','content-disposition':`attachment; filename="${id}.md"`});
+            return res.end(markdown);
+          }
+          return send(200,chats.get(id));
+        }
+      }
+      if (url.pathname === '/agent/chat' || (chatMatch && req.method === 'POST')) {
+        const config=agentSettings.read();
+        const chat=chatMatch ? chats.get(chatMatch[1]) : body.chatId ? chats.get(body.chatId) : chats.create({model:config.model,provider:config.provider});
         const agent = new Agent({llm:new LLM(agentSettings.read(),{getKey:n => credentials.get(n)}),signals,
           publish:e => signals.publish(e),request:async (route,body) => {
             const response = await fetch(`http://127.0.0.1:${srv.address().port}`+route,{
@@ -383,7 +405,9 @@ export function createServer(mem) {
             if (!response.ok) throw Object.assign(new Error(result.error || `tool HTTP ${response.status}`),{status:response.status});
             return result;
           }});
-        return send(200,await agent.reply({message:body.message}));
+        const result=await chats.turn(chat.id,c => agent.reply({message:body.message,messages:c.messages,
+          onMessage:m => chats.append(c.id,{...m,model:m.model || config.model,provider:m.provider || config.provider})}));
+        return send(200,{chatId:chat.id,...result});
       }
       if (url.pathname === '/agent/settings') {
         if (req.method === 'POST') return send(200,agentSettings.update(body));
@@ -881,7 +905,7 @@ export function createServer(mem) {
       // need completely different things from the operator.
       const msg = String(e.message || e);
       if (msg.startsWith('Setup required:')) return send(503,{error:msg,status:'Setup required'});
-      if (url.pathname.startsWith('/agent/')) return send(/invalid|must be/.test(msg)?400:502,{error:msg});
+      if (url.pathname.startsWith('/agent/') || url.pathname.startsWith('/chats')) return send(e.status || (/invalid|must be/.test(msg)?400:502),{error:msg});
       if (url.pathname === "/route" && /must be|required|invalid side|unambiguous|not traded/.test(msg)) return send(400, {error:msg});
       if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
         const setup = msg.startsWith("Setup required:");
@@ -1133,7 +1157,7 @@ const ROUTE_METHODS = {
   "/tick": ["POST"], "/size": ["POST"], "/memory/wipe": ["POST"], "/memory/seed": ["POST"],
   "/memory/decay": ["POST"], "/reflect/accept": ["POST"], "/reflect/reject": ["POST"],
   "/setup": ["GET", "POST"],
-  '/agent/chat':['POST'], '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
+  '/chats':['GET','POST'], '/agent/chat':['POST'], '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
 };
 
 export async function start() {
