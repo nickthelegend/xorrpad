@@ -419,3 +419,27 @@ invalid inputs, missing listings, invalid quote math and assertions fail tests.
 The only skip in the targeted 11-test run was the extra Meteora build's RPC
 429. No required two-venue quote check was skipped. No pad firmware was
 changed, compiled or flashed as part of T1.
+
+## v1 T2 step 5 — session wallet devnet proof: BLOCKED
+
+Run: `node desk/test/t2-devnet.mjs` on 2026-11-12 (Asia/Kolkata).
+The script created a dedicated Node session wallet, checked the real devnet
+RPC genesis, SOL balance and mUSDC token account, then made one real SOL
+faucet request. Observed **0 SOL and 0 mUSDC**; the faucet returned
+**HTTP 410: devnet RPC faucet is closed**.
+
+**Fund `52wB7u5s6AEnCffq4Kvhd3Se4y53j1XMCsAsxRgRWvmL` with 0.2 devnet SOL
+plus 20 mUSDC from the pm-AMM faucet.**
+[Public wallet on devnet Explorer](https://explorer.solana.com/address/52wB7u5s6AEnCffq4Kvhd3Se4y53j1XMCsAsxRgRWvmL?cluster=devnet).
+The mUSDC faucet is `https://pm-amm-devnet.vercel.app/api/faucet` (POST with
+`{"wallet":"<public key>"}`); the proof calls it only once SOL funding exists.
+
+No trade was signed or sent. No confirmed transaction or receipt exists.
+The private key is in the ignored `desk/.t2-devnet/session-wallet.node.key`,
+mode 0600; only the public key was printed. The script saves public preflight
+evidence beside it, remembers the airdrop attempt, and reuses the wallet.
+After funding, rerun the same command for a real 1 mUSDC pm-AMM proposal,
+policy auto-accept, local macOS speech announcement, session signature,
+confirmation and memory/event receipt. It refuses mainnet and never loads
+`.env` or another wallet. Ledger caps prevent a repeat from spending past the
+proof's 1 mUSDC daily budget; funding does not imply execution succeeded.
