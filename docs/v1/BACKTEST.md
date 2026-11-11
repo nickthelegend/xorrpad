@@ -71,3 +71,27 @@ Warm-up or absent volume cannot satisfy a condition. Short rules require a perp
 venue. Sharpe is null for zero variance or insufficient samples; win rate is
 null for no trades. Exposure and drawdown include fees and funding; equity is
 marked at each completed bar, not at unobserved intrabar prices.
+
+## Prediction-market replay
+
+`predictionBacktest({symbol,from,to,strike,liquidityUsdc,...})` tests a question
+like “SOL above $X at hour H”, with `to` as expiry. **Liquidity is an explicit
+model input, not fabricated historical pool data.** A balanced 50/50 pm-AMM curve
+starts at the first Pyth candle; `marketState` accrues its real decay formula and
+`quoteSwap` prices both sides including the protocol's 2% USDC fee. The one
+model trade updates reserves; no invented external order flow is supplied.
+
+The simple value strategy estimates terminal probability from trailing squared
+Pyth log returns (default 20-bar lookback, zero-drift lognormal model), buys the
+side whose expected payout exceeds cost by at least `minEdgePct` (default 2%),
+and holds to expiry. Additional slippage haircuts received shares (default 10
+bps). It reports predicted dollar/percentage edge and realized return, along
+with trades, liquidation-value equity curve and the standard metrics. A quote
+at a completed-bar close is possible because the pool model, unlike underlying
+execution, does not consume a future candle. All probability inputs are prefixes.
+
+This is a **counterfactual curve experiment on real underlying history**, not
+empirical pm-AMM execution or a profitable-market claim. It requires contiguous
+Pyth bars and a bar closing exactly at expiry, settles `close > strike` (ties NO),
+and labels the difference from the keeper's exact timestamp/confidence oracle
+resolution. It never signs, submits, or creates a real prediction market.
