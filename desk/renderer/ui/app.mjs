@@ -1,3 +1,4 @@
+import { mountStatus } from "./status.mjs";
 import { mountSignals } from "./signals.mjs";
 import { $, esc, heading, empty, error, notice, action } from "./shared.mjs";
 const icons = {
@@ -245,6 +246,7 @@ $("#panic").onclick = (e) =>
     await api("/panic", {});
     notice("All trading disarmed");
   });
+mountStatus({api:(path,body,opts={})=>api(path,body,{...opts,signal:null}),subscribe});
 mountSignals({api:(path,body,opts={})=>api(path,body,{...opts,signal:null}),subscribe});
 window.addEventListener("hashchange", render);
 stream();

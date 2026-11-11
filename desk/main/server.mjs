@@ -1,3 +1,4 @@
+import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
 /**
  * server.mjs — what the pad on your desk talks to.
@@ -140,6 +141,7 @@ export function createServer(mem) {
   const voiceChats=new Map();
   const permissions = new Permissions();
   const spotQuotes = new SpotQuotes();
+  let deskStatus;
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
     gate:async e => {
@@ -225,7 +227,7 @@ export function createServer(mem) {
     // so requiring the token to reach it would lock a fresh install out of
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
-    const uiFiles = new Set(['signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
+    const uiFiles = new Set(['status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
     const open = url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
@@ -375,6 +377,7 @@ export function createServer(mem) {
         try {return send(200,srv.padlink.setKeymap(body));} catch(e) {return send(400,{error:e.message});}
       }
       if (url.pathname === '/events') {res.setHeader('Upgrade','websocket'); return send(426,{error:'use WebSocket at /events'});}
+      if (url.pathname === '/desk/status') { deskStatus ??= new DeskStatus(executor,srv.padlink); return send(200,await deskStatus.get()); }
       if (url.pathname === '/permissions') {
         try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
         catch(e) { return send(400,{error:e.message}); }
@@ -1238,7 +1241,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

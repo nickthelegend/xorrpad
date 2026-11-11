@@ -47,6 +47,15 @@ export class Executor {
     if (!['phone','session'].includes(mode)) throw new Error('wallet mode must be phone or session');
     saveJson(this.#settings,{mode}); return {mode};
   }
+  async budgetStatus() {
+    const {brief,context}=this.#budget(await this.mem.recallBrief());
+    const policy=this.permissions.read();
+    const memoryCap=brief.limits?.max_day_usd;
+    return {spentTodayUsd:Number.isFinite(brief.spent_today)?brief.spent_today:null,
+      dayCapUsd:Number.isFinite(memoryCap)?Math.min(memoryCap,policy.maxDayUsd):policy.maxDayUsd,
+      reservedUsd:context.reservedUsd,
+      autoAccept:{enabled:Object.values(policy.autoAccept.venues).some(Boolean)&&Object.values(policy.autoAccept.kinds).some(Boolean),...policy.autoAccept}};
+  }
   #save() { saveJson(this.#file,this.#ledger); }
   #connection(cluster,venue) {
     if (!(cluster in GENESIS)) throw new Error('unsupported transaction cluster');
