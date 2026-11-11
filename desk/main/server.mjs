@@ -30,6 +30,7 @@ import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
 import * as phoenix from "./chains/phoenix.mjs";
+import { keeperStats } from "./pmamm-stats.mjs";
 import { keeperCreator,keeperResolutions } from "./keeper-read.mjs";
 import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
@@ -267,6 +268,7 @@ export function createServer(mem) {
       if (url.pathname === "/perps/positions") return send(200, { positions: await phoenix.positions(url.searchParams.get("authority") || undefined, Object.fromEntries(url.searchParams)), cluster: "mainnet-beta", pollAfterMs: 15000 });
       if (url.pathname === "/perps/open") return send(200, await phoenix.buildOpen(body));
       if (url.pathname === "/perps/close") return send(200, await phoenix.buildClose(body));
+      if (url.pathname === "/pm/stats") return send(200, await keeperStats(await keeperCreator()));
       if (url.pathname === "/pm/resolutions") return send(200, await keeperResolutions());
       if (url.pathname === "/pm/ours") {
         const creator=await keeperCreator();
@@ -1040,7 +1042,7 @@ const ROUTE_METHODS = {
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],
-  "/pm/resolutions": ["GET"], "/pm/ours": ["GET"],
+  "/pm/stats": ["GET"], "/pm/resolutions": ["GET"], "/pm/ours": ["GET"],
   "/pm/markets": ["GET"], "/pm/quote": ["GET"], "/pm/positions": ["GET"],
   "/pm/swap": ["POST"], "/pm/create": ["POST"], "/pm/claim": ["POST"],
   "/pad/chart": ["GET"],

@@ -148,7 +148,11 @@ submits. Jupiter builds use the same protocol with `SOLANA_PAY_PUBLIC_URL` and
 A separate devnet keeper creates recurring SOL/BTC hourly and ETH daily markets
 and resolves exact-expiry Pyth observations. The desk still never signs.
 `GET /pm/ours` filters chain markets by that keeper creator;
-`GET /pm/resolutions` serves its published resolution evidence. Set
+`GET /pm/resolutions` serves its published resolution evidence.
+`GET /pm/stats` counts successful swap instructions, distinct trader wallets,
+gross mUSDC volume and actual creator fee transfers from chain history, cached
+for 60 seconds. Missing archival transactions are exposed as incomplete data;
+they are never replaced by database totals or claimed zero activity. Set
 `KEEPER_PUBLIC_KEY` when public keeper metadata is not local. See
 [keeper setup, funding and oracle rules](keeper/README.md). Confidence intervals
 that touch or straddle the strike remain unresolved. Tests use real chain reads

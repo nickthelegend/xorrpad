@@ -93,3 +93,21 @@ rather than verifying the oracle proof itself.
 `node keeper/run.mjs --cycle` attempts one SOL market expiring in ten minutes,
 then waits to resolve it. It needs funding and authenticated Hermes first.
 SIGINT/SIGTERM request a clean stop; the process owns no listening port.
+
+## Desk read endpoints and traction
+
+The authenticated desk API exposes `/pm/ours` from on-chain creator filtering,
+`/pm/resolutions` from these public evidence files, and `/pm/stats` from chain
+transaction history only. `KEEPER_PUBLIC_KEY` can select the public creator when
+the desk does not have local public metadata. The desk never imports this
+process's signing module or reads its key.
+
+Stats cache successful scans for at least 60 seconds. They deduplicate transaction
+signatures across markets, ignore failed transactions, identify each swap's
+actual trader, and isolate its SPL transfers (including CPI stack scopes).
+Volume is the gross mUSDC leg: declared raw USDC input for buys and actual vault
+outflow for sells. YES↔NO trades count as swaps but have zero mUSDC volume.
+Creator fees count actual fee transfers; a creator trading with themselves does
+not inflate received fees with a waived fee share. Missing transactions or an
+unobserved creation instruction make totals incomplete and request an archival
+`PMAMM_RPC`; no database total or fabricated zero is substituted.
