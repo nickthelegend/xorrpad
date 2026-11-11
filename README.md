@@ -93,6 +93,15 @@ URLs/QRs. `GET /perps/request/:id` and `POST` with the matching wallet's
 `account` implement the same short-lived unsigned handoff as the other venues.
 Missing setup is named explicitly. Poll at least 15 seconds apart.
 
+`GET /hedge?authority=…` reads actual positions and pairs recognized numeric
+pm-AMM outcomes that pay on the adverse side of the entry price. Sizing uses
+real quotes and the existing memory gate; outcome permissions use
+`pmamm:<market pubkey>:<yes|no>` allowlist keys. No transaction is built or
+submitted by this proposal route. Optional `usdc` caps the proposed premium.
+Phoenix is mainnet while pm-AMM is devnet: these proposals are research only;
+devnet mUSDC cannot economically hedge mainnet USD. Numeric names are interpreted,
+not verified oracle resolutions.
+
 Jupiter spot coverage also includes every mint identity in
 `main/markets.solana.json` (under `desk/`). Duplicate ticker symbols require
 an exact mint or the catalog's `symbol@mint` key. Mint decimals and executable

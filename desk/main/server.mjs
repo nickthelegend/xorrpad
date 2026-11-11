@@ -30,6 +30,7 @@ import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
 import * as phoenix from "./chains/phoenix.mjs";
+import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
 
 /** Solana venues share the same read-only interface. */
@@ -258,6 +259,8 @@ export function createServer(mem) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
       }
+      if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
+        await mem.recallBrief(), Object.fromEntries(url.searchParams)));
       if (url.pathname === "/perps/markets") return send(200, { markets: await phoenix.perpMarkets(), cluster: "mainnet-beta", mode: "read-only-mainnet", pollAfterMs: 15000 });
       if (url.pathname === "/perps/quote") return send(200, await phoenix.perpQuote(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/perps/positions") return send(200, { positions: await phoenix.positions(url.searchParams.get("authority") || undefined, Object.fromEntries(url.searchParams)), cluster: "mainnet-beta", pollAfterMs: 15000 });
@@ -771,7 +774,7 @@ export function createServer(mem) {
       // Distinguish "the trade failed" from "the chain is not answering": they
       // need completely different things from the operator.
       const msg = String(e.message || e);
-      if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/")) {
+      if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
         const setup = msg.startsWith("Setup required:");
         const invalid = /invalid |must |must be|side must|out of range|at most|rounds to zero|not found|not resolved|no liquidity|no shares|market does not use|unknown Phoenix|leverage exceeds|insufficient live|below one|no open Phoenix|specify subaccountIndex|Phoenix market is/.test(msg);
         return send(setup ? 503 : invalid ? 400 : 502, { error: msg, ...(setup ? { status: "Setup required" } : {}) });
@@ -1028,6 +1031,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],
   "/pm/markets": ["GET"], "/pm/quote": ["GET"], "/pm/positions": ["GET"],
