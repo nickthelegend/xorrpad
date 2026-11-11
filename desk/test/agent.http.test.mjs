@@ -46,7 +46,8 @@ test('chats, models, persona and agent tools use real authenticated desk routes'
     assert.equal(proposed.signalState,'refused');assert.equal(proposed.routing,null);
     const explanation=await executeTool('explain_refusal',{signalId:proposed.signalId},{request,signals:server.signals});assert.equal(explanation.ruleId,'memory.allowlist');
     assert.equal(server.signals.get(proposed.signalId).state,'refused');assert.equal(server.signals.get(proposed.signalId).receipt,undefined);
-    await assert.rejects(executeTool('backtest',{symbol:'SOL',strategy:'momentum',from:1,to:2,venue:'jupiter'},{request,signals:server.signals}),/Setup required: T6 backtest engine/);
+    assert.equal((await call('/backtest')).status,200);
+    await assert.rejects(executeTool('backtest',{symbol:'SOL',strategy:'momentum',from:1,to:2,venue:'jupiter'},{request,signals:server.signals}),/invalid strategy/);
     assert.equal((await call('/chats/'+id,undefined,'DELETE')).status,200);assert.equal((await call('/chats/'+id)).status,404);
     assert.equal((await call('/chats/missing',{})).status,404);
   }finally{

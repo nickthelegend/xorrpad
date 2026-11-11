@@ -52,6 +52,8 @@ export async function fundingHistory(venue,market,from,to) {
     return {status:complete?'historical funding included':'funding not modelled for missing intervals; available historical payments included',
       source:`${phoenix.API}/v1/funding/overview/${market}`,events:rows};
   } catch(e) {
-    return {status:'funding not modelled',reason:e.message,events:[]};
+    const rows=[...events.values()].sort((a,b)=>a.t-b.t);
+    return {status:rows.length?'funding not modelled for missing intervals; available historical payments included':'funding not modelled',
+      reason:e.message,source:`${phoenix.API}/v1/funding/overview/${market}`,events:rows};
   }
 }

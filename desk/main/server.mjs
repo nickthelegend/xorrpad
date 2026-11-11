@@ -427,8 +427,8 @@ export function createServer(mem) {
       if (url.pathname === '/backtest' && req.method === 'POST') return send(200,await backtest(body));
       if (url.pathname === '/backtest/predict') return send(200,await predictionBacktest(body));
       if (url.pathname === '/backtest/history') return send(200,await new History().get({
-        symbol:url.searchParams.get('symbol'),from:Number(url.searchParams.get('from')),
-        to:Number(url.searchParams.get('to')),resolution:url.searchParams.get('resolution')??'60',
+        symbol:url.searchParams.get('symbol'),from:url.searchParams.has('from')?Number(url.searchParams.get('from')):undefined,
+        to:url.searchParams.has('to')?Number(url.searchParams.get('to')):undefined,resolution:url.searchParams.get('resolution')??'60',
       }));
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/venues") return send(200, { venues: await venues() });

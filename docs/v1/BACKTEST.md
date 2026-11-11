@@ -112,3 +112,11 @@ The agent's `backtest` tool supports the same fields, with optional
 `kind:"predict"` selecting the prediction endpoint. Default kind is strategy;
 BOOK names and rule schema are disclosed in its description/schema. T5 owns the
 UI page; T6 changes only the backend/tool surface.
+
+Run `npm run test:backtest --prefix desk`. Validation/arithmetic and real venue
+checks run independently of Pyth. Candle/cache, book/rule accounting,
+causality/data-shift, prediction and successful HTTP/tool replay checks use only
+actual Pyth candles, and skip explicitly if the history service is unreachable.
+See [TESTING.md](../../TESTING.md#v1-t6--real-history-backtesting) for measured
+counts and current upstream blockers; no successful replay is asserted while
+the specified shim returns 404.

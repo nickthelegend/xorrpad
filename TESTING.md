@@ -665,3 +665,65 @@ ran in degraded regex mode (HTML parser modules unavailable); it reported existi
 font/type/transition warnings, so this is not visual or contrast certification.
 The real encryption test exposed an Electron ESM startup readiness deadlock;
 initialization was moved into the ready callback and the real OS check then passed.
+
+## v1 T6 — real-history backtesting
+
+Verified on 2026-11-12 (Asia/Kolkata). Five implementation steps are committed
+separately; no push, release tag or blockchain transaction was made by T6.
+
+| Final verification run | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| `npm run test:backtest --prefix desk` | 14 | 8 | 0 | 6 |
+| Existing agent/router/policy/queue/wallet/executor subset below | 50 | 47 | 0 | 3 |
+| Combined (distinct tests) | 64 | 55 | 0 | 9 |
+
+```sh
+node --test desk/test/agent.test.mjs desk/test/agent.http.test.mjs \
+  desk/test/aggregate.test.mjs desk/test/permissions.test.mjs \
+  desk/test/signals.test.mjs desk/test/signals.http.test.mjs \
+  desk/test/session-wallet.test.mjs desk/test/executor.test.mjs
+```
+
+Passed T6 checks: symbol mapping (including AAPL underlying equities), bounded
+past ranges and resolutions, rule validation, rejection of supplied candles and
+fee overrides, arithmetic metrics and undefined metrics, prediction parameter
+validation, agent schema, authenticated real HTTP methods/catalog/errors, live
+Phoenix fee/funding reads, live Jupiter Perps fee reads, and Jupiter spot's
+explicit missing-fee-disclosure behavior. The real server used **127.0.0.1:8728**,
+real temporary SQLite and app-data directories; it was closed and removed.
+The obsolete T3 "T6 absent" assertion now checks the real catalog and rejects an
+unknown strategy. No existing assertion was weakened to hide a service failure.
+
+Actual live observations:
+
+- Phoenix SOL standard taker fee **0.00035 (0.035%)** on each leg; **168**
+  historical USD-per-base-unit funding payments for 2026-11-01 through
+  2026-11-08 UTC, with complete hourly coverage.
+- Jupiter Perps SOL $10 notional: opening and closing fee rates **0.0007
+  (0.07%)**, decoded mainnet slot **468286639**. These current on-chain schedules
+  are labelled as present-day snapshots, not historical fee observations.
+- Jupiter spot returned actual quotes but did not disclose both route fees:
+  **`Setup required: Jupiter route fee disclosure for both trade legs`**.
+  No zero fee or guessed route fee was substituted.
+- The exact specified Pyth Benchmarks history URL returned **HTTP 404**.
+  The authenticated `/backtest` endpoint correctly returned **502** with
+  `Pyth history unavailable: HTTP 404`. Direct SOL and symbol-metadata probes
+  also returned 404. No alternate exchange or generated price series was used.
+
+The six Pyth-dependent tests therefore **skipped**, including candle caching
+and corruption recovery, AAPL history, strategy accounting, all six BOOK
+strategies and BTC gate warm-up, the no-look-ahead proof, prediction curve/edge,
+and successful agent/HTTP replay. **No historical PnL or edge result is claimed,
+and no-look-ahead has not been empirically verified in this environment.**
+The implemented causality test delays actual Pyth OHLC by one bar and requires
+the first decision/fill to move one hour, then truncates/shifts only the future
+and requires earlier fills to stay identical. It will run when Pyth is reachable.
+
+The three unchanged provider/setup skips are unavailable local Ollama and
+missing environment Anthropic/Deepgram keys. The full repository suite was not
+rerun for T6. No secrets or `.env` files were opened or logged; tests do not load
+them. `git diff --check` and module syntax checks passed.
+
+See [BACKTEST.md](docs/v1/BACKTEST.md) for requests, metric units, current-fee
+assumptions, funding gaps, fixed adverse slippage and the explicitly
+**counterfactual** pm-AMM liquidity/settlement model. T5 owns the UI page.
