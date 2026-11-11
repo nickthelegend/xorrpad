@@ -540,5 +540,53 @@ export class GeckoHistory {
     };
   }
 }
-export class History extends GeckoHistory {}
+export class History extends GeckoHistory {
+  constructor(options = {}) {
+    super(options);
+    this.pyth = new PythHistory(options);
+  }
+  async get(input) {
+    const req = historyRequest(input);
+    let geckoError;
+    try {
+      const result = await super.get(req);
+      return {
+        ...result,
+        providers: [{ provider: "geckoterminal", status: "used" }],
+      };
+    } catch (e) {
+      if (!(e instanceof HistoryUnavailable)) throw e;
+      geckoError = e.message.replace(/^History unavailable: /, "");
+    }
+    const providers = [
+      { provider: "geckoterminal", status: "unavailable", error: geckoError },
+    ];
+    try {
+      if (req.symbol.startsWith("mint:"))
+        throw new HistoryUnavailable(
+          "Pyth Benchmarks: no feed identity for exact mint " +
+            req.symbol.slice(5),
+        );
+      const result = await this.pyth.get(req);
+      return {
+        ...result,
+        providers: [...providers, { provider: "pyth", status: "used" }],
+        warnings: [geckoError],
+      };
+    } catch (e) {
+      if (
+        !(e instanceof HistoryUnavailable) &&
+        !e.message.startsWith("Setup required:")
+      )
+        throw e;
+      const pythError = e.message.replace(/^History unavailable: /, "");
+      const error = new HistoryUnavailable(geckoError + "; " + pythError);
+      error.providers = [
+        ...providers,
+        { provider: "pyth", status: "unavailable", error: pythError },
+      ];
+      throw error;
+    }
+  }
+}
 export const history = (input) => new History().get(input);

@@ -16,7 +16,7 @@ export function mountChart({ root, api, signal, selection }) {
     )
     .join(
       "",
-    )}<span class="hint" id="history-source" aria-live="polite">History · UTC</span></div><div id="candle-state">${loading()}</div><canvas id="price-candles" role="img" aria-label="Selected market candle chart" hidden></canvas><p class="chart-caption mono" id="candle-caption"></p>`;
+    )}<span class="hint" id="history-source" aria-live="polite">History · UTC</span></div><p class="hint panel-body" id="history-provider-state" hidden></p><div id="candle-state">${loading()}</div><canvas id="price-candles" role="img" aria-label="Selected market candle chart" hidden></canvas><p class="chart-caption mono" id="candle-caption"></p>`;
   let period = "1h",
     candles = [],
     live = null,
@@ -152,6 +152,9 @@ export function mountChart({ root, api, signal, selection }) {
       if (n !== sequence || signal.aborted) return;
       candles = d.candles;
       $("#history-source", root).textContent = d.source + " · UTC";
+      const providerState = $("#history-provider-state", root);
+      providerState.textContent = (d.warnings || []).join(" ");
+      providerState.hidden = !providerState.textContent;
       historyAt = new Date().toLocaleTimeString();
       state.innerHTML = "";
       canvas.hidden = false;

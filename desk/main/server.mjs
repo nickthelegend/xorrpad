@@ -997,7 +997,7 @@ export function createServer(mem) {
       // need completely different things from the operator.
       const msg = String(e.message || e);
       if (msg.startsWith('Setup required:')) return send(503,{error:msg,status:'Setup required'});
-      if (url.pathname.startsWith('/backtest')) return send(e.status || (/invalid|must|requires|choose/.test(msg)?400:502),{error:msg});
+      if (url.pathname.startsWith('/backtest')) return send(e.status || (/invalid|must|requires|choose/.test(msg)?400:502),{error:msg,...(e.providers?{providers:e.providers}:{})});
       if (url.pathname.startsWith('/agent/') || url.pathname.startsWith('/chats')) return send(e.status || (/invalid|must be/.test(msg)?400:502),{error:msg});
       if (url.pathname === "/route" && /must be|required|invalid side|unambiguous|not traded/.test(msg)) return send(400, {error:msg});
       if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
