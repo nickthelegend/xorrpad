@@ -30,6 +30,7 @@ import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
 import * as phoenix from "./chains/phoenix.mjs";
+import { keeperCreator,keeperResolutions } from "./keeper-read.mjs";
 import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
 
@@ -266,6 +267,11 @@ export function createServer(mem) {
       if (url.pathname === "/perps/positions") return send(200, { positions: await phoenix.positions(url.searchParams.get("authority") || undefined, Object.fromEntries(url.searchParams)), cluster: "mainnet-beta", pollAfterMs: 15000 });
       if (url.pathname === "/perps/open") return send(200, await phoenix.buildOpen(body));
       if (url.pathname === "/perps/close") return send(200, await phoenix.buildClose(body));
+      if (url.pathname === "/pm/resolutions") return send(200, await keeperResolutions());
+      if (url.pathname === "/pm/ours") {
+        const creator=await keeperCreator();
+        return send(200,{creator,cluster:"devnet",source:"chain",markets:await pmamm.ours(creator),pollAfterMs:15000});
+      }
       if (url.pathname === "/pm/markets") return send(200, { markets: await pmamm.markets(), cluster: "devnet", pollAfterMs: 15000 });
       if (url.pathname === "/pm/quote") return send(200, await pmamm.quote(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/pm/positions") return send(200, { positions: await pmamm.positions(url.searchParams.get("owner")), cluster: "devnet", pollAfterMs: 15000 });
@@ -1034,6 +1040,7 @@ const ROUTE_METHODS = {
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
   "/perps/open": ["POST"], "/perps/close": ["POST"],
+  "/pm/resolutions": ["GET"], "/pm/ours": ["GET"],
   "/pm/markets": ["GET"], "/pm/quote": ["GET"], "/pm/positions": ["GET"],
   "/pm/swap": ["POST"], "/pm/create": ["POST"], "/pm/claim": ["POST"],
   "/pad/chart": ["GET"],

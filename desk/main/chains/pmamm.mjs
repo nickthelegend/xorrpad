@@ -200,3 +200,13 @@ async function readPositions(c, wallet) {
   });
 }
 export async function balances(owner) { return positions(owner); }
+
+/** All mUSDC markets for a creator, including expired and resolved ones. Chain only. */
+export async function ours(creator) {
+  const authority=key(creator,"KEEPER_PUBLIC_KEY"),c=await ctx();
+  return (await c.all()).filter(({account:m})=>m.authority.equals(authority) && m.collateralMint.equals(COLLATERAL)).map(({publicKey,account:m})=>({
+    market:publicKey.toBase58(),creator:m.authority.toBase58(),name:nameOf(m),collateralMint:m.collateralMint.toBase58(),
+    endTs:m.endTs.toNumber(),endTime:new Date(m.endTs.toNumber()*1000).toISOString(),resolved:m.resolved,
+    winningSide:m.winningSide===1?"yes":m.winningSide===2?"no":null,yesMint:m.yesMint.toBase58(),noMint:m.noMint.toBase58(),vault:m.vault.toBase58(),cluster:"devnet",
+  }));
+}

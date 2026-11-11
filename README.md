@@ -145,9 +145,14 @@ the matching owner and never include the pad token. The desk never signs or
 submits. Jupiter builds use the same protocol with `SOLANA_PAY_PUBLIC_URL` and
 `/wallet/request/:id`.
 
-No resolver is implemented in this milestone. Tests use real devnet reads and
-simulations, with explicit skips when devnet or a funded throwaway public
-address is unavailable. See [TESTING.md](TESTING.md) for measured results and
+A separate devnet keeper creates recurring SOL/BTC hourly and ETH daily markets
+and resolves exact-expiry Pyth observations. The desk still never signs.
+`GET /pm/ours` filters chain markets by that keeper creator;
+`GET /pm/resolutions` serves its published resolution evidence. Set
+`KEEPER_PUBLIC_KEY` when public keeper metadata is not local. See
+[keeper setup, funding and oracle rules](keeper/README.md). Confidence intervals
+that touch or straddle the strike remain unresolved. Tests use real chain reads
+and explicit setup skips. See [TESTING.md](TESTING.md) for measured results and
 remaining setup.
 
 ---
