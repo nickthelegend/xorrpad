@@ -516,3 +516,102 @@ and the unfunded session-wallet send/confirm/receipt cycle. T2 changes no
 firmware. See [T2 API and operational notes](docs/v1/T2-SIGNALS.md) for policy
 fields, authenticated routes, speech events, signing mode and retained uncertain
 submission reservations. The desk package is v1.0.0; no release tag was created.
+
+## v1 T4 — firmware and pad link
+
+Measured 2026-11-12 (Asia/Kolkata), Node 26.5.0, Arduino CLI 1.5.1.
+Firmware **v1.0.0: compiled, not yet flashed**. Nick must flash and verify the
+board before that label changes. No upload command was run.
+
+| Check | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| Final `node --test desk/test/padlink.test.mjs` | 9 | 8 | 0 | 1 |
+| Full `npm test --prefix desk` | 78 | 70 | 1 | 7 |
+| Isolated recheck `node --test desk/test/pmamm.http.test.mjs` | 1 | 1 | 0 | 0 |
+| Initial signal/policy/HTTP regression subset | 20 | 20 | 0 | 0 |
+
+The full run's single failure was an **existing pm-AMM HTTP test**: real devnet
+RPC returned **HTTP 429, connection rate limits exceeded**, during an unsigned
+transaction's recent-blockhash read. The unchanged test passed on the isolated
+recheck. This is not reported as a green full-suite run. The seven skips were
+Meteora unsigned build (RPC 429), two unfunded Phoenix checks, the pre-existing
+unfunded pm-AMM simulation (faucet HTTP 410), session-wallet live signing
+(RPC 429), expanded Jupiter SOL/HYPE (HTTP 429), and the new funded pad cycle.
+No existing test or assertion was removed or weakened.
+
+### Compile and screen evidence
+
+Exact successful command:
+
+```sh
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad
+```
+
+ESP32 core 3.3.10, NimBLE-Arduino 2.5.0, ArduinoJson 7.4.3,
+WiFiManager 2.0.17, Adafruit ILI9341 1.6.3 / GFX 1.12.6 / BusIO 1.17.4.
+Final size: **1,476,455 / 3,145,728 bytes flash (46%)**;
+**59,060 / 327,680 bytes static RAM (18%)**, leaving **268,620 bytes**.
+PSRAM recording/canvas allocations are additional runtime allocations.
+
+`make -C tools/uipreview shots` compiled the real firmware drawing code and
+rendered nine layout fixtures. Boot version, pending countdown/AUTO, drawn
+check/cross controls, all 14 programmed labels and the historical-receipt
+layout were visually inspected. These PNGs are layout evidence, not live
+market values or proof of display hardware operation.
+
+### Actual transport and backend checks
+
+- Node simulator and actual desk `padlink` communicated over loopback TCP,
+  authenticated HTTP NDJSON and authenticated WebSocket. Seven-byte fragments
+  exercised incremental framing; Unicode fragmentation, malformed JSON,
+  unsupported versions and oversized records were checked.
+- A Python standard-library helper created two real raw PTYs. Both ends were
+  opened with the actual `serialport` package; hello/keymap and a DCA key made
+  the full serial → desk → SQLite round trip. Closing serial bindings before
+  removing the PTY avoids a native read loop. This proves the host serial path,
+  not physical USB electronics.
+- Full 14-key map edits were persisted, pushed and reloaded. Duplicate/stale
+  revisions, invalid cells/labels and reassigned MIC/KILL/yes/no were refused.
+  Key events updated real memory; knob size was capped by remembered limits;
+  KILL disarmed the actual server. Duplicate event ids did not repeat actions.
+- A programmable `pmamm:<market>:yes` key fetched a real devnet quote and
+  created an awaiting signal. A physical-style YES produced the real accepted
+  transition; missing phone-wallet setup then failed execution with
+  `Setup required: SOLANA_ADDRESS`. No receipt was invented from acceptance.
+- Two actual PCM chunks reached `/voice` and its real voice module. Without a
+  Deepgram key the pad received **`Setup required: DEEPGRAM_API_KEY`** and no
+  invented TTS. Sequence gaps were refused. PCM contents are not published on
+  `/events`; voice event metadata reports the actual chunk byte counts.
+- A separate receipt-delivery test fetched a historical successful devnet swap,
+  verified its on-chain confirmation and replayed its receipt event through
+  the actual queue/TCP bridge. Its signature is the previously documented
+  [historical reference swap](https://explorer.solana.com/tx/5hFEx7T33RLSekreevbuEZ1khnJojRi97eJ3EWndjpACwvxcFhtBfyPbRS8NQrcRtTW7ACcaCo2Be5kyxsqPnoKU?cluster=devnet).
+  **That replay is not a new pad trade and does not replace the funded cycle.**
+
+### Funded receipt cycle: BLOCKED
+
+Dedicated T4 test wallet public key:
+**`DbHsbDBtPHKGzEd4iC9QPPrKYhH68zchpznThZFbjxtD`**.
+Real devnet preflight observed **0 SOL and 0 mUSDC**. The full
+key → signal → accept → confirmed receipt test therefore skipped before
+signing or sending. No new execution signature exists.
+
+Fund that address with **0.01 devnet SOL and at least 1 mUSDC**, then rerun
+`node --test desk/test/padlink.test.mjs`. The test uses its dedicated ignored
+`desk/.t4-devnet/` wallet, checks devnet genesis and balances, submits only a
+real 1 mUSDC devnet outcome trade when funded, and verifies the confirmed
+receipt independently through RPC. It never loads `.env` or another wallet.
+The secret was neither printed nor committed; only its public address was
+reported. No mainnet transaction was submitted by T4.
+
+### Hardware scope
+
+USB firmware enumeration, BLE radio/MTU throughput and phone relay, link
+failover on the device, physical key wiring/hold behavior, NVS across a power
+cycle, captive-portal operation, TFT orientation, INMP441 capture and MAX98357A
+playback remain **compiled, not yet flashed**. The Mac BLE adapter is optional
+(`@abandonware/noble`); no radio or phone integration is claimed as tested.
+The Mac mini/desk may be on Tailscale; **the ESP32 does not join the tailnet
+itself in v1**. It reaches the desk through LAN/USB or the existing HTTPS relay.
+All T4 test servers and PTY helpers closed. An unrelated listener in another
+project was left alone. No push or release tag was made.
