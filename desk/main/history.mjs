@@ -48,8 +48,8 @@ export class History {
   async get(input) {
     const req=historyRequest(input), rows=new Map();
     let cacheHits=0,networkRequests=0;
-    for (let from=req.from;from<req.to;from+=req.step*1000) {
-      const part={...req,from,to:Math.min(req.to,from+req.step*1000)};
+    for (let from=req.from;from<req.to;) {
+      const part={...req,from,to:Math.min(req.to,Math.floor(from/req.step+1000)*req.step)};
       const query=new URLSearchParams({symbol:req.symbol,resolution:req.resolution,from:String(part.from),to:String(part.to)});
       const url=`${PYTH_HISTORY}?${query}`;
       const file=path.join(this.dir,createHash('sha256').update(url).digest('hex')+'.json');
@@ -76,6 +76,7 @@ export class History {
         }
       }
       for(const c of candles) rows.set(c.t,c);
+      from=part.to;
     }
     const candles=[...rows.values()].sort((a,b)=>a.t-b.t);
     if(!candles.length) throw new Error(`Setup required: Pyth history for ${req.symbol} in the requested range`);

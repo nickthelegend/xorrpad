@@ -90,6 +90,15 @@ export async function perpMarkets(){
  });
 }
 export const markets=perpMarkets;
+/** Same on-chain fee math as T1, frozen at observation time for historical replay. */
+export async function backtestFees(market,notionalUsd) {
+ const m=(await perpMarkets()).find(m=>m.market===market);
+ if(!m)throw new Error(`invalid Jupiter Perps market: ${market}`);
+ const s=await state(),c=s.custodies[m.custody],amount=BigInt(Math.floor(notionalUsd*1e6));
+ return {entryRate:positionFees(c,amount).fee/notionalUsd,
+  exitRate:positionFees({...c,increasePositionBps:c.decreasePositionBps},amount).fee/notionalUsd,
+  slot:s.slot,observedAt:new Date().toISOString()};
+}
 export async function perpQuote({market,side,usd,leverage}){
  market=String(market||'').toUpperCase().replace(/-PERP$/,'');usd=Number(usd);leverage=Number(leverage);
  if(!['long','short'].includes(side))throw new Error('side must be long or short');

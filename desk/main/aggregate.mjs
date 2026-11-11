@@ -13,7 +13,7 @@ async function bounded(fn,ms=TIMEOUT){
  try{return await Promise.race([Promise.resolve().then(fn),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`venue timed out after ${ms}ms`)),ms);})]);}
  finally{clearTimeout(timer);}
 }
-function spotFees(q,market){
+export function spotFees(q,market){
  if(q.feeUsd!=null)return {usd:q.feeUsd,basis:'included in quoted output'};
  const target=tokenOf(market).mint,usdc=tokenOf('USDC').mint;
  const details=(q.raw?.routePlan||[]).map(r=>r.swapInfo).filter(Boolean);
