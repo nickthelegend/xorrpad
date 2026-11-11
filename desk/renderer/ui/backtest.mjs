@@ -18,10 +18,10 @@ export async function mount({ el, api, signal }) {
     heading(
       "08",
       "Put the idea through history.",
-      "Replay strategies on real Pyth candles with the T6 fee, funding and execution assumptions.",
+      "Replay strategies on real labelled pool or oracle candles with the T6 fee, funding and execution assumptions.",
       "RESEARCH / NO TRANSACTIONS",
     ) +
-    `<div class="grid"><div class="stack">${panel("Replay configuration", `<div id="backtest-config">${loading()}</div>`)}${panel("Research assumptions", '<div class="panel-body"><p class="muted">Oracle-price results are research estimates. Fees use current observed schedules; network fees, historical liquidity and liquidations are excluded. No history is invented or interpolated.</p><p class="hint">Prediction mode is a counterfactual pm-AMM curve. Liquidity is an explicit model input. Resolution uses the final candle rather than the keeper’s exact timestamp/confidence check.</p></div>')}</div><div class="stack" id="backtest-result">${panel("Replay results", empty("Give your idea a test.", "Select a completed date range, a venue and a strategy to begin."))}</div></div>`;
+    `<div class="grid"><div class="stack">${panel("Replay configuration", `<div id="backtest-config">${loading()}</div>`)}${panel("Research assumptions", '<div class="panel-body"><p class="muted">Historical-price results are research estimates. Fees use current observed schedules; network fees, historical liquidity and liquidations are excluded. No history is invented or interpolated.</p><p class="hint">Prediction mode is a counterfactual pm-AMM curve. Liquidity is an explicit model input. Resolution uses the final candle rather than the keeper’s exact timestamp/confidence check.</p></div>')}</div><div class="stack" id="backtest-result">${panel("Replay results", empty("Give your idea a test.", "Select a completed date range, a venue and a strategy to begin."))}</div></div>`;
   try {
     const config = await api("/backtest");
     if (signal.aborted) return;
@@ -130,7 +130,7 @@ export async function mount({ el, api, signal }) {
                 "No completed trades",
                 "No strategy entry completed in this range.",
               ),
-        )}${panel("Provenance & assumptions", detail("Replay metadata", { history: r.history, fees: r.fees, funding: r.funding, warnings: r.warnings, assumptions: r.assumptions, question: r.question }))}`;
+        )}${panel("Provenance & assumptions", `<p class="panel-body mono">${esc(r.history?.source || "History source unavailable")}</p>` + detail("Replay metadata", { history: r.history, fees: r.fees, funding: r.funding, warnings: r.warnings, assumptions: r.assumptions, question: r.question }))}`;
     }
   } catch (e) {
     if (!signal.aborted) $("#backtest-config", el).innerHTML = error(e);

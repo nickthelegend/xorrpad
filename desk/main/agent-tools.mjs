@@ -10,7 +10,7 @@ export const TOOLS = [
   {name:'positions',description:'Read actual wallet balances and remembered positions, Phoenix perps, or devnet pm-AMM shares.',parameters:object({venue:{enum:['spot','phoenix','pmamm']},owner:str},['venue'])},
   {name:'pm_markets',description:'Read live devnet pm-AMM markets.',parameters:object()},
   {name:'pm_stats',description:'Read actual pm-AMM creator transaction statistics.',parameters:object()},
-  {name:'backtest',description:'Replay real Pyth history. Default kind=strategy uses BOOK names, book, or rule, and requires venue (phoenix/jupperps/jupiter). kind=predict requires strike and liquidityUsdc for a counterfactual pm-AMM curve; liquidity is a model input. Fees use current real schedules; funding omissions and slippage are disclosed.',parameters:object({
+  {name:'backtest',description:'Replay real GeckoTerminal pool history, with labelled Pyth fallback. Default kind=strategy uses BOOK names, book, or rule, and requires venue (phoenix/jupperps/jupiter). kind=predict requires strike and liquidityUsdc for a counterfactual pm-AMM curve; liquidity is a model input. Fees use current real schedules; funding omissions and slippage are disclosed.',parameters:object({
     kind:{enum:['strategy','predict']},symbol:str,strategy:str,from:{type:'integer'},to:{type:'integer'},
     venue:{enum:['phoenix','jupperps','jupiter']},resolution:{enum:['1','5','15','30','60','120','240','1D']},
     initialCash:number,tradeUsd:number,slippageBps:{type:'number',minimum:0,maximum:1000},

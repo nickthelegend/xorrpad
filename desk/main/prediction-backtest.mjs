@@ -1,4 +1,4 @@
-/** Counterfactual pm-AMM curve replay on real Pyth OHLC. No historical pool tape is asserted. */
+/** Counterfactual pm-AMM curve replay on real labelled OHLC. No historical pool tape is asserted. */
 import BN from 'bn.js';
 import { capitalPhi, phi } from '@pm-amm/sdk/math';
 import { marketState, quoteSwap } from './chains/pm-amm-helpers.mjs';
@@ -39,7 +39,7 @@ export function replayPrediction(candles,input) {
   if(candles.some((c,i)=>!Number.isSafeInteger(c.t)||!Number.isSafeInteger(c.tClose)||c.tClose<=c.t||
     c.t<o.from*1000||c.tClose>o.to*1000||!Number.isFinite(c.close)||c.close<=0||
     (i&&candles[i-1].tClose!==c.t)))throw new Error('prediction candles must be contiguous and within range');
-  if(candles.at(-1).tClose!==o.to*1000)throw new Error('Setup required: Pyth candle closing exactly at prediction expiry');
+  if(candles.at(-1).tClose!==o.to*1000)throw new Error('Setup required: history candle closing exactly at prediction expiry');
   let curve=initialCurve(o,candles[0].t/1000),position=null;
   const equityCurve=[{t:candles[0].t,equity:o.initialCash}],trades=[],observations=[];
   for(let i=0;i<candles.length;i++) {
@@ -72,7 +72,7 @@ export function replayPrediction(candles,input) {
   const settlementPrice=candles.at(-1).close,outcome=settlementPrice>o.strike?'yes':'no';
   if(position) {
     const payout=position.side===outcome?position.shares:0;
-    trades.push({...position,exitTime:o.to*1000,outcome,payout,pnl:payout-position.cost,reason:'Pyth expiry candle close settlement'});
+    trades.push({...position,exitTime:o.to*1000,outcome,payout,pnl:payout-position.cost,reason:'History expiry candle close settlement'});
   }
   equityCurve.push({t:o.to*1000,equity:o.initialCash+(trades[0]?.pnl??0)});
   const summary=metrics(equityCurve,trades,o.initialCash,position?o.to*1000-position.entryTime:0);

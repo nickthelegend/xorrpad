@@ -16,7 +16,7 @@ export function mountChart({ root, api, signal, selection }) {
     )
     .join(
       "",
-    )}<span class="hint">Pyth Benchmarks · UTC</span></div><div id="candle-state">${loading()}</div><canvas id="price-candles" role="img" aria-label="Selected market candle chart" hidden></canvas><p class="chart-caption mono" id="candle-caption"></p>`;
+    )}<span class="hint" id="history-source" aria-live="polite">History · UTC</span></div><div id="candle-state">${loading()}</div><canvas id="price-candles" role="img" aria-label="Selected market candle chart" hidden></canvas><p class="chart-caption mono" id="candle-caption"></p>`;
   let period = "1h",
     candles = [],
     live = null,
@@ -34,7 +34,7 @@ export function mountChart({ root, api, signal, selection }) {
   function header() {
     const s = selection();
     $("#market-head", root).innerHTML =
-      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : ""}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / Pyth reference</dt><dd>${fmt(change, "%")}</dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
+      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : ""}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / history reference</dt><dd>${fmt(change, "%")}</dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
   }
   function draw() {
     if (canvas.hidden || !candles.length) return;
@@ -151,6 +151,7 @@ export function mountChart({ root, api, signal, selection }) {
       );
       if (n !== sequence || signal.aborted) return;
       candles = d.candles;
+      $("#history-source", root).textContent = d.source + " · UTC";
       historyAt = new Date().toLocaleTimeString();
       state.innerHTML = "";
       canvas.hidden = false;

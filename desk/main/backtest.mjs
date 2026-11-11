@@ -100,7 +100,7 @@ export function replay({candles,options,fees,funding={status:'funding not modell
   if(!Array.isArray(fundingEvents)||fundingEvents.some((p,i)=>!Number.isFinite(p.usdPerUnit)||!Number.isSafeInteger(p.t)||(i&&p.t<=fundingEvents[i-1].t)))throw new Error('invalid funding history');
   const warnings=[],volumeAvailable=candles.some(c=>c.volume>0);
   const names=o.strategy==='book'?Object.keys(BOOK):[o.strategy];
-  if(!volumeAvailable)warnings.push('Pyth volume unavailable; volume strategies cannot fire.');
+  if(!volumeAvailable)warnings.push('History volume unavailable; volume strategies cannot fire.');
   if(names.some(n=>GATED_BOOK.includes(n))||o.rule?.requireUptrend)warnings.push('Trend gate: latest completed BTC hour vs 200 completed BTC daily closes; insufficient gate history disables gated entries.');
   const slip=o.slippageBps/10000, trades=[], equityCurve=[{t:candles[0].t,equity:o.initialCash},{t:candles[0].tClose,equity:o.initialCash}];
   let balance=o.initialCash,position=null,exposedMs=0,fundingIndex=0;
@@ -159,7 +159,7 @@ export function replay({candles,options,fees,funding={status:'funding not modell
     slippage:{bps:o.slippageBps,model:'Fixed adverse basis points on every entry and exit, in addition to venue fees.'},
     assumptions:['Signals use completed bars only; fills at next available open. One unlevered position; no overlapping trades.',
       'Stops win ambiguous intrabar ties; gaps through stops fill at the worse open. Intrabar exits charged whole-bar funding.',
-      'Oracle OHLC is a reference path, not historical executable venue liquidity. No liquidation, network fee or rent simulation.',
+      'Historical OHLC is a reference path, not historical executable venue liquidity. No liquidation, network fee or rent simulation.',
       'Sharpe: sample deviation of observed-bar equity returns, zero risk-free rate, annualized by elapsed calendar time; null if undefined.'],
     warnings,trades,equityCurve,...metrics(equityCurve,trades,o.initialCash,exposedMs)};
 }

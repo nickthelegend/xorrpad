@@ -50,7 +50,7 @@ import { marketHours } from "./xstocks.mjs";
 import { route, venues } from "./aggregate.mjs";
 import { backtest } from './backtest.mjs';
 import { predictionBacktest } from './prediction-backtest.mjs';
-import { History, RESOLUTIONS, PYTH_HISTORY } from './history.mjs';
+import { History, RESOLUTIONS, HISTORY_SOURCE } from './history.mjs';
 import { BOOK } from './strategies.mjs';
 
 /** Solana venues share the same read-only interface. */
@@ -422,13 +422,13 @@ export function createServer(mem) {
       }
       if (url.pathname === '/backtest' && req.method === 'GET') return send(200,{
         strategies:['book',...Object.keys(BOOK),'rule'],venues:['phoenix','jupperps','jupiter'],
-        resolutions:Object.keys(RESOLUTIONS),historySource:PYTH_HISTORY,
+        resolutions:Object.keys(RESOLUTIONS),historySource:HISTORY_SOURCE,
         defaults:{resolution:'60',initialCash:10000,tradeUsd:1000,slippageBps:10},
         rules:{indicators:['close','sma','ema','rsi','returnPct','relativeVolume'],comparisons:['lt','lte','gt','gte'],
           entry:'AND array of {left: number or {indicator,period}, op, right: number or {indicator,period}}',
           exit:'Optional AND array; fills at next open',sides:['long','short']},
         prediction:{endpoint:'/backtest/predict',required:['symbol','from','to','strike','liquidityUsdc'],
-          model:'Counterfactual pm-AMM curve on real Pyth history; liquidity is a model input, not historical pool data.'},
+          model:'Counterfactual pm-AMM curve on real labelled history; liquidity is a model input, not historical pool data.'},
         feeBasis:'Current observed venue schedules; historical schedule changes not modelled.',
       });
       if (url.pathname === '/backtest' && req.method === 'POST') return send(200,await backtest(body));
