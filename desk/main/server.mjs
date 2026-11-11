@@ -29,6 +29,7 @@ import { klines } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
+import * as phoenix from "./chains/phoenix.mjs";
 import { marketHours } from "./xstocks.mjs";
 
 /** Solana venues share the same read-only interface. */
@@ -130,7 +131,7 @@ export function createServer(mem) {
       || url.pathname === "/" || url.pathname === "/index.html"
       || url.pathname === "/favicon.ico"
       || url.pathname.startsWith("/fonts/")
-      || /^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname);
+      || /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname);
     if (!open && TOKEN) {
       const auth = req.headers.authorization || "";
       const given = auth.startsWith("Bearer ") ? auth.slice(7) : req.headers["x-pad-token"];
@@ -149,7 +150,7 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = /^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+    const allowedMethods = /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
       ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
@@ -248,14 +249,20 @@ export function createServer(mem) {
         try { r(JSON.parse(raw)); } catch (e) { r({ __malformed: e.message }); }
       });
     });
+    if (!body || typeof body !== "object" || Array.isArray(body)) return send(400, { error: "request body must be a JSON object" });
     if (body.__malformed)
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
-      if (/^\/(?:pm|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
+      if (/^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
       }
+      if (url.pathname === "/perps/markets") return send(200, { markets: await phoenix.perpMarkets(), cluster: "mainnet-beta", mode: "read-only-mainnet", pollAfterMs: 15000 });
+      if (url.pathname === "/perps/quote") return send(200, await phoenix.perpQuote(Object.fromEntries(url.searchParams)));
+      if (url.pathname === "/perps/positions") return send(200, { positions: await phoenix.positions(url.searchParams.get("authority") || undefined, Object.fromEntries(url.searchParams)), cluster: "mainnet-beta", pollAfterMs: 15000 });
+      if (url.pathname === "/perps/open") return send(200, await phoenix.buildOpen(body));
+      if (url.pathname === "/perps/close") return send(200, await phoenix.buildClose(body));
       if (url.pathname === "/pm/markets") return send(200, { markets: await pmamm.markets(), cluster: "devnet", pollAfterMs: 15000 });
       if (url.pathname === "/pm/quote") return send(200, await pmamm.quote(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/pm/positions") return send(200, { positions: await pmamm.positions(url.searchParams.get("owner")), cluster: "devnet", pollAfterMs: 15000 });
@@ -764,9 +771,9 @@ export function createServer(mem) {
       // Distinguish "the trade failed" from "the chain is not answering": they
       // need completely different things from the operator.
       const msg = String(e.message || e);
-      if (url.pathname.startsWith("/pm/")) {
+      if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/")) {
         const setup = msg.startsWith("Setup required:");
-        const invalid = /invalid |must |must be|side must|out of range|at most|rounds to zero|not found|not resolved|no liquidity|no shares|market does not use/.test(msg);
+        const invalid = /invalid |must |must be|side must|out of range|at most|rounds to zero|not found|not resolved|no liquidity|no shares|market does not use|unknown Phoenix|leverage exceeds|insufficient live|below one|no open Phoenix|specify subaccountIndex|Phoenix market is/.test(msg);
         return send(setup ? 503 : invalid ? 400 : 502, { error: msg, ...(setup ? { status: "Setup required" } : {}) });
       }
       if (/timed out|took too long|fetch failed|ECONNREFUSED/i.test(msg))
@@ -1021,6 +1028,8 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
+  "/perps/open": ["POST"], "/perps/close": ["POST"],
   "/pm/markets": ["GET"], "/pm/quote": ["GET"], "/pm/positions": ["GET"],
   "/pm/swap": ["POST"], "/pm/create": ["POST"], "/pm/claim": ["POST"],
   "/pad/chart": ["GET"],

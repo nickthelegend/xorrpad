@@ -62,6 +62,46 @@ transactions for a wallet to sign; it never signs or submits.
 
 ---
 
+## Phoenix perpetuals
+
+The backend discovers every market from Phoenix through `@ellipsis-labs/rise`.
+It currently uses **mainnet read-only data and unsigned transaction building**;
+no public perps devnet deployment was found. See [venue evidence](docs/VENUES.md).
+The desk never signs, onboards a wallet or submits a transaction. A real fill
+requires Nick's approval and signature in his own wallet.
+
+| Endpoint | Input |
+|---|---|
+| `GET /perps/markets` | Every live venue listing, mark price, funding and max leverage |
+| `GET /perps/quote` | `market`, `side=long\|short`, `usd`, `leverage` |
+| `GET /perps/positions` | `authority`; optional `traderPdaIndex` |
+| `POST /perps/open` | JSON: `authority`, `market`, `side`, `usd`, `leverage`, optional `slippageBps`, account indexes |
+| `POST /perps/close` | JSON: `authority`, `market`, optional `subaccountIndex`, `traderPdaIndex`, `slippageBps` |
+
+`usd` is a collateral **sizing budget**, so target notional is `usd × leverage`,
+rounded down to Phoenix lots. The order does not move collateral into the
+account. The quote's liquidation price is an SDK estimate for the requested
+position alone; actual account-wide liquidation can differ. Close orders read
+the actual position and set `ReduceOnly`.
+
+Set `PHOENIX_AUTHORITY` to an existing, enabled, funded Phoenix trader public
+key, with `PHOENIX_TRADER_PDA_INDEX` and `PHOENIX_SUBACCOUNT_INDEX` when needed.
+Isolated-only markets require an isolated subaccount. `PHOENIX_RPC` optionally
+selects another mainnet RPC; a cluster check prevents deployment mismatch.
+Set `PHOENIX_PUBLIC_URL` to this backend's public HTTPS origin for Solana Pay
+URLs/QRs. `GET /perps/request/:id` and `POST` with the matching wallet's
+`account` implement the same short-lived unsigned handoff as the other venues.
+Missing setup is named explicitly. Poll at least 15 seconds apart.
+
+Jupiter spot coverage also includes every mint identity in
+`main/markets.solana.json` (under `desk/`). Duplicate ticker symbols require
+an exact mint or the catalog's `symbol@mint` key. Mint decimals and executable
+routes are read live; a catalog listing does not promise liquidity. Price
+requests are limited to requested/held assets instead of quoting the whole
+catalog on each UI poll.
+
+---
+
 ## Prediction markets (pm-AMM, devnet)
 
 The [PREDICT pm-AMM SDK](https://github.com/sparkfun-labs/pm-amm/blob/main/doc/api-reference.md)
@@ -129,9 +169,11 @@ NFLXx    736.96    743.91     0.94%     listed — thin but real
 JPMx     374.67   4124.79  1000.92%     REJECTED
 ```
 
-JPMx is why the check exists: $1,453 of liquidity behind a ticker that looks as
+The original xStock depth check found: JPMx is why the check exists: $1,453 of liquidity behind a ticker that looks as
 legitimate as the rest, and a $500 order that pays eleven times the going rate.
-It is excluded by name, with the reason kept in the file.
+It remains excluded from the original xStock book, with that historical reason
+kept in the file. The expanded perp.so mint catalog carries that warning and
+requires a fresh Jupiter quote; it does not claim historical depth is current.
 
 ---
 
