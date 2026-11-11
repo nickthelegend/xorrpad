@@ -1,10 +1,16 @@
 /** Funding reads public metadata only; no signing key is loaded. */
+import { open,unlink } from "node:fs/promises";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { pathToFileURL } from "node:url";
 import { guard,connectionFor,DEVNET_RPC,MINT } from "./guards.mjs";
 import { publicCreator,readJson,writePublicJson,FUNDING_FILE } from "./paths.mjs";
-export async function ensureFunding({depositUsdc = 50} = {}) {
+export async function ensureFunding(options = {}) {
+  const path=new URL(".fund.lock",import.meta.url),lock=await open(path,"wx",0o600)
+    .catch(e=>{if(e.code==="EEXIST")throw new Error("keeper funding attempt is already running or its lock needs review");throw e;});
+  try {await lock.writeFile(String(process.pid));return await fund(options);}finally{await lock.close();await unlink(path);}
+}
+async function fund({depositUsdc = 50} = {}) {
   if(!Number.isFinite(depositUsdc) || depositUsdc<=0)throw new Error("KEEPER_DEPOSIT_USDC must be a positive amount");
   const connection=connectionFor();await guard(connection);
   const publicKey=await publicCreator(), owner=new PublicKey(publicKey);

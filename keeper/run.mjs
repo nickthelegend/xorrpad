@@ -3,6 +3,7 @@ import { open,unlink } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { ensureFunding } from "./fund.mjs";
 import { signingContext } from "./chain.mjs";
+import { resolveDue,resolveOne } from "./resolve.mjs";
 import { MINT } from "./guards.mjs";
 import { fetchPrice } from "./pyth.mjs";
 import { TEMPLATES,nextEnd,strikeFor,questionFor,marketIdFor,depositAmount } from "./markets.mjs";
@@ -45,8 +46,17 @@ export async function run({once=false,shortCycle=false}={}) {
     await lock.writeFile(String(process.pid));await ensureDirectories();
     const funding=await ensureFunding({depositUsdc:depositAmount().human}),context={...await signingContext(funding.connection),connection:funding.connection};
     do {
-      if(shortCycle) {await createRecurring(context,TEMPLATES[0],Math.floor(Date.now()/1000)+600);return;}
+      if(shortCycle) {
+        const record=await createRecurring(context,TEMPLATES[0],Math.floor(Date.now()/1000)+600);
+        while(!stopping) {
+          const result=await resolveOne(context,record);if(result)return result;
+          await new Promise(r=>setTimeout(r,15000));
+        }
+        return;
+      }
+      await resolveDue(context);
       for(const template of TEMPLATES)await createRecurring(context,template);
+      await resolveDue(context);
       if(!once && !stopping)await new Promise(r=>setTimeout(r,15000));
     }while(!once && !stopping);
   } finally {

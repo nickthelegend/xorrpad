@@ -62,3 +62,34 @@ updates. Set it in the process environment; this code never loads an `.env` file
 prints the credential or writes headers into evidence. An authentication failure
 reports `Setup required: PYTH_API_KEY`. Feed discovery remains public. There is
 no substitute price source or unsigned-price fallback.
+
+## Resolution and evidence
+
+At the chain expiry, the keeper requests
+`https://hermes.pyth.network/v2/updates/price/<endTs>?ids[]=<feed ID>`.
+Hermes returns the first update at or after the requested second. This keeper
+requires **publish_time exactly equal to endTs**. If it is missing, it holds
+the market open and retries the same timestamp; it never substitutes a later
+price. Resolution uses exact integer arithmetic against the rounded strike.
+YES requires the entire confidence interval above the strike; NO requires it
+below (or an exact zero-confidence equality, because the question says above).
+An interval touching or straddling the strike remains open and logs
+`UNRESOLVED: confidence straddles strike`. Retrying the same fixed observation
+may never settle an ambiguous market; this is deliberate, not a later-price
+fallback. Retries are no faster than once per minute.
+
+The full Hermes response, including `binary.data`, is journalled before sending
+the resolution. Only after confirmation and a matching on-chain winning side is
+`resolutions/<market>.json` published, with the question, strike, exact publish
+time, price, confidence, outcome and resolution transaction signature. These
+are public evidence files. A restart recovers a confirmed pending resolution;
+it does not guess a signature or blindly submit twice.
+
+This is a creator-operated oracle keeper, **not** an on-chain Pyth verifier.
+Hermes HTTPS parsed fields are trusted by this process; signed update bytes are
+preserved for independent verification. pm-AMM still enforces creator authority
+rather than verifying the oracle proof itself.
+
+`node keeper/run.mjs --cycle` attempts one SOL market expiring in ten minutes,
+then waits to resolve it. It needs funding and authenticated Hermes first.
+SIGINT/SIGTERM request a clean stop; the process owns no listening port.
