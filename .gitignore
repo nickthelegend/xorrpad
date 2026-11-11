@@ -24,3 +24,7 @@ firmware/build/
 /keeper/.run.lock
 /keeper/state/
 /keeper/.fund.lock
+# Session wallet material is local only (including Node-only test/devnet runs).
+session-wallet.node.key
+session-wallet.encrypted
+/desk/.t2-devnet/
