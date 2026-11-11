@@ -14,7 +14,7 @@ export const DEFAULT_POLICY = Object.freeze({
 });
 export function validatePolicy(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('policy must be an object');
-  for (const k of Object.keys(input)) if (!(k in DEFAULT_POLICY)) throw new Error(`unknown policy field: ${k}`);
+  for (const k of Object.keys(input)) if (!Object.hasOwn(DEFAULT_POLICY,k)) throw new Error(`unknown policy field: ${k}`);
   const p = structuredClone({ ...DEFAULT_POLICY, ...input });
   for (const k of ['maxTradeUsd','maxDayUsd','maxLeverage','maxOpenPositions','cooldownSeconds','alwaysAskAboveUsd'])
     if (!Number.isFinite(p[k]) || p[k] < 0) throw new Error(`${k} must be finite and nonnegative`);

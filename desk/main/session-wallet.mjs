@@ -85,7 +85,7 @@ export class SessionWallet {
     const keypair = await this.#load();
     try { return {publicKey:keypair.publicKey.toBase58()}; } finally { keypair.secretKey.fill(0); }
   }
-  async sign(transaction, {permit,cluster,connection} = {}) {
+  async sign(transaction, {permit,cluster,connection,recheck} = {}) {
     assertSigningCluster(cluster);
     const grant = permits.get(permit);
     if (!grant || grant.hash !== digest(transaction) || grant.cluster !== cluster || Date.now() >= grant.expiresAt)
@@ -95,6 +95,8 @@ export class SessionWallet {
     const keypair = await this.#load();
     try {
       if (!transaction.message.staticAccountKeys[0].equals(keypair.publicKey)) throw new Error('session wallet must be the approved fee payer');
+      if (recheck) await recheck();
+      if (Date.now() >= grant.expiresAt) throw new Error('signing capability expired');
       transaction.sign([keypair]);
       return transaction;
     } finally { keypair.secretKey.fill(0); }

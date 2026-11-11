@@ -28,12 +28,12 @@ export async function propose(signal,brief,{price}={}) {
  verdict=decide(sig,brief);
  return {signal:sig,verdict,routing};
 }
-export async function buildRouted(proposal) {
+export async function buildRouted(proposal, {owner, request = true} = {}) {
  const {signal:sig,verdict,routing}=proposal,best=routing?.best;
  if(verdict.action!=='EXECUTE'||!best)throw new Error('proposal was not approved by the gate');
- if(sig.kind==='spot')return (best.venue==='meteora'?meteora:jupiter).buildSwap(best.quote,process.env.SOLANA_ADDRESS);
+ if(sig.kind==='spot')return (best.venue==='meteora'?meteora:jupiter).buildSwap(best.quote,owner || process.env.SOLANA_ADDRESS,{request});
  if(sig.kind==='perp')return best.venue==='phoenix'
-  ?phoenix.buildOpen({authority:process.env.PHOENIX_AUTHORITY||process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usd:verdict.sizeUsd,leverage:sig.leverage})
-  :jupperps.buildOpen({owner:process.env.JUPPERPS_AUTHORITY||process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usd:verdict.sizeUsd,leverage:sig.leverage});
- return pmamm.buildSwap({owner:process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usdc:verdict.sizeUsd});
+  ?phoenix.buildOpen({authority:owner||process.env.PHOENIX_AUTHORITY||process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usd:verdict.sizeUsd,leverage:sig.leverage})
+  :jupperps.buildOpen({owner:owner||process.env.JUPPERPS_AUTHORITY||process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usd:verdict.sizeUsd,leverage:sig.leverage});
+ return pmamm.buildSwap({owner:owner||process.env.SOLANA_ADDRESS,market:best.market,side:best.side,usdc:verdict.sizeUsd},{request});
 }

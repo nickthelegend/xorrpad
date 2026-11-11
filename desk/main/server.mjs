@@ -14,6 +14,7 @@
 import http from "node:http";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
+import { Executor } from "./executor.mjs";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -130,7 +131,10 @@ export function createServer(mem) {
       note(text);
     },
   });
+  const executor = new Executor({mem,signals,isArmed:() => state.armed});
+  signals.onAccepted = e => e.automatic ? executor.execute(e.id) : undefined;
   signals.on('event',e => {
+    if (e.type === 'receipt') { state.lastFill = e.receipt; note(`Confirmed ${e.receipt.signature} · ${e.receipt.explorer}`); }
     if (e.type === 'signal' && state.pending?.id === e.signal.id && ['refused','expired','executed','failed'].includes(e.signal.state)) state.pending = null;
   });
   const srv = http.createServer(async (req, res) => {
@@ -175,7 +179,7 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = /^\/signals\/[^/]+\/(?:accept|refuse)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+    const allowedMethods = /^\/signals\/[^/]+\/(?:accept|refuse|sign)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
       ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
@@ -280,19 +284,37 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
-      if (url.pathname === '/permissions') return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body));
+      if (url.pathname === '/permissions') {
+        try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
+        catch(e) { return send(400,{error:e.message}); }
+      }
+      if (url.pathname === '/session-wallet' || url.pathname === '/wallet/mode') {
+        const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+        if (req.method === 'POST' && !local) return send(403,{error:'wallet configuration is local only'});
+        try {
+          if (url.pathname === '/wallet/mode') return send(200,req.method === 'GET' ? {mode:executor.mode()} : executor.setMode(body.mode));
+          return send(200,req.method === 'GET' ? await executor.wallet.info() : body.secretKey
+            ? await executor.wallet.import(body.secretKey) : await executor.wallet.create());
+        } catch(e) { return send(e.message.startsWith('Setup required:') ? 503 : 400,{error:e.message}); }
+      }
       if (url.pathname === '/signals' && req.method === 'GET') return send(200,{signals:signals.list()});
-      const signalAction = url.pathname.match(/^\/signals\/([^/]+)\/(accept|refuse)$/);
+      const signalAction = url.pathname.match(/^\/signals\/([^/]+)\/(accept|refuse|sign)$/);
       if (signalAction) {
         if (!signals.get(signalAction[1])) return send(404,{error:'signal not found'});
-        try { return send(200,await signals[signalAction[2]](signalAction[1])); }
+        try {
+          const [ ,id,action] = signalAction;
+          if (action === 'sign') return send(200,await executor.completePhone(id,body));
+          const answered = await signals[action](id);
+          return send(200,action === 'accept' && answered.state === 'accepted'
+            ? {...answered,execution:await executor.execute(id)} : answered);
+        }
         catch(e) { return send(409,{error:e.message}); }
       }
       if (/^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)) {
         const result = await pmamm.walletRequest(url.pathname.split("/").pop(), req.method, body.account);
         return send(result.status, result.body);
       }
-      if (url.pathname === "/propose") {
+      if (url.pathname === "/propose" || (url.pathname === "/signals" && req.method === "POST")) {
         const kind = body.kind || "spot", side = String(body.side || "").toUpperCase();
         const sig = {agent:"agent",kind,side:kind==="predict"?"BUY":side,
           symbol:kind==="predict"?`pmamm:${body.market}:${side.toLowerCase()}`:body.market,
@@ -519,7 +541,11 @@ export function createServer(mem) {
           chain: CHAIN.id,
           chainLabel: CHAIN.label,
           venue: "jupiter",
-          signing: "external",       // no venue here can sign; see chains/index.mjs
+          signing: executor.mode(),
+          signalId: state.pending?.id || null,
+          signalState: state.pending?.id ? signals.get(state.pending.id)?.state : null,
+          signature: state.lastFill?.signature || null,
+          explorer: state.lastFill?.explorer || null,
           // Flat as well as nested, on purpose: the firmware parses this body
           // by hand with a flat scanner (net.h), and giving it a nested object
           // to dig into would be handing the smallest machine in the system the
@@ -644,7 +670,7 @@ export function createServer(mem) {
       // you can no longer see is not a decision you can consent to.
       if (url.pathname === "/pending")
         return send(200, state.pending
-          ? { pending: true, signal: state.pending.sig, verdict: state.pending.verdict, routing:state.pending.routing }
+          ? { pending: true, signalId:state.pending.id, signalState:signals.get(state.pending.id)?.state, signal: state.pending.sig, verdict: state.pending.verdict, routing:state.pending.routing }
           : { pending: false });
 
       // The last book run, whoever ran it. Without this a scan triggered from
@@ -822,7 +848,7 @@ export function createServer(mem) {
         const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","kill","mic"]);
         const asSymbol = !controls.has(raw.toLowerCase()) && (SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
           || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase()));
-        return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body, signals));
+        return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body, signals, executor));
       }
 
       // Wrong-verb requests never reach here — ROUTE_METHODS is enforced
@@ -846,13 +872,14 @@ export function createServer(mem) {
     }
   });
   srv.signals = signals;
+  srv.executor = executor;
   attachEvents(srv,signals,TOKEN);
   return srv;
 }
 
 /** The deck. Every physical key lands here — and so does every UI click, so a
  *  dead switch never blocks a demo. */
-async function onKey(mem, id, options = {}, signals) {
+async function onKey(mem, id, options = {}, signals, executor) {
   const AGENTS = ["dca", "grid", "momentum", "rebalance", "yield", "risk"];
 
   if (AGENTS.includes(id)) {
@@ -893,7 +920,7 @@ async function onKey(mem, id, options = {}, signals) {
       const {verdict,routing} = proposal;
       state.pending = {id:(await signals.create(proposal)).id,sig:proposal.signal,verdict,routing,market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}};
       note(`${sig.side} ${sig.symbol} $${sig.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-      return { ok: true, scan: r, signal: state.pending.sig, verdict, routing:state.pending.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+      return { ok: true, scan: r, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
     }
     return { ok: true, scan: r, signal: null, verdict: null };
   }
@@ -921,7 +948,7 @@ async function onKey(mem, id, options = {}, signals) {
         forward: { why: verdict.why },
       });
     note(`${id.toUpperCase()} ${selected} $${state.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-    return { ok: true, signal: state.pending.sig, verdict, routing:state.pending.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+    return { ok: true, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
   }
 
   if (id === "yes" || id === "no") {
@@ -934,7 +961,7 @@ async function onKey(mem, id, options = {}, signals) {
       return { ok: false, error: "disarmed — re-arm before trading", armed: false };
     }
     const queued = signals.get(p.id);
-    if (!queued || !['awaiting','accepted'].includes(queued.state)) { state.pending = null; return {ok:false,error:`signal is ${queued?.state || 'unavailable'}`}; }
+    if (!queued || queued.state !== 'awaiting') { state.pending = null; return {ok:false,error:`signal is ${queued?.state || 'unavailable'}`}; }
     state.pending = null;
     const answered = id === 'yes' ? await signals.accept(p.id) : await signals.refuse(p.id);
     if (id === 'yes' && answered.state !== 'accepted') return {ok:false,error:answered.proposal.verdict.why.at(-1),...answered.proposal};
@@ -947,25 +974,10 @@ async function onKey(mem, id, options = {}, signals) {
     if (id === "no") { note(`rejected ${p.sig.side} ${p.sig.symbol}`); return { ok: true, rejected: true }; }
     if (p.verdict.action !== "EXECUTE") return { ok: false, error: "that signal was not executable" };
 
-    // Refresh routing and remembered permissions at acceptance, then build only
-    // the selected venue's transaction. A wallet still owns signing.
-    try {
-      const fresh = await propose(p.sig,await mem.recallBrief());
-      if (fresh.verdict.action !== "EXECUTE") return {ok:false,error:fresh.verdict.why.at(-1),...fresh};
-      const best = fresh.routing.best;
-      const built = await buildRouted(fresh).catch(e=>({error:e.message}));
-      await mem.journal({evaluated:{signal:fresh.signal,verdict:fresh.verdict,quote:best},
-        acted:{action:built.unsignedTx?"HANDED_OFF":"QUOTED",usd:fresh.verdict.sizeUsd,executed:false},
-        forward:{venue:best.venue,signing:"external"}});
-      note(`${fresh.signal.side} ${fresh.signal.symbol} via ${best.venue} — ${built.unsignedTx?"built, unsigned":"quoted only"}`);
-      return {ok:true,handoff:!!built.unsignedTx,quote:best.quote,routing:fresh.routing,
-        transaction:built.unsignedTx?{unsignedTx:built.unsignedTx,signWith:built.signWith,requestUrl:built.requestUrl,qrSvg:built.qrSvg}:null,
-        setupRequired:built.setupRequired||null,buildError:built.error||null,
-        note:built.unsignedTx?"built and unsigned — sign with your own wallet":"quoted only — see buildError or setupRequired"};
-    } catch(e) {return {ok:false,error:e.message};}
+    return executor.execute(p.id);
   }
 
-  if (id === "base") return onKey(mem, "scan", {}, signals);   // the white key runs the book
+  if (id === "base") return onKey(mem, "scan", {}, signals, executor);   // the white key runs the book
   if (id === "portfolio") return { ok: true, ...(await snapshot(mem)) };
   // Stopping voids the decision on the table as well as disarming — the same
   // as POST /panic. A loaded ✓ left behind a kill switch is exactly what bites:
@@ -1074,7 +1086,7 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
-  '/signals':['GET'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
