@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
   {
     PadState p; ChartState ch;
     p.ok = true; p.armed = true; p.remembers = true; p.chainOk = true; p.pending = true;
+    p.signalId="layout-preview";p.signalDeadline=45000;p.autoAccept=true;
     p.agent = "momentum"; p.market = "NVDAx"; p.chain = "solana";
     p.price = 221.67f; p.verdict = "BUY: limits recalled from memory (max $100/trade); NYSE is closed and this trades anyway";
     p.hoursState = "AFTER"; p.marketOpen = false; p.nyTime = "17:44";
@@ -197,6 +198,18 @@ int main(int argc, char **argv) {
     p.hoursNote = "shut on the NYSE - this trades anyway";
     ui::drawFrame(c, p, ch);
     shot("08-no-chart", "price known, history not yet in");
+  }
+
+  // Pure layout fixtures: real default labels and a historical devnet signature.
+  {
+    PadState p;ChartState ch;p.ok=true;p.keymapUntil=4000;
+    const char *labels[]={"MOMENTUM","GRID","DCA","RISK","YIELD","REBALANCE","NO","YES","BUY","BASE","KILL","MIC","SELL","PORTFOLIO"};
+    for(int i=0;i<14;i++)p.keyLabels[i]=labels[i];
+    ui::drawFrame(c,p,ch);shot("09-keymap","all 14 programmable key labels");
+    p.keymapUntil=0;p.receiptUntil=15000;
+    p.receiptSignature="5hFEx7T33RLSekreevbuEZ1khnJojRi97eJ3EWndjpACwvxcFhtBfyPbRS8NQrcRtTW7ACcaCo2Be5kyxsqPnoKU";
+    p.receiptExplorer=String("https://explorer.solana.com/tx/")+p.receiptSignature+"?cluster=devnet";
+    ui::drawFrame(c,p,ch);shot("10-receipt","historical devnet receipt layout, not a new trade");
   }
 
   printf("\n%d frames -> %s/ (at %dx)\n", made, dir, scale);
