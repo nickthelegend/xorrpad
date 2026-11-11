@@ -11,6 +11,7 @@
  * difference is the product, and loadbearing.test.mjs asserts it.
  */
 import { NO_MEMORY_LIMITS } from "./memory.mjs";
+import { Permissions, checkPolicy } from "./permissions.mjs";
 
 /** Sum today's executed USD out of the journal. */
 export function spentToday(events = []) {
@@ -49,7 +50,7 @@ function priceStr(v) {
   return "$" + n.toFixed(4);
 }
 
-export function decide(signal, brief) {
+function memoryDecision(signal, brief) {
   const why = [];
   let memoryUsed = false;
 
@@ -64,27 +65,27 @@ export function decide(signal, brief) {
   }
 
   if (!Number.isFinite(signal.sizeUsd) || signal.sizeUsd <= 0) {
-    return {action:"REJECT",sizeUsd:0,why:[...why,"size must be positive and finite"],memoryUsed};
+    return {action:"REJECT",sizeUsd:0,why:[...why,"size must be positive and finite"],memoryUsed,ruleId:"memory.invalid_size"};
   }
   if (signal.kind === "perp" && (!Number.isFinite(signal.leverage) || signal.leverage < 1 || signal.leverage > (limits.max_leverage ?? 1))) {
-    return {action:"REJECT",sizeUsd:0,why:[...why,`leverage exceeds permission cap (${limits.max_leverage ?? 1}) or is invalid`],memoryUsed};
+    return {action:"REJECT",sizeUsd:0,why:[...why,`leverage exceeds permission cap (${limits.max_leverage ?? 1}) or is invalid`],memoryUsed,ruleId:"memory.leverage"};
   }
   if (signal.venue && limits.venues && !limits.venues.includes(signal.venue)) {
-    return {action:"REJECT",sizeUsd:0,why:[...why,`${signal.venue} is not in the venue allowlist`],memoryUsed};
+    return {action:"REJECT",sizeUsd:0,why:[...why,`${signal.venue} is not in the venue allowlist`],memoryUsed,ruleId:"memory.venue"};
   }
   if (limits.cooldown_seconds > 0 && (brief?.journal_recent || []).some(e => {
     const acted = typeof e.acted === "string" ? safeParse(e.acted) : e.acted;
     const age = Date.now() - Date.parse(e.ts);
     return acted?.executed && age >= 0 && age < limits.cooldown_seconds * 1000;
   })) {
-    return {action:"REJECT",sizeUsd:0,why:[...why,"trade cooldown is active"],memoryUsed};
+    return {action:"REJECT",sizeUsd:0,why:[...why,"trade cooldown is active"],memoryUsed,ruleId:"memory.cooldown"};
   }
 
   // 2. Allowlist.
   const allow = limits.allow || NO_MEMORY_LIMITS.allow;
   if (!allow.includes(signal.symbol)) {
     why.push(`${signal.symbol} is not in the allowlist [${allow.join(", ")}]`);
-    return { action: "REJECT", sizeUsd: 0, why, memoryUsed };
+    return { action: "REJECT", sizeUsd: 0, why, memoryUsed, ruleId:"memory.allowlist" };
   }
 
   // 3. Rules you taught it (accepted proposals from reflection).
@@ -100,7 +101,7 @@ export function decide(signal, brief) {
         why.push(`mined from ${rule.from.length} of your own refusals on ` +
                  `${days.slice(0, 3).join(", ")}${days.length > 3 ? ` and ${days.length - 3} more` : ""}`);
       }
-      return { action: "REJECT", sizeUsd: 0, why, memoryUsed, vetoedBy: rule.id };
+      return { action: "REJECT", sizeUsd: 0, why, memoryUsed, vetoedBy: rule.id, ruleId:`memory.rule.${rule.id}` };
     }
   }
 
@@ -117,7 +118,7 @@ export function decide(signal, brief) {
   const dayLeft = (limits.max_day_usd ?? NO_MEMORY_LIMITS.max_day_usd) - spent;
   if (dayLeft <= 0) {
     why.push("daily budget exhausted");
-    return { action: "REJECT", sizeUsd: 0, why, memoryUsed };
+    return { action: "REJECT", sizeUsd: 0, why, memoryUsed, ruleId:"memory.daily_budget" };
   }
 
   // 5. Position awareness — never treat a held bag as a fresh entry.
@@ -130,7 +131,7 @@ export function decide(signal, brief) {
   }
   if (signal.side === "SELL" && !pos) {
     why.push(`refusing to sell ${signal.symbol} — no remembered position`);
-    return { action: "REJECT", sizeUsd: 0, why, memoryUsed };
+    return { action: "REJECT", sizeUsd: 0, why, memoryUsed, ruleId:"memory.no_position" };
   }
 
   // 6. Size clamp.
@@ -141,7 +142,7 @@ export function decide(signal, brief) {
     size = cap;
   }
 
-  return { action: "EXECUTE", sizeUsd: size, why, memoryUsed };
+  return { action: "EXECUTE", sizeUsd: size, why, memoryUsed, ruleId:size < signal.sizeUsd ? "memory.size_clamp" : "memory.allowed" };
 }
 
 /** A rule vetoes a signal when its fields all match. */
@@ -151,4 +152,17 @@ function matches(rule, signal) {
   if (rule.agent && rule.agent !== signal.agent) return false;
   if (rule.above_usd != null && !(signal.sizeUsd > rule.above_usd)) return false;
   return Boolean(rule.symbol || rule.side || rule.agent || rule.above_usd != null);
+}
+
+/** Memory vetoes run first; the public permission policy can only restrict them. */
+export function decide(signal, brief, { policy, ...context } = {}) {
+  const memory = memoryDecision(signal, brief);
+  if (memory.action !== 'EXECUTE') return { ...memory, autoAccept:false, rules:[memory.ruleId] };
+  let permission;
+  try { permission = checkPolicy({ ...signal, sizeUsd:memory.sizeUsd },
+    { ...brief, spent_today:Number.isFinite(brief?.spent_today) ? brief.spent_today : spentToday(brief?.journal_recent) },
+    policy || new Permissions().read(), context); }
+  catch { permission = {action:'REJECT', ruleId:'permissions.invalid_policy', why:'permission policy is invalid', autoAccept:false}; }
+  return { ...memory, action:permission.action, sizeUsd:permission.action === 'EXECUTE' ? memory.sizeUsd : 0,
+    why:[...memory.why, permission.why], ruleId:permission.ruleId, rules:[memory.ruleId,permission.ruleId], autoAccept:permission.autoAccept };
 }
