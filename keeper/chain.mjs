@@ -13,7 +13,9 @@ export async function signingContext(connection) {
   if(!permissions.isFile() || (permissions.mode&0o777)!==0o600)throw new Error("keeper key must be a regular file with mode 0600");
   const file=await open(KEY_FILE,constants.O_RDONLY|constants.O_NOFOLLOW);
   let keypair;
-  try {keypair=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(await file.readFile("utf8"))));} finally {await file.close();}
+  try {keypair=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(await file.readFile("utf8"))));}
+  catch {throw new Error("keeper devnet key could not be loaded; inspect its format locally without printing it");}
+  finally {await file.close();}
   if(keypair.publicKey.toBase58()!==await publicCreator())throw new Error("keeper public metadata does not match the devnet key");
   const client=PmAmmClient.readOnly(connection,new PublicKey(PROGRAM),new PublicKey(MINT));
   async function send(instructions,onPrepared=async()=>{}) {

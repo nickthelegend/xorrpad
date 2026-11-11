@@ -240,3 +240,86 @@ disconnected; no service response was replaced:
   [after](docs/screens/phoenix-spot-after-1440.png).
 - 375: [before](docs/screens/phoenix-spot-before-375.png),
   [after](docs/screens/phoenix-spot-after-375.png).
+
+## Worker brief 3 — devnet keeper and chain traction
+
+Run on 2026-11-12 (Asia/Kolkata), Node 26.5.0.
+
+| Run | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| `npm test --prefix keeper` | 9 | 8 | 0 | 1 |
+| `npm test --prefix desk` | 26 | 23 | 0 | 3 |
+| Combined | 35 | 31 | 0 | 4 |
+
+The desk suite retains all previous tests and adds three real keeper/history
+checks. Keeper tests cover rejecting non-devnet genesis hashes and other mints,
+a real devnet guard call, exact straddle/boundary arithmetic, UTC schedules,
+strike ticks, deterministic ids, actual key-file ignore/mode/overwrite protection,
+no desk signing imports, and matching keeper questions to hedge expiry semantics.
+All three Pyth feed IDs matched actual public Hermes feed-discovery responses.
+
+### Keeper identity and funding evidence
+
+Public key: **`GFvUgcVeEwBHnirG1jwcjaMJ8qJhRq1DM33c78trum2f`**
+([Solana Explorer, devnet](https://explorer.solana.com/address/GFvUgcVeEwBHnirG1jwcjaMJ8qJhRq1DM33c78trum2f?cluster=devnet)).
+
+- `node keeper/keygen.mjs` printed only that public key. `stat` reported
+  `-rw-------` (0600). The secret was neither printed nor committed.
+- `git check-ignore keeper/.keeper-devnet.json` returned that ignored path.
+  The test also verified the key is untracked and refuses overwrite without
+  reading its contents.
+- The one public `requestAirdrop` attempt returned HTTP **410** (RPC faucet
+  closed). Its attempt is recorded locally so restarts do not retry it.
+- `node keeper/run.mjs --once` and `node keeper/run.mjs --cycle` both stopped
+  during funding preflight with:
+  `Setup required: fund GFvUgcVeEwBHnirG1jwcjaMJ8qJhRq1DM33c78trum2f with ≥0.5 devnet SOL`.
+- The mUSDC faucet is gated behind successful SOL funding and was therefore not
+  called for this keeper. When SOL is available, the funding command calls it at
+  most once per hour and verifies the resulting token balance from chain.
+- **No real keeper create/resolve cycle occurred. No creation or resolution
+  transaction signatures exist, so no placeholder transaction links are given.**
+  Run `node keeper/run.mjs --cycle` after funding and Hermes setup; it creates a
+  ten-minute SOL market, waits, and resolves only an unambiguous exact-expiry
+  observation. Successful evidence contains actual devnet Explorer links.
+
+### Real Hermes result
+
+The price-update endpoint returned HTTP **401**. The live signed-price parsing
+and exact-publish-time test was skipped with
+`Setup required: PYTH_API_KEY`; no payload or price was fabricated.
+The official [upgrade notice](https://docs.pyth.network/pro/pyth-core-upgrade)
+now requires an API key for Hermes price updates. Feed discovery still worked.
+The implementation preserves `binary.data` only from a successful actual
+response and refuses a later timestamp as a substitute for exact `endTs`.
+
+### Real chain/API observations
+
+The actual authenticated HTTP server ran on **127.0.0.1:8713** and was closed
+in the test's cleanup. `/pm/ours` matched independent on-chain filtering by the
+keeper creator. `/pm/resolutions` returned no published evidence yet.
+`/pm/stats` reported **0 markets, 0 unique traders, 0 swaps, 0 mUSDC volume and
+0 creator fees**, with complete history for that empty chain-derived set.
+Consecutive calls reused the same cache result; no database totals are used.
+
+The parser and full history scanner were separately exercised against this
+**public reference market, not a keeper market**:
+`9Ly4tHCaenGc6nkhAwWHxjKisEkpNZm9dh7XtacQiDra`.
+Its history included initialization and one successful swap. The independently
+observed swap had **10.093 mUSDC** gross volume and an actual SPL transfer of
+**0.100930 mUSDC** to the creator:
+[reference swap on devnet](https://explorer.solana.com/tx/5hFEx7T33RLSekreevbuEZ1khnJojRi97eJ3EWndjpACwvxcFhtBfyPbRS8NQrcRtTW7ACcaCo2Be5kyxsqPnoKU?cluster=devnet).
+It is never counted as our keeper's traction. No API was mocked, and the tests
+fetched this transaction and its history from real devnet RPC.
+
+### BLOCKED and process status
+
+- Fund **`GFvUgcVeEwBHnirG1jwcjaMJ8qJhRq1DM33c78trum2f` with at least 0.5
+  devnet SOL**. The public RPC airdrop is closed (HTTP 410).
+- Set **`PYTH_API_KEY`** in the keeper process environment for signed Hermes
+  price updates (HTTP 401 without it). No `.env` or secret was opened to find one.
+- The previous Phoenix account and pm-AMM swap funding skips remain unchanged.
+- The keeper is the only process that can sign, and its network/mint guards run
+  before key access and again before signing/submission. The desk only reads
+  public creator metadata and evidence. No renderer files changed in this brief.
+- The cycle attempt exited, all test servers closed, and no listeners remained
+  on ports 8710–8719. No mainnet transaction was submitted and nothing was pushed.

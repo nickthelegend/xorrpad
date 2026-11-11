@@ -7,6 +7,13 @@ import { NO_MEMORY_LIMITS } from "./memory.mjs";
 // Only the unambiguous numeric naming convention currently used on-chain.
 // An arbitrary question mentioning BTC is not proof of its payout condition.
 export function parseOutcome(market) {
+  const keeper=market.name.match(/^(SOL|BTC|ETH) above \$([0-9]+) at (\d{2}:\d{2}(?::\d{2})?) UTC\?$/);
+  if(keeper) {
+    if(!Number.isSafeInteger(market.endTs) || market.endTs<=0)return null;
+    const iso=new Date(market.endTs*1000).toISOString(),clock=iso.slice(11,keeper[3].length===8?19:16);
+    if(clock!==keeper[3] || (keeper[3].length===5 && market.endTs%60!==0) || !(Number(keeper[2])>0))return null;
+    return {symbol:keeper[1],operator:">",threshold:Number(keeper[2]),endTs:market.endTs};
+  }
   const match = market.name.match(/^([A-Z][A-Z0-9]{0,14})\s*(>=|<=|>|<)\s*\$?([0-9]+(?:\.[0-9]+)?)\s+by\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})Z$/i);
   if (!match) return null;
   const endTs = Date.parse(`${match[4]}T${match[5]}:00Z`)/1000, threshold = Number(match[3]);
