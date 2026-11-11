@@ -433,7 +433,7 @@ export function createServer(mem) {
         to:url.searchParams.has('to')?Number(url.searchParams.get('to')):undefined,resolution:url.searchParams.get('resolution')??'60',
       }));
       if (url.pathname === "/route") return send(200, await route(Object.fromEntries(url.searchParams)));
-      if (url.pathname === "/venues") return send(200, { venues: await venues() });
+      if (url.pathname === "/venues") return send(200, { venues: await venues({includeMarkets:url.searchParams.get('markets') === '1'}) });
       if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
         await mem.recallBrief(), Object.fromEntries(url.searchParams)));
       if (url.pathname === "/perps/markets") return send(200, { markets: await phoenix.perpMarkets(), cluster: "mainnet-beta", mode: "read-only-mainnet", pollAfterMs: 15000 });
