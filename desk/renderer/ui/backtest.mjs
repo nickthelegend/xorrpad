@@ -130,7 +130,7 @@ export async function mount({ el, api, signal }) {
                 "No completed trades",
                 "No strategy entry completed in this range.",
               ),
-        )}${panel("Provenance & assumptions", `<p class="panel-body mono">${esc(r.history?.source || "History source unavailable")}</p>` + detail("Replay metadata", { history: r.history, fees: r.fees, funding: r.funding, warnings: r.warnings, assumptions: r.assumptions, question: r.question }))}`;
+        )}${panel("Provenance & assumptions", `<p class="panel-body mono">${esc(r.history?.source || "History source unavailable")} · ${esc(r.history?.reference || "")}</p>` + detail("Replay metadata", { history: r.history, fees: r.fees, funding: r.funding, warnings: r.warnings, assumptions: r.assumptions, question: r.question }))}`;
     }
   } catch (e) {
     if (!signal.aborted) $("#backtest-config", el).innerHTML = error(e);

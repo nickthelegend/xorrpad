@@ -434,7 +434,7 @@ export function createServer(mem) {
       if (url.pathname === '/backtest' && req.method === 'POST') return send(200,await backtest(body));
       if (url.pathname === '/backtest/predict') return send(200,await predictionBacktest(body));
       if (url.pathname === '/backtest/history') return send(200,await new History().get({
-        symbol:url.searchParams.get('symbol'),from:url.searchParams.has('from')?Number(url.searchParams.get('from')):undefined,
+        kind:url.searchParams.get('kind')??'spot',symbol:url.searchParams.get('symbol'),from:url.searchParams.has('from')?Number(url.searchParams.get('from')):undefined,
         to:url.searchParams.has('to')?Number(url.searchParams.get('to')):undefined,resolution:url.searchParams.get('resolution')??'60',
       }));
       if (url.pathname === '/spot/quotes') {

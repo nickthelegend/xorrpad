@@ -547,11 +547,24 @@ export class History extends GeckoHistory {
   }
   async get(input) {
     const req = historyRequest(input);
+    if (input.kind !== undefined && !["spot", "perp"].includes(input.kind))
+      throw new Error("invalid history kind");
+    const perp =
+      input.kind === "perp" || ["phoenix", "jupperps"].includes(input.venue);
     let geckoError;
     try {
       const result = await super.get(req);
       return {
         ...result,
+        reference: perp ? "spot reference for the perp" : "on-chain spot pool",
+        warnings: [
+          ...result.warnings,
+          ...(perp
+            ? [
+                "Spot pool candles are an underlying reference, not historical perpetual fills or marks.",
+              ]
+            : []),
+        ],
         providers: [{ provider: "geckoterminal", status: "used" }],
       };
     } catch (e) {
@@ -570,6 +583,7 @@ export class History extends GeckoHistory {
       const result = await this.pyth.get(req);
       return {
         ...result,
+        reference: perp ? "oracle reference for the perp" : "oracle history",
         providers: [...providers, { provider: "pyth", status: "used" }],
         warnings: [geckoError],
       };

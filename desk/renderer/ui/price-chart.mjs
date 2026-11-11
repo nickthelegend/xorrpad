@@ -34,7 +34,7 @@ export function mountChart({ root, api, signal, selection }) {
   function header() {
     const s = selection();
     $("#market-head", root).innerHTML =
-      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : ""}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / history reference</dt><dd>${fmt(change, "%")}</dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
+      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : `<span class="hint">${esc(s.venue || "phoenix")} live mark · perpetual</span>`}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / history reference</dt><dd>${fmt(change, "%")}</dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
   }
   function draw() {
     if (canvas.hidden || !candles.length) return;
@@ -144,6 +144,7 @@ export function mountChart({ root, api, signal, selection }) {
         "/backtest/history?" +
           new URLSearchParams({
             symbol: s.market,
+            kind: s.kind,
             resolution,
             from: to - seconds * 160,
             to,
@@ -151,7 +152,8 @@ export function mountChart({ root, api, signal, selection }) {
       );
       if (n !== sequence || signal.aborted) return;
       candles = d.candles;
-      $("#history-source", root).textContent = d.source + " · UTC";
+      $("#history-source", root).textContent =
+        d.source + " · " + (d.reference || "") + " · UTC";
       const providerState = $("#history-provider-state", root);
       providerState.textContent = (d.warnings || []).join(" ");
       providerState.hidden = !providerState.textContent;
@@ -186,6 +188,7 @@ export function mountChart({ root, api, signal, selection }) {
         "/backtest/history?" +
           new URLSearchParams({
             symbol: s.market,
+            kind: s.kind,
             resolution: "1",
             from: Math.floor(Date.now() / 60000) * 60 - 86400,
             to: Math.floor(Date.now() / 60000) * 60 - 86400 + 60,
