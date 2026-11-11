@@ -132,9 +132,11 @@ enabled at build time. It is off in the default board config.
 arduino-cli core install esp32:esp32
 arduino-cli lib install WiFiManager
 arduino-cli lib install "Adafruit ILI9341"
+arduino-cli lib install "ArduinoJson@7.4.3"
+arduino-cli lib install "NimBLE-Arduino@2.5.0"
 
 arduino-cli compile \
-  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi \
+  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc \
   firmware/xorrpad
 ```
 
@@ -301,3 +303,26 @@ backend token authentication remains required for Wi-Fi/phone relays.
 
 Radio, flash persistence, display orientation, mic and amp behavior still need
 the board. Compilation and software protocol tests cannot establish these.
+
+
+## v1 compile evidence (2026-11-12)
+
+Status: **compiled, not yet flashed**. No upload/flash command was run.
+
+Exact command (Arduino CLI 1.3.1; ESP32 core 3.3.10):
+
+```sh
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad
+```
+
+Result: **1,476,047 / 3,145,728 bytes flash (46%)**;
+**59,052 / 327,680 bytes static RAM (18%)**, leaving **268,628 bytes**.
+Runtime PSRAM canvas/record allocations are additional to the static RAM count.
+Dependencies: NimBLE-Arduino 2.5.0, ArduinoJson 7.4.3, WiFiManager 2.0.17,
+Adafruit ILI9341 1.6.3, Adafruit GFX 1.12.6 and Adafruit BusIO 1.17.4.
+The ESP32 3.x core supplies Wi-Fi, Preferences, HTTP/TLS and ESP_I2S.
+NimBLE callbacks use the [2.x API](https://h2zero.github.io/NimBLE-Arduino/).
+
+`make -C tools/uipreview shots` also compiles the real `ui.h` against Adafruit
+GFX on the host and renders the existing seven screen states. That is display
+layout evidence, not hardware or trade-execution evidence.
