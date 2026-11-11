@@ -1,3 +1,4 @@
+import { mountChart } from "./price-chart.mjs";
 import {
   $,
   esc,
@@ -75,8 +76,17 @@ export async function mount({ el, api, subscribe, signal }) {
       "Compare venues, inspect execution, then send a proposal through the gate.",
       "LIVE READS / MANUAL BY DEFAULT",
     ) +
-    `<div class="grid"><div class="stack">${panel("Market directory", `<div class="panel-body"><label>Search markets<input type="search" id="market-search" placeholder="Search a symbol or venue"></label><p class="hint">Spot catalog entries require a live quote. Perpetual marks come from the venue.</p></div><div id="market-list">${loading()}</div>`)}${panel("Route comparison", empty("Start with a quote", "Choose a market and request an aggregated route."), "route-card")}${panel("Signals queue", `<div id="signals-list">${loading()}</div>`)}</div>${panel("Order ticket", `<form class="panel-body" id="ticket"><label>Product<select name="kind">${options(["spot", "perp"])}</select></label><label>Market<input name="market" value="SOL" required maxlength="96" autocomplete="off"></label><div class="fields"><label>Direction<select name="side">${options(["buy", "sell"])}</select></label><label>Size (USD collateral / spot notional)<input type="number" name="size" value="50" min="0.01" step="any" required></label></div><label id="leverage-label" hidden>Leverage (×)<input type="number" name="leverage" value="1" min="1" step="any"></label><button class="primary" id="quote">Compare routes</button><button type="button" id="propose" disabled>Create trade proposal</button><p class="hint">Quotes are read-only. A proposal is gated again before acceptance and signing. Mainnet requires the configured real-funds acknowledgement.</p><div id="ticket-result" aria-live="polite"></div></form>`, "", "GATED")}</div>`;
+    `<div class="grid trade-terminal"><div class="stack">${panel("Price action", `<div id="market-chart"></div>`)}${panel("Market directory", `<div class="panel-body"><label>Search markets<input type="search" id="market-search" placeholder="Search a symbol or venue"></label><p class="hint">Spot catalog entries require a live quote. Perpetual marks come from the venue.</p></div><div id="market-list">${loading()}</div>`)}${panel("Route comparison", empty("Start with a quote", "Choose a market and request an aggregated route."), "route-card")}</div>${panel("Order ticket", `<form class="panel-body" id="ticket"><label>Product<select name="kind">${options(["spot", "perp"])}</select></label><label>Market<input name="market" value="SOL" required maxlength="96" autocomplete="off"></label><div class="fields"><label>Direction<select name="side">${options(["buy", "sell"])}</select></label><label>Size (USD collateral / spot notional)<input type="number" name="size" value="50" min="0.01" step="any" required></label></div><label id="leverage-label" hidden>Leverage (×)<input type="number" name="leverage" value="1" min="1" step="any"></label><button class="primary" id="quote">Compare routes</button><button type="button" id="propose" disabled>Create trade proposal</button><p class="hint">Quotes are read-only. A proposal is gated again before acceptance and signing. Mainnet requires the configured real-funds acknowledgement.</p><div id="ticket-result" aria-live="polite"></div></form>`, "", "GATED")}</div><div class="grid equal trade-below">${panel("Positions", `<div id="trade-positions">${loading()}</div>`)}${panel("Signals queue", `<div id="signals-list">${loading()}</div>`)}</div>`;
   const form = $("#ticket", el);
+  let selectedVenue = 'jupiter';
+  const chart = mountChart({root: $('#market-chart', el), api, signal, selection: () => ({market: form.elements.market.value, kind: form.elements.kind.value, venue: selectedVenue})});
+  const changeMarket = () => chart.update();
+  form.elements.market.addEventListener('change', changeMarket);
+  api('/portfolio').then(d => {
+    if(signal.aborted)return;
+    const rows=Object.entries(d.balances || {});
+    $('#trade-positions',el).innerHTML=d.chain?.error ? error(d.chain.error) : rows.length ? table(['Asset','Balance'],rows.map(([s,b])=>[esc(s),fmt(b.amount,s,8)])) : empty('No spot positions','Setup required: configure SOLANA_ADDRESS or fund your watched wallet.');
+  }).catch(e=>{if(!signal.aborted)$('#trade-positions',el).innerHTML=error(e);});
   let catalog = [],
     request = 0,
     quotedInput;
@@ -104,7 +114,9 @@ export async function mount({ el, api, subscribe, signal }) {
       form.elements.kind.value === "spot" ? ["buy", "sell"] : ["long", "short"],
     );
     $("#leverage-label", el).hidden = form.elements.kind.value !== "perp";
+    selectedVenue = form.elements.kind.value === 'spot' ? 'jupiter' : 'phoenix';
     invalidate();
+    chart.update();
   };
   function directory() {
     const q = $("#market-search", el).value.toLowerCase();
@@ -137,6 +149,8 @@ export async function mount({ el, api, subscribe, signal }) {
         form.elements.kind.value = r.kind;
         form.elements.kind.onchange();
         form.elements.market.value = r.symbol;
+        selectedVenue = r.venue;
+        chart.update();
         form.elements.market.focus();
       };
   }
@@ -252,6 +266,7 @@ export async function mount({ el, api, subscribe, signal }) {
   const timer = setInterval(refreshSignals, 10000);
   return () => {
     off();
+    chart.dispose();
     clearInterval(timer);
   };
 }
