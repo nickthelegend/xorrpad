@@ -223,7 +223,9 @@ export function createServer(mem) {
     // so requiring the token to reach it would lock a fresh install out of
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
-    const open = url.pathname === "/setup" || url.pathname === "/health"
+    const uiFiles = new Set(['desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
+    const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
+    const open = url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
       || url.pathname === "/favicon.ico"
       || url.pathname.startsWith("/fonts/")
@@ -518,8 +520,17 @@ export function createServer(mem) {
         return send(405, { error: "GET or POST" });
       }
 
-      if (url.pathname === "/" || url.pathname === "/index.html") {
-        const html = await readFile(new URL("../renderer/index.html", import.meta.url));
+      if (uiFiles.has(uiName)) {
+        if (req.method !== 'GET') return send(405,{error:'use GET'});
+        try {
+          const bytes=await readFile(new URL('../renderer/ui/'+uiName,import.meta.url));
+          res.writeHead(200,{'content-type':uiName.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','cache-control':'no-store'});
+          return res.end(bytes);
+        } catch(e) {if(e.code==='ENOENT')return send(404,{error:'no such UI asset'});throw e;}
+      }
+      if (url.pathname === '/desk/link') return send(200,srv.padlink.snapshot());
+      if (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === '/classic') {
+        const html = await readFile(new URL(url.pathname === "/classic" ? "../renderer/classic.html" : "../renderer/index.html", import.meta.url));
         // The page is the app. Letting a client cache it means an edit ships
         // and the window keeps rendering yesterday's build, which reads as
         // "the fix did not work" rather than "you are looking at a cached page".
@@ -1219,8 +1230,9 @@ export async function briefing(mem) {
  * a truthful 405 instead of a 404 that claims the route does not exist.
  */
 const ROUTE_METHODS = {
+  '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

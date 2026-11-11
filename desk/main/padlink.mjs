@@ -59,6 +59,11 @@ export class PadLink extends EventEmitter {
       }
     },5000); this.heartbeat.unref();
   }
+  snapshot() {
+    return {observedAt:new Date().toISOString(),devices:[...this.peers].filter(p=>p.device).map(p=>({
+      device:p.device,link:p.name,firmware:p.firmware,lastSeen:new Date(p.last).toISOString(),status:this.getStatus(p),
+    }))};
+  }
   getStatus(peer) {
     try {return {type:'status',...this.status(),link:peer.name};}
     catch {return {type:'status',armed:false,autoAccept:false,venue:'',link:peer.name};}
@@ -69,7 +74,7 @@ export class PadLink extends EventEmitter {
     p.lines = new Lines(m => { p.tail = p.tail.then(() => this.receive(p,m)).catch(e => this.send(p,{type:'result',id:m.id,ok:false,error:e.message,status:e.message.startsWith('Setup required:')?'Setup required':undefined})); });
     this.peers.add(p); return p;
   }
-  remove(p) { if (this.peers.delete(p)) { for(const s of p.streams.values())s.live?.abort(); p.streams.clear(); p.close(); } }
+  remove(p) { if (this.peers.delete(p)) { this.signals?.publish({type:'pad_link',...this.snapshot()}); for(const s of p.streams.values())s.live?.abort(); p.streams.clear(); p.close(); } }
   send(p,m) {
     if (!this.peers.has(p)) return;
     const line = encode(m);
@@ -123,7 +128,8 @@ export class PadLink extends EventEmitter {
     p.last = Date.now();
     if (m.type === 'hello') {
       if (typeof m.device !== 'string' || !/^[\w-]{1,64}$/.test(m.device) || m.fw !== '1.0.0') throw new Error('invalid pad hello');
-      p.device = m.device;
+      p.device = m.device; p.firmware = m.fw;
+      this.signals?.publish({type:'pad_link',...this.snapshot()});
       this.send(p,{type:'caps',heartbeatMs:5000,maxLine:4096,sampleRate:16000});
       this.send(p,{type:'keymap',...this.keymap}); this.send(p,this.getStatus(p));
       for (const e of this.signals?.list() || []) if (e.state === 'awaiting') this.signal(p,e);
