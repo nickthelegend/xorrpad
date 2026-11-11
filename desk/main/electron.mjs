@@ -11,38 +11,17 @@ import { networkInterfaces } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-// Credentials before anything imports a module that reads them. Launched from
-// Finder rather than a shell there is no environment at all, so without this the
-// packaged app starts with no Deepgram key and no pad token and only says so
-// when someone holds the mic key.
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-for (const f of [
-  // Source checkout: two levels up from desktop/main. Packaged: HERE is inside
-  // app.asar, so the repo copy is not reachable and userData is where a key the
-  // operator entered on first run lives.
-  path.join(HERE, "..", "..", ".env"),
-  process.resourcesPath && path.join(process.resourcesPath, ".env"),
-  path.join(app.getPath("userData"), ".env"),
-].filter(Boolean)) {
-  try { process.loadEnvFile(f); } catch { /* absent is normal — first run has neither */ }
-}
-
-const PORT = Number(process.env.PORT || 8080);
-// A blank token means the backend mints a random one per boot, and the pad —
-// provisioned once with the old value — starts getting 401s with no clue why.
-const TOKEN = process.env.PAD_TOKEN || "xorrpad-dev";
+import { Credentials } from './credentials.mjs';
+// safeStorage becomes available after Electron is ready. Never load plaintext key files.
+await app.whenReady();
+process.env.XORR_USER_DATA = app.getPath('userData');
+const credentials = new Credentials();
+const PORT = Number(process.env.PORT || 8710);
+process.env.PORT = String(PORT);
+const TOKEN = await credentials.get('pad-token') || process.env.PAD_TOKEN || 'xorrpad-dev';
 process.env.PAD_TOKEN = TOKEN;
-// Where /setup writes what the operator types. The backend will not write
-// anywhere else.
-process.env.XORR_USER_DATA = app.getPath("userData");
-// Nothing to speak with means first run — send the window to setup instead of
-// to a desk whose mic fails silently.
-const NEEDS_SETUP = !process.env.DEEPGRAM_API_KEY;
-
-// AFTER the environment is settled, never before: server.mjs reads PAD_TOKEN at
-// module scope, so importing it first captures `undefined` and the backend mints
-// a random token that nothing else in the system knows.
-const { start } = await import("./server.mjs");
+const NEEDS_SETUP = !(await credentials.get('deepgram'));
+const { start } = await import('./server.mjs');
 
 function lanAddress() {
   for (const list of Object.values(networkInterfaces()))

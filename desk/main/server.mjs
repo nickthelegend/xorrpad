@@ -12,6 +12,9 @@
  * Bearer PAD_TOKEN on everything except /health.
  */
 import http from "node:http";
+import { Credentials } from './credentials.mjs';
+import { AgentSettings } from './agent-settings.mjs';
+import { LLM } from './llm.mjs';
 import { PadLink } from "./padlink.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
@@ -122,6 +125,7 @@ async function chainPrice(symbol) {
 }
 
 export function createServer(mem) {
+  const credentials = new Credentials(), agentSettings = new AgentSettings();
   const permissions = new Permissions();
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
@@ -368,6 +372,23 @@ export function createServer(mem) {
       // ── first run: no credentials anywhere ──────────────────────────────
       // A packaged app has no .env and no shell environment. Without this the
       // window opens onto a working-looking desk whose mic silently fails.
+      if (url.pathname === '/agent/settings') {
+        if (req.method === 'POST') return send(200,agentSettings.update(body));
+        const keys = {};
+        for (const name of ['anthropic','openai','deepgram']) keys[name] = await credentials.masked(name);
+        return send(200,{...agentSettings.read(),keys});
+      }
+      if (url.pathname === '/agent/keys' && req.method === 'POST') {
+        if (!['anthropic','openai','deepgram','groq','tailscale'].includes(body.provider)) return send(400,{error:'invalid provider'});
+        await credentials.set(body.provider,body.key);
+        return send(200,{provider:body.provider,key:await credentials.masked(body.provider)});
+      }
+      if (url.pathname === '/agent/models') {
+        const config = {...agentSettings.read()};
+        for (const k of ['provider','baseUrl','model']) if (url.searchParams.has(k)) config[k] = url.searchParams.get(k);
+        return send(200,await new LLM(config,{getKey:n => credentials.get(n)}).models());
+      }
+
       if (url.pathname === "/setup") {
         const local = ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
         if (!local) return send(403, { error: "setup is only reachable from the machine running the app" });
@@ -378,44 +399,12 @@ export function createServer(mem) {
           return res.end(html);
         }
         if (req.method === "POST") {
-          // What was sent is checked before where it would go: a submission that
-          // is empty is the caller's mistake either way, and answering 500 for
-          // it points the finger at the wrong side.
-          const fields = { DEEPGRAM_API_KEY: body.deepgram, PAD_TOKEN: body.token };
-          const lines = Object.entries(fields)
-            .filter(([, v]) => typeof v === "string" && v.trim())
-            .map(([k, v]) => `${k}=${v.trim()}`);
-          if (!lines.length) return send(400, { error: "nothing to save" });
-
-          const dir = process.env.XORR_USER_DATA;
-          if (!dir) return send(500, { error: "no config directory — the desk app supplies this" });
-
-          await mkdir(dir, { recursive: true });
-          const file = path.join(dir, ".env");
-
-          // MERGE, never replace. Re-opening setup to change the pad token and
-          // submitting without re-typing the Deepgram key must not delete the
-          // Deepgram key — which is exactly what writing the whole file did.
-          const existing = new Map();
-          try {
-            for (const line of (await readFile(file, "utf8")).split("\n")) {
-              const at = line.indexOf("=");
-              if (at > 0 && !line.startsWith("#")) existing.set(line.slice(0, at), line.slice(at + 1));
-            }
-          } catch { /* first run — nothing to keep */ }
-          for (const [k, v] of Object.entries(fields))
-            if (typeof v === "string" && v.trim()) existing.set(k, v.trim());
-          const body_ = [...existing].map(([k, v]) => `${k}=${v}`).join("\n");
-          await writeFile(file, body_ + "\n", { mode: 0o600 });
-          // Live, without a restart — every credential in this app is read at
-          // call time precisely so this works.
-          for (const [k, v] of Object.entries(fields)) if (v && String(v).trim()) process.env[k] = String(v).trim();
-          // Hand back the token that is actually in force, not the one typed.
-          // An empty field means "leave it alone", so the page must not redirect
-          // with the blank it was given — that opens the desk with ?token= and
-          // locks the operator out of their own app with every pane empty.
-          return send(200, { ok: true, saved: lines.map((l) => l.split("=")[0]), file,
-                             token: existing.get("PAD_TOKEN") || TOKEN });
+          const fields = {deepgram:body.deepgram, 'pad-token':body.token};
+          const entries = Object.entries(fields).filter(([,v]) => typeof v === 'string' && v.trim());
+          if (!entries.length) return send(400,{error:'nothing to save'});
+          for (const [name,value] of entries) await credentials.set(name,value);
+          return send(200,{ok:true,saved:entries.map(([name]) => name),token:TOKEN,
+            restartRequired:!!body.token && body.token !== TOKEN});
         }
         return send(405, { error: "GET or POST" });
       }
@@ -878,6 +867,8 @@ export function createServer(mem) {
       // Distinguish "the trade failed" from "the chain is not answering": they
       // need completely different things from the operator.
       const msg = String(e.message || e);
+      if (msg.startsWith('Setup required:')) return send(503,{error:msg,status:'Setup required'});
+      if (url.pathname.startsWith('/agent/')) return send(/invalid|must be/.test(msg)?400:502,{error:msg});
       if (url.pathname === "/route" && /must be|required|invalid side|unambiguous|not traded/.test(msg)) return send(400, {error:msg});
       if (url.pathname.startsWith("/pm/") || url.pathname.startsWith("/perps/") || url.pathname === "/hedge") {
         const setup = msg.startsWith("Setup required:");
@@ -1129,6 +1120,7 @@ const ROUTE_METHODS = {
   "/tick": ["POST"], "/size": ["POST"], "/memory/wipe": ["POST"], "/memory/seed": ["POST"],
   "/memory/decay": ["POST"], "/reflect/accept": ["POST"], "/reflect/reject": ["POST"],
   "/setup": ["GET", "POST"],
+  '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
 };
 
 export async function start() {

@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>xorr-pad — setup</title>
 <style>
   :root {
@@ -22,11 +23,11 @@
   label { display:block; margin:0 0 18px; }
   .k { display:block; font-size:12px; color:var(--ink-2); margin-bottom:7px; font-weight:500; }
   .hint { display:block; font-size:11.5px; color:var(--ink-3); margin-top:6px; line-height:1.5; }
-  input, select {
+  input, select, textarea {
     width:100%; background:var(--control); color:var(--ink); font:inherit;
     border:1px solid var(--line); border-radius:9px; padding:10px 12px; outline:none;
   }
-  input:focus, select:focus { border-color:rgba(43,216,122,.55); }
+  input:focus, select:focus, textarea:focus { border-color:rgba(43,216,122,.55); }
   input::placeholder { color:rgba(255,255,255,.28); }
   .row { display:flex; gap:10px; align-items:center; margin-top:4px; }
   button {
@@ -39,13 +40,18 @@
   #msg.bad { color:var(--down); }
   #msg.good { color:var(--up); }
   a { color:var(--ink-2); }
+  :focus-visible { outline:2px solid var(--up); outline-offset:3px; }
+  textarea { min-height:160px; resize:vertical; }
+  .row { flex-wrap:wrap; }
+  #agentMsg { overflow-wrap:anywhere; }
+  @media(max-width:600px) { body {padding:20px; display:block;} input,select,textarea {font-size:16px;} }
+
 </style>
 
 <main>
   <h1>Set up xorr-pad</h1>
   <p class="sub">
-    Stored in this app's own config directory, readable only by you. Nothing is
-    sent anywhere.
+    Keys are encrypted with your system keychain. Audio goes to Deepgram; chat goes to your chosen model provider.
   </p>
 
   <div class="card">
@@ -84,13 +90,52 @@
       <button id="save">Save and open the desk</button>
       <button id="skip" class="ghost">Skip for now</button>
     </div>
-    <div id="msg"></div>
+    <div id="msg" role="status" aria-live="polite"></div>
+    <hr>
+    <h2>Models &amp; keys</h2>
+    <p class="hint">Open the desk first to manage your model settings.</p>
+    <label><span class="k">Provider</span><select id="provider"><option value="ollama">Ollama</option><option value="anthropic">Anthropic</option><option value="openai">OpenAI-compatible / OpenRouter</option></select></label>
+    <label><span class="k">Base URL</span><input id="baseUrl" type="url" value="http://localhost:11434" spellcheck="false"></label>
+    <label><span class="k">Model</span><input id="model" list="models" spellcheck="false"><datalist id="models"></datalist></label>
+    <div class="row"><button id="loadModels" class="ghost">Load models</button><button id="saveModel">Save model</button></div>
+    <label><span class="k">Key provider</span><select id="keyProvider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI-compatible</option><option value="deepgram">Deepgram</option><option value="tailscale">Tailscale</option><option value="groq">Groq fallback</option></select></label>
+    <label><span class="k">API key (blank removes it)</span><input id="apiKey" type="password" autocomplete="off"></label>
+    <button id="saveKey">Save key</button>
+    <p id="keyStatus" class="hint"></p>
+    <div id="agentMsg" role="status" aria-live="polite"></div>
   </div>
 </main>
 
 <script>
   const $ = (id) => document.getElementById(id);
   const msg = $("msg");
+  const authToken = new URLSearchParams(location.search).get('token') || localStorage.getItem('pad-token') || '';
+  async function agentRequest(route,body) {
+    const r = await fetch(route,{method:body?'POST':'GET',headers:{authorization:'Bearer '+authToken,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || 'HTTP '+r.status); return j;
+  }
+  const defaults = {ollama:['http://localhost:11434',''],anthropic:['https://api.anthropic.com/v1','claude-haiku-5-5'],openai:['https://openrouter.ai/api/v1','']};
+  $('provider').onchange = () => {[$('baseUrl').value,$('model').value] = defaults[$('provider').value];};
+  const modelConfig = () => ({provider:$('provider').value,baseUrl:$('baseUrl').value,model:$('model').value});
+  async function action(button, fn) {
+    button.disabled=true; $('agentMsg').textContent='Working…';
+    try { await fn(); $('agentMsg').textContent='Saved.'; }
+    catch(e) {$('agentMsg').textContent=e.message;} finally {button.disabled=false;}
+  }
+  $('saveModel').onclick = () => action($('saveModel'),() => agentRequest('/agent/settings',modelConfig()));
+  $('loadModels').onclick = () => action($('loadModels'),async () => {
+    const rows = await agentRequest('/agent/models?'+new URLSearchParams(modelConfig()));
+    $('models').replaceChildren(...rows.map(row => {const o=document.createElement('option');o.value=row.id;return o;}));
+    if (!$('model').value && rows.length) $('model').value=rows[0].id;
+  });
+  $('saveKey').onclick = () => action($('saveKey'),async () => {
+    const j=await agentRequest('/agent/keys',{provider:$('keyProvider').value,key:$('apiKey').value});
+    $('apiKey').value=''; $('keyStatus').textContent=j.provider+': '+(j.key || 'Setup required: API key');
+  });
+  if (authToken) agentRequest('/agent/settings').then(j => {
+    for(const k of ['provider','baseUrl','model']) $(k).value=j[k];
+    $('keyStatus').textContent=Object.entries(j.keys).map(([k,v]) => k+': '+(v || 'not configured')).join(' · ');
+  }).catch(e => {$('agentMsg').textContent=e.message;});
 
   async function save() {
     $("save").disabled = true;
