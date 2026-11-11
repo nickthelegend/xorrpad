@@ -130,7 +130,7 @@ export class Executor {
       const chain = await record.connection.getTransaction(signature,{commitment:'confirmed',maxSupportedTransactionVersion:0});
       if (!chain) throw new Error('submitted transaction is not confirmed yet');
       if (chain.transaction.signatures[0] !== signature || hash({message:chain.transaction.message}) !== hash(record.tx)) throw new Error('confirmed signature does not match the accepted transaction');
-      if (chain.meta?.err) throw new Error(`transaction failed: ${JSON.stringify(chain.meta.err)}`);
+      if (!chain.meta || chain.meta.err !== null) throw new Error(`transaction failed or success is unverified: ${JSON.stringify(chain.meta?.err)}`);
       await this.signals.transition(id,'signed',{signature});
       return this.#receipt(id,record,signature);
     } catch(error) { return this.#fail(id,error); }
@@ -166,6 +166,11 @@ export class Executor {
   }
   async #fail(id,error) {
     const entry = this.signals.get(id);
+    if (this.#ledger[id]?.status === 'executed') {
+      const receipt = this.#ledger[id].receipt;
+      this.signals.publish({type:'receipt',receipt,memoryError:error.message});
+      return {ok:true,receipt,memoryError:error.message};
+    }
     if (entry && ['accepted','signed'].includes(entry.state)) await this.signals.transition(id,'failed',{error:error.message,ruleId:'executor.failed'});
     this.#pending.delete(id);
     return {ok:false,error:error.message,signature:this.#ledger[id]?.signature || null};

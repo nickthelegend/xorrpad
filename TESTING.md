@@ -443,3 +443,76 @@ policy auto-accept, local macOS speech announcement, session signature,
 confirmation and memory/event receipt. It refuses mainnet and never loads
 `.env` or another wallet. Ledger caps prevent a repeat from spending past the
 proof's 1 mUSDC daily budget; funding does not imply execution succeeded.
+
+## v1 T2 step 6 — policy, lifecycle, wallet and executor checks
+
+Measured 2026-11-12 (Asia/Kolkata), Node **26.5.0**.
+
+| Run | Tests | Passed | Failed | Skipped |
+|---|---:|---:|---:|---:|
+| Final `npm test --prefix desk` | 69 | 63 | 0 | 6 |
+| T2 policy/queue/wallet/executor/HTTP targeted run (five files) | 31 | 31 | 0 | 0 |
+| Separate `node --test desk/test/session-wallet.live.test.mjs` | 1 | 1 | 0 | 0 |
+| Existing `aggregate.http.test.mjs` live regression | 1 | 1 | 0 | 0 |
+
+The full run retains all 37 previous tests and adds 32. No previous test was
+removed or weakened. The targeted five files are `permissions.test.mjs`,
+`signals.test.mjs`, `session-wallet.test.mjs`, `executor.test.mjs` and
+`signals.http.test.mjs`.
+
+Coverage includes independent per-trade/day/leverage/position/venue/allowlist/
+denylist/cooldown/quiet-hours refusals, manual-by-default auto-accept, the
+always-ask threshold, timezone boundaries, memory-first decisions and corrupt
+policy refusal. Queue checks cover legal/illegal transitions, terminal refusal,
+expiry while waiting and during gate refresh, simultaneous answers and panic.
+Every transition records its deciding rule in real SQLite in integration checks.
+
+Wallet checks create/import real throwaway keys, preserve their public identity,
+refuse overwrites, verify ignored mode-0600 files, reject world/group readability
+and symlinks, and refuse mainnet without the exact acknowledgement before key or
+RPC access. Signing capabilities bind the exact approved size, state, expiry and
+message. Actual Ed25519 checks reject missing/tampered phone signatures. Tests
+caught and fixed an aliasing issue when clearing a temporary decoded key buffer;
+loading now copies key bytes before clearing that buffer.
+
+The executor integration checks use actual memory and public accounting inputs:
+disarm, newly denied markets/remembered rules, persisted pending/signed/executed
+budget accounting after restart, and open-position reservations all prevent
+building or signing. The actual server ran on **127.0.0.1:8718**. Both existing
+pad-token headers, wrong methods, missing signals, malformed policy, local
+wallet configuration and receipt-free gate refusal passed. Real WebSocket
+connections validated header/subprotocol auth, rejected query-token auth,
+received snapshots and streamed actual queue transitions. The earlier T1 live
+HTTP test also passed all four trade keys and refreshed-allowlist refusal.
+
+In the separate live signing run, a real liquid pm-AMM market and unsigned
+1 mUSDC swap were fetched from devnet. The new session wallet signed the actual
+message, its signature verified locally, capability reuse was refused, and a
+late policy change prevented a second signature. **Nothing was broadcast.**
+This does not replace the funded-cycle proof, which remains BLOCKED at the
+address in step 5. A repeat preflight verified the same wallet identity, still
+0 SOL / 0 mUSDC, without repeating the saved airdrop attempt.
+
+The six final full-suite skips were:
+
+1. Meteora unsigned build: real RPC **429**.
+2. Phoenix successful simulation: unfunded/unregistered authority, actual `AccountNotFound`.
+3. Phoenix actual-position/close check: funded registered authority required.
+4. Existing pm-AMM successful simulation: devnet SOL/mUSDC missing; SOL faucet **410**.
+5. Added session-wallet live check: real RPC **429** during its late-policy check;
+   the separate complete run passed.
+6. Expanded Jupiter SOL/HYPE check: SOL quoted, HYPE mint-decimal RPC **429**.
+
+The first full run exposed the new live check wrapping RPC 429 inside an
+assertion; it was corrected to distinguish real service unavailability from
+policy failures. The final run has zero failures. No quote, API response, fill
+or confirmed receipt was substituted. Pure rule/state/accounting parameters are
+unit inputs, not claimed chain results. `git diff --check` passed; all test
+servers closed. No mainnet sends or pushes occurred.
+
+**Not verified here:** the packaged Electron safeStorage/Keychain runtime,
+public phone-wallet TLS/sign/submit flow, physical pad event consumption/audio,
+and the unfunded session-wallet send/confirm/receipt cycle. T2 changes no
+firmware. See [T2 API and operational notes](docs/v1/T2-SIGNALS.md) for policy
+fields, authenticated routes, speech events, signing mode and retained uncertain
+submission reservations. The desk package is v1.0.0; no release tag was created.

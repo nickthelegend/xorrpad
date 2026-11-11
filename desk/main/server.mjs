@@ -20,7 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
 import { runOnce, getMarket, snapshot } from "./trader.mjs";
-import { propose, buildRouted } from "./propose.mjs";
+import { propose } from "./propose.mjs";
 import { evaluate, AGENT_KINDS } from "./agents.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
 import { prices as feedPrices } from "./scan.mjs";
@@ -91,6 +91,12 @@ export const state = {
 
 const note = (m) => { state.log.unshift({ t: new Date().toISOString(), m }); state.log.length = Math.min(state.log.length, 50); console.log("  " + m); };
 
+/** Only a live manual question occupies the pad's single YES/NO slot. */
+function pendingSignal(signals, queued, proposal, extra = {}) {
+  return signals.get(queued.id)?.state === 'awaiting'
+    ? {id:queued.id,sig:proposal.signal,verdict:proposal.verdict,routing:proposal.routing,...extra} : null;
+}
+
 /**
  * Spot price from the active venue, cached briefly.
  *
@@ -117,9 +123,10 @@ async function chainPrice(symbol) {
 export function createServer(mem) {
   const permissions = new Permissions();
   const signals = new SignalQueue({
+    ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
     gate:async e => {
       if (!state.armed) return {...e.proposal,verdict:{...e.proposal.verdict,action:'REJECT',sizeUsd:0,ruleId:'signals.disarmed',why:['disarmed — re-arm before trading']}};
-      return propose(e.proposal.signal,await mem.recallBrief());
+      return propose({...e.proposal.signal,sizeUsd:e.proposal.verdict.sizeUsd},await mem.recallBrief());
     },
     journal:e => mem.journal(e),
     announce:async e => {
@@ -236,9 +243,9 @@ export function createServer(mem) {
         if (sig) {
           const proposal = await propose(sig,brief,{price:market.prices[sig.symbol]});
           verdict = proposal.verdict;
-          state.pending = { id:(await signals.create(proposal)).id, sig:proposal.signal, verdict, market, routing:proposal.routing };
+          state.pending = pendingSignal(signals,await signals.create(proposal),proposal,{market});
           reply = verdict.action === "EXECUTE"
-            ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. Press yes to confirm.`
+            ? `${sig.side} ${sig.sizeUsd} dollars of ${sig.symbol}. ${verdict.why.slice(-1)[0]}. ${state.pending ? "Press yes to confirm." : "See the signal status for execution."}`
             : `I can't. ${verdict.why.slice(-1)[0]}.`;
         } else {
           const answer = await think(transcript, brief, market, mem);
@@ -284,6 +291,7 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (url.pathname === '/events') {res.setHeader('Upgrade','websocket'); return send(426,{error:'use WebSocket at /events'});}
       if (url.pathname === '/permissions') {
         try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
         catch(e) { return send(400,{error:e.message}); }
@@ -322,7 +330,7 @@ export function createServer(mem) {
           sizeUsd:Number(body.size),leverage:Number(body.leverage ?? 1),reason:body.reason || "agent propose tool"};
         const proposal = await propose(sig,await mem.recallBrief());
         const queued = await signals.create(proposal);
-        state.pending = {id:queued.id,sig:proposal.signal,verdict:proposal.verdict,routing:proposal.routing};
+        state.pending = pendingSignal(signals,queued,proposal);
         await mem.journal({evaluated:{signal:proposal.signal},acted:{action:proposal.verdict.action,executed:false},forward:{why:proposal.verdict.why}});
         return send(200,{...proposal,signalId:queued.id,signalState:queued.state});
       }
@@ -829,7 +837,7 @@ export function createServer(mem) {
         if (r.signal && r.verdict) {
           const queued = await signals.create({signal:r.signal,verdict:r.verdict,routing:r.routing});
           r.signalId = queued.id;
-          state.pending = {id:queued.id,sig:r.signal,verdict:r.verdict,routing:r.routing};
+          state.pending = pendingSignal(signals,queued,{signal:r.signal,verdict:r.verdict,routing:r.routing});
         }
         if (r.fill) { state.lastFill = r.fill; note(`FILL ${r.fill.hash.slice(0, 12)}… ${Number(r.fill.received).toFixed(6)} ${r.fill.receivedSymbol}`); }
         return send(200, r);
@@ -918,9 +926,9 @@ async function onKey(mem, id, options = {}, signals, executor) {
                     sizeUsd: state.sizeUsd, reason: top.rationale, confidence: top.confidence };
       const proposal = await propose(sig,brief,{price:top.price});
       const {verdict,routing} = proposal;
-      state.pending = {id:(await signals.create(proposal)).id,sig:proposal.signal,verdict,routing,market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}};
+      state.pending = pendingSignal(signals,await signals.create(proposal),proposal,{market:{prices:Object.fromEntries(r.markets.filter(m=>m.price).map(m=>[m.symbol,m.price]))}});
       note(`${sig.side} ${sig.symbol} $${sig.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-      return { ok: true, scan: r, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+      return { ok: true, scan: r, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: state.pending ? "yes/no" : null };
     }
     return { ok: true, scan: r, signal: null, verdict: null };
   }
@@ -934,7 +942,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
                   sizeUsd: state.sizeUsd, reason: `${id} pressed on the pad`, confidence: 1 };
     const proposal = await propose(sig,brief,{price:market.prices[selected]});
     const {verdict,routing} = proposal;
-    state.pending = {id:(await signals.create(proposal)).id,sig:proposal.signal,verdict,market,routing};
+    state.pending = pendingSignal(signals,await signals.create(proposal),proposal,{market});
     // A refusal decided HERE used to leave no trace at all. The journal only
     // ever recorded what the operator rejected by pressing NO — never what the
     // gate itself refused — so the store could not answer "what did you turn
@@ -948,7 +956,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
         forward: { why: verdict.why },
       });
     note(`${id.toUpperCase()} ${selected} $${state.sizeUsd} -> ${verdict.action} $${verdict.sizeUsd}`);
-    return { ok: true, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: verdict.action === "EXECUTE" ? "yes/no" : null };
+    return { ok: true, signal: proposal.signal, verdict, routing:proposal.routing, awaiting: state.pending ? "yes/no" : null };
   }
 
   if (id === "yes" || id === "no") {

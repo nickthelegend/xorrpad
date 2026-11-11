@@ -55,7 +55,7 @@ export class SessionWallet {
       const bytes = await fd.readFile();
       const storage = await this.#backend();
       const secret = storage ? Buffer.from(storage.decryptString(bytes),'base64') : bytes;
-      try { return Keypair.fromSecretKey(secret); } finally { secret.fill(0); }
+      try { return Keypair.fromSecretKey(Uint8Array.from(secret)); } finally { secret.fill(0); }
     } catch (e) {
       if (e.code === 'ENOENT') throw new Error('Setup required: create or import a session wallet');
       throw e;
@@ -96,7 +96,8 @@ export class SessionWallet {
     try {
       if (!transaction.message.staticAccountKeys[0].equals(keypair.publicKey)) throw new Error('session wallet must be the approved fee payer');
       if (recheck) await recheck();
-      if (Date.now() >= grant.expiresAt) throw new Error('signing capability expired');
+      assertSigningCluster(cluster);
+      if (Date.now() >= grant.expiresAt || grant.hash !== digest(transaction)) throw new Error('signing capability expired or transaction changed');
       transaction.sign([keypair]);
       return transaction;
     } finally { keypair.secretKey.fill(0); }

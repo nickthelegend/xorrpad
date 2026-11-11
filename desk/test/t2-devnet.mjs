@@ -64,10 +64,11 @@ try {
       if (process.platform !== 'darwin') throw new Error('Setup required: macOS say for the CLI auto-accept announcement');
       await promisify(execFile)('say',[`Auto accepting one devnet mUSDC of ${e.proposal.signal.symbol}`]);
     }});
+  evidence.states = [];
+  queue.on('event',e => {if (e.type === 'signal') evidence.states.push({id:e.signal.id,state:e.signal.state});});
   const executor = new Executor({mem,signals:queue,dir}); executor.setMode('session');
   const proposal = await propose({kind:'predict',side:'BUY',market:market.market,symbol,outcomeSide:'yes',sizeUsd:1,agent:'t2-proof'},await mem.recallBrief());
   const signal = await queue.create(proposal);
-  evidence.states = queue.list().map(e => ({id:e.id,state:e.state}));
   if (signal.state !== 'accepted' || !signal.automatic) throw new Error(`BLOCKED: ${signal.state}: ${signal.setupRequired || signal.proposal.verdict.why.at(-1)}`);
   const result = await executor.execute(signal.id);
   if (!result.ok || !result.receipt) throw new Error(`BLOCKED: ${result.error || 'no confirmed receipt'}`);

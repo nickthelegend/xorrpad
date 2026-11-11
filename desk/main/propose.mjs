@@ -18,12 +18,12 @@ export async function propose(signal,brief,{price}={}) {
    const reference=await route({kind:'spot',market:sig.symbol,side:'buy',size});
    price=reference.best?.price;
   }
-  if(!(price>0))return {signal:sig,verdict:{...verdict,action:'REJECT',sizeUsd:0,why:[...verdict.why,'no live reference price for sell sizing']},routing:null};
+  if(!(price>0))return {signal:sig,verdict:{...verdict,action:'REJECT',sizeUsd:0,ruleId:'routing.no_reference',rules:[...verdict.rules,'routing.no_reference'],why:[...verdict.why,'no live reference price for sell sizing']},routing:null};
   size/=price;
   if(brief?.positions?.[sig.symbol]?.qty!=null)size=Math.min(size,brief.positions[sig.symbol].qty);
  }
  const routing=await route({kind,market:sig.market||sig.symbol,side:sig.outcomeSide||sig.side,size,leverage:sig.leverage});
- if(!routing.best)return {signal:sig,routing,verdict:{...verdict,action:'REJECT',sizeUsd:0,why:[...verdict.why,'no venue returned a quote; see routing alternatives']}};
+ if(!routing.best)return {signal:sig,routing,verdict:{...verdict,action:'REJECT',sizeUsd:0,ruleId:'routing.no_quote',rules:[...verdict.rules,'routing.no_quote'],why:[...verdict.why,'no venue returned a quote; see routing alternatives']}};
  sig.venue=routing.best.venue;
  verdict=decide(sig,brief);
  return {signal:sig,verdict,routing};
