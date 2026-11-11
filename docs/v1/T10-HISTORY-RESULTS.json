@@ -1,0 +1,844 @@
+{
+  "task": "T10",
+  "localDate": "2026-11-12",
+  "timezone": "Asia/Kolkata",
+  "fullRun": {
+    "command": "node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs",
+    "exitCode": 1,
+    "total": 141,
+    "passed": 131,
+    "failed": 1,
+    "skipped": 9,
+    "cancelled": 0,
+    "durationMs": 393845.415833,
+    "tests": [
+      {
+        "id": 1,
+        "name": "chats, models, persona and agent tools use real authenticated desk routes",
+        "status": "passed"
+      },
+      {
+        "id": 2,
+        "name": "provider defaults, arbitrary compatible URL and URL credential rejection",
+        "status": "passed"
+      },
+      {
+        "id": 3,
+        "name": "missing provider keys fail before network access",
+        "status": "passed"
+      },
+      {
+        "id": 4,
+        "name": "keys cannot be saved as plaintext in a Node backend",
+        "status": "passed"
+      },
+      {
+        "id": 5,
+        "name": "settings persist provider, model and editable persona; reset preserves provider",
+        "status": "passed"
+      },
+      {
+        "id": 6,
+        "name": "persona prompt preserves exact decimals, unknown values and fixed trading truth",
+        "status": "passed"
+      },
+      {
+        "id": 7,
+        "name": "spoken proposal uses gated size, exact quote values, venue and risk",
+        "status": "passed"
+      },
+      {
+        "id": 8,
+        "name": "chat persistence, tool/result metadata, search, rename, delete and Markdown export",
+        "status": "passed"
+      },
+      {
+        "id": 9,
+        "name": "chat turn lock rejects overlapping mutations and repairs an interrupted tool pair",
+        "status": "passed"
+      },
+      {
+        "id": 10,
+        "name": "agent tools reject gate bypass fields and signing tools",
+        "status": "passed"
+      },
+      {
+        "id": 11,
+        "name": "explain_refusal reads the actual gate and queue; no execution receipt appears",
+        "status": "passed"
+      },
+      {
+        "id": 12,
+        "name": "Deepgram missing key is actionable for STT and TTS",
+        "status": "passed"
+      },
+      {
+        "id": 13,
+        "name": "real localhost Ollama model list and provider chat",
+        "status": "skipped",
+        "reason": "Ollama is not reachable on localhost: fetch failed"
+      },
+      {
+        "id": 14,
+        "name": "live Anthropic /models and specified default model",
+        "status": "skipped",
+        "reason": "ANTHROPIC_API_KEY is not set in the environment; no config files read"
+      },
+      {
+        "id": 15,
+        "name": "live Deepgram Aura PCM streams back through Nova-3",
+        "status": "skipped",
+        "reason": "DEEPGRAM_API_KEY is not set in the environment; no config files read"
+      },
+      {
+        "id": 16,
+        "name": "real Electron safeStorage encrypts keys and only lists last four characters",
+        "status": "passed"
+      },
+      {
+        "id": 17,
+        "name": "authenticated router, venue health, four pad keys, propose and acceptance re-gate",
+        "status": "passed"
+      },
+      {
+        "id": 18,
+        "name": "SOL spot quote on jupiter",
+        "status": "passed"
+      },
+      {
+        "id": 19,
+        "name": "SOL spot quote on meteora",
+        "status": "passed"
+      },
+      {
+        "id": 20,
+        "name": "SOL perp quote on phoenix for long and short",
+        "status": "passed"
+      },
+      {
+        "id": 21,
+        "name": "SOL perp quote on jupperps for long and short",
+        "status": "passed"
+      },
+      {
+        "id": 22,
+        "name": "pm-AMM lists real devnet outcome markets and routes an available outcome",
+        "status": "passed"
+      },
+      {
+        "id": 23,
+        "name": "Meteora builds a real unsigned swap for an explicit public owner",
+        "status": "skipped",
+        "reason": "venue unreachable: failed to get info about account 4hUvkkBkVuzNMH3Koo34bieHwQjtyLXdkBAYBwv3gLUS: Error: 429 :  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"Connection rate limits exceeded\"}, \"id\": \"41b8c3d3-8aff-433e-8cae-a47a6baf82cf\" } \\\\r\\\\n"
+      },
+      {
+        "id": 24,
+        "name": "router reports every failed venue without substituting a quote",
+        "status": "passed"
+      },
+      {
+        "id": 25,
+        "name": "router rejects invalid intents before contacting venues",
+        "status": "passed"
+      },
+      {
+        "id": 26,
+        "name": "routed proposals retain market, venue, leverage, daily and remembered-rule gates",
+        "status": "passed"
+      },
+      {
+        "id": 27,
+        "name": "new builders require explicit owners and never sign or submit",
+        "status": "passed"
+      },
+      {
+        "id": 28,
+        "name": "backtest routes enforce auth, methods, validation and expose catalog without upstream data",
+        "status": "passed"
+      },
+      {
+        "id": 29,
+        "name": "real pool-history HTTP strategy, prediction and agent tool round trips",
+        "status": "passed"
+      },
+      {
+        "id": 30,
+        "name": "real Phoenix fee schedule and historical funding payments",
+        "status": "passed"
+      },
+      {
+        "id": 31,
+        "name": "real Jupiter Perps on-chain opening and closing fee schedules",
+        "status": "passed"
+      },
+      {
+        "id": 32,
+        "name": "real Jupiter route fees are disclosed or fail explicitly, never assumed zero",
+        "status": "passed"
+      },
+      {
+        "id": 33,
+        "name": "real pool candles cache, corrupt cache recovery, no fabricated volume and equity reference",
+        "status": "passed"
+      },
+      {
+        "id": 34,
+        "name": "real history replay accounts for both fees, funding, slippage, sizing, exits and metrics",
+        "status": "passed"
+      },
+      {
+        "id": 35,
+        "name": "no look-ahead: delayed real data delays decisions; truncated/future-shifted paths preserve past fills",
+        "status": "passed"
+      },
+      {
+        "id": 36,
+        "name": "every book strategy uses real Pyth data and gate warmup; volume absence is explicit",
+        "status": "passed"
+      },
+      {
+        "id": 37,
+        "name": "prediction exact helpers replay real Pyth path and disclose counterfactual edge",
+        "status": "passed"
+      },
+      {
+        "id": 38,
+        "name": "Pyth symbols, bounded ranges, completed historical time and resolutions",
+        "status": "passed"
+      },
+      {
+        "id": 39,
+        "name": "bounded declarative rules reject arbitrary code, unknown operators, warmup and invalid sizing",
+        "status": "passed"
+      },
+      {
+        "id": 40,
+        "name": "metrics use net equity, sample returns, elapsed exposure and undefined nulls",
+        "status": "passed"
+      },
+      {
+        "id": 41,
+        "name": "prediction model and agent schema enforce required inputs and forbid fee/candle overrides",
+        "status": "passed"
+      },
+      {
+        "id": 42,
+        "name": "executor defaults to phone, persists opt-in mode and refuses disarmed execution before building",
+        "status": "passed"
+      },
+      {
+        "id": 43,
+        "name": "fresh permissions and remembered rules veto previously accepted execution without chain access",
+        "status": "passed"
+      },
+      {
+        "id": 44,
+        "name": "persisted reserved ledger prevents cap bypass after executor restart",
+        "status": "passed"
+      },
+      {
+        "id": 45,
+        "name": "persisted signed ledger prevents cap bypass after executor restart",
+        "status": "passed"
+      },
+      {
+        "id": 46,
+        "name": "persisted executed ledger prevents cap bypass after executor restart",
+        "status": "passed"
+      },
+      {
+        "id": 47,
+        "name": "persisted open-position reservation blocks another market independently of daily cap",
+        "status": "passed"
+      },
+      {
+        "id": 48,
+        "name": "real mint-pinned stable-pool discovery, USD volume and persistent cache",
+        "status": "passed"
+      },
+      {
+        "id": 49,
+        "name": "real OHLCV pages backward beyond 1000 bars with complete UTC coverage",
+        "status": "passed"
+      },
+      {
+        "id": 50,
+        "name": "30-minute and two-hour bars aggregate only complete real provider groups",
+        "status": "passed"
+      },
+      {
+        "id": 51,
+        "name": "a real missing mint reports secondary Pyth availability separately",
+        "status": "passed"
+      },
+      {
+        "id": 52,
+        "name": "concurrent ranges share a real page without truncating the wider request",
+        "status": "passed"
+      },
+      {
+        "id": 53,
+        "name": "keeper routes return actual creator-filtered markets, public evidence and cached chain stats",
+        "status": "passed"
+      },
+      {
+        "id": 54,
+        "name": "traction decoder reads an actual successful swap and actual creator fee transfer",
+        "status": "passed"
+      },
+      {
+        "id": 55,
+        "name": "traction history scan finds creation and swap totals on a real reference market",
+        "status": "passed"
+      },
+      {
+        "id": 12,
+        "name": "desk/test/loadbearing.test.mjs",
+        "status": "passed"
+      },
+      {
+        "id": 13,
+        "name": "desk/test/memory.test.mjs",
+        "status": "passed"
+      },
+      {
+        "id": 58,
+        "name": "framing handles fragmented Unicode, multiple lines, diagnostics and limits",
+        "status": "passed"
+      },
+      {
+        "id": 59,
+        "name": "keymap validation preserves all measured controls and every cell",
+        "status": "passed"
+      },
+      {
+        "id": 60,
+        "name": "TCP: keymap push/persistence, key and knob use actual desk routes; duplicates do not replay",
+        "status": "passed"
+      },
+      {
+        "id": 61,
+        "name": "real serialport over a PTY receives keymap and sends a key",
+        "status": "passed"
+      },
+      {
+        "id": 62,
+        "name": "voice chunks reach actual voice module; missing key reports Setup required",
+        "status": "passed"
+      },
+      {
+        "id": 63,
+        "name": "Wi-Fi NDJSON/WS authenticates and forwards actual queue events to /events",
+        "status": "passed"
+      },
+      {
+        "id": 64,
+        "name": "key → live devnet signal → accept is gated; missing phone setup cannot produce a receipt",
+        "status": "passed"
+      },
+      {
+        "id": 65,
+        "name": "key → live devnet signal → accept → actual confirmed receipt (funded test wallet required)",
+        "status": "skipped",
+        "reason": "Setup required: fund DbHsbDBtPHKGzEd4iC9QPPrKYhH68zchpznThZFbjxtD with 0.01 devnet SOL and 1 mUSDC; no transaction sent"
+      },
+      {
+        "id": 66,
+        "name": "receipt delivery replays a verified historical devnet confirmation, not a new fill",
+        "status": "passed"
+      },
+      {
+        "id": 67,
+        "name": "permission per_trade refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 68,
+        "name": "permission per_day refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 69,
+        "name": "permission leverage refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 70,
+        "name": "permission positions refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 71,
+        "name": "permission allowlist refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 72,
+        "name": "permission denylist refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 73,
+        "name": "permission venue refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 74,
+        "name": "permission cooldown refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 75,
+        "name": "permission quiet_hours refuses independently",
+        "status": "passed"
+      },
+      {
+        "id": 76,
+        "name": "auto-accept requires venue AND kind; always-ask forces manual acceptance",
+        "status": "passed"
+      },
+      {
+        "id": 77,
+        "name": "policy counts executed daily spend, pending reservations and position reservations",
+        "status": "passed"
+      },
+      {
+        "id": 78,
+        "name": "quiet hours handle timezone, midnight wrapping, boundaries and a full day",
+        "status": "passed"
+      },
+      {
+        "id": 79,
+        "name": "memory veto runs before policy and size clamp cannot be expanded by permissions",
+        "status": "passed"
+      },
+      {
+        "id": 80,
+        "name": "policy persists public fields, rejects secrets/invalid values, and fails closed when corrupt",
+        "status": "passed"
+      },
+      {
+        "id": 81,
+        "name": "perps routes and Solana Pay enforce auth, owner, methods and fresh unsigned mainnet builds",
+        "status": "passed"
+      },
+      {
+        "id": 82,
+        "name": "Phoenix lists every live API market with mark, funding and leverage",
+        "status": "passed"
+      },
+      {
+        "id": 83,
+        "name": "Phoenix quotes both sides using real depth, fees and tier-aware liquidation math",
+        "status": "passed"
+      },
+      {
+        "id": 84,
+        "name": "Phoenix builds an actually unsigned open transaction for a public authority",
+        "status": "passed"
+      },
+      {
+        "id": 85,
+        "name": "Phoenix unsigned order simulates on real mainnet with sigVerify:false",
+        "status": "skipped",
+        "reason": "Setup required: PHOENIX_AUTHORITY (registered, enabled, funded trader and SOL fee payer); actual simulation returned \"AccountNotFound\""
+      },
+      {
+        "id": 86,
+        "name": "Phoenix reads actual positions and builds a reduce-only close when an account is available",
+        "status": "skipped",
+        "reason": "Setup required: PHOENIX_AUTHORITY (register and fund this Phoenix trader before opening positions)"
+      },
+      {
+        "id": 87,
+        "name": "Phoenix never signs, requires an on-curve public authority and validates sizing",
+        "status": "passed"
+      },
+      {
+        "id": 88,
+        "name": "every catalog mint is allowlisted and ambiguous tickers never select a token",
+        "status": "passed"
+      },
+      {
+        "id": 89,
+        "name": "numeric hedge payout is adverse to the actual position for every supported operator",
+        "status": "passed"
+      },
+      {
+        "id": 90,
+        "name": "the existing gate can refuse a hedge outcome and caps an explicitly allowed proposal",
+        "status": "passed"
+      },
+      {
+        "id": 91,
+        "name": "pm-AMM reads live devnet markets with real price, end time and vault liquidity",
+        "status": "passed"
+      },
+      {
+        "id": 92,
+        "name": "pm-AMM quotes YES and NO and builds an unsigned swap for a throwaway public key",
+        "status": "passed"
+      },
+      {
+        "id": 93,
+        "name": "the unsigned pm-AMM swap simulates successfully on real devnet",
+        "status": "skipped",
+        "reason": "Setup required: PMAMM_TEST_OWNER — fund a throwaway devnet public key with SOL and mUSDC; airdrop unavailable (HTTP 410: RPC faucet closed on devnet)"
+      },
+      {
+        "id": 94,
+        "name": "pm-AMM builds unsigned market creation and reads actual owner positions",
+        "status": "passed"
+      },
+      {
+        "id": 95,
+        "name": "pm-AMM builds an unsigned claim from a real resolved devnet market",
+        "status": "passed"
+      },
+      {
+        "id": 96,
+        "name": "pm-AMM routes enforce auth, methods, setup errors, and return real devnet markets",
+        "status": "passed"
+      },
+      {
+        "id": 97,
+        "name": "mUSDC conversion preserves six decimals and refuses rounding or overflow",
+        "status": "passed"
+      },
+      {
+        "id": 98,
+        "name": "every registered Solana venue refuses signing and has no signing call",
+        "status": "passed"
+      },
+      {
+        "id": 99,
+        "name": "transaction builders require a public wallet address, with the exact setup variable",
+        "status": "passed"
+      },
+      {
+        "id": 100,
+        "name": "invalid quote inputs and unknown wallet requests fail without querying a chain",
+        "status": "passed"
+      },
+      {
+        "id": 101,
+        "name": "session wallet signs a gate-accepted real devnet pm-AMM message once, without submitting",
+        "status": "passed"
+      },
+      {
+        "id": 102,
+        "name": "Node wallet creates/imports once, shows only public key and uses ignored 0600 storage",
+        "status": "passed"
+      },
+      {
+        "id": 103,
+        "name": "wallet refuses world/group-readable storage and symlinks before reading its key",
+        "status": "passed"
+      },
+      {
+        "id": 104,
+        "name": "mainnet signing refuses the exact missing acknowledgement before any key/RPC access",
+        "status": "passed"
+      },
+      {
+        "id": 105,
+        "name": "signing capabilities require accepted, unexpired, exact-size policy approval and bind the message",
+        "status": "passed"
+      },
+      {
+        "id": 106,
+        "name": "phone transaction verifier checks every real Ed25519 signature against the exact message",
+        "status": "passed"
+      },
+      {
+        "id": 107,
+        "name": "signals and policy use pad auth; WebSocket headers/subprotocols stream actual queue events",
+        "status": "passed"
+      },
+      {
+        "id": 108,
+        "name": "manual state machine publishes each state and rejects terminal transitions",
+        "status": "passed"
+      },
+      {
+        "id": 109,
+        "name": "auto-accept traverses auto_accepted and accepted; speech failure waits for operator",
+        "status": "passed"
+      },
+      {
+        "id": 110,
+        "name": "refused, failed and expired signals cannot sign; unanswered timer expires",
+        "status": "passed"
+      },
+      {
+        "id": 111,
+        "name": "acceptance re-gates, rechecks expiry after gate wait and serializes conflicting answers",
+        "status": "passed"
+      },
+      {
+        "id": 112,
+        "name": "panic refuses every waiting/accepted entry and queue requires positive bounded expiry",
+        "status": "passed"
+      },
+      {
+        "id": 113,
+        "name": "directory rejects unbounded requests before any upstream call",
+        "status": "passed"
+      },
+      {
+        "id": 114,
+        "name": "real Jupiter spot directory quote shares a 15s cache",
+        "status": "passed"
+      },
+      {
+        "id": 115,
+        "name": "expanded Jupiter book quotes SOL and HYPE with actual mint decimals",
+        "status": "passed"
+      },
+      {
+        "id": 116,
+        "name": "floor text tokens meet WCAG AA",
+        "status": "passed"
+      },
+      {
+        "id": 117,
+        "name": "paper text tokens meet WCAG AA",
+        "status": "passed"
+      },
+      {
+        "id": 118,
+        "name": "neon text tokens meet WCAG AA",
+        "status": "passed"
+      },
+      {
+        "id": 119,
+        "name": "official Hermes feed discovery confirms SOL, BTC and ETH identities",
+        "status": "passed"
+      },
+      {
+        "id": 120,
+        "name": "Hermes parsing uses an actual signed response and retrieves the exact publish second",
+        "status": "skipped",
+        "reason": "Setup required: PYTH_API_KEY (Hermes price endpoint returned HTTP 401)"
+      },
+      {
+        "id": 121,
+        "name": "keeper rejects non-devnet genesis hashes and every other collateral",
+        "status": "passed"
+      },
+      {
+        "id": 122,
+        "name": "keeper guard checks a real devnet genesis hash",
+        "status": "passed"
+      },
+      {
+        "id": 123,
+        "name": "confidence crossing or touching the strike cannot resolve; strict outcomes use exact integers",
+        "status": "passed"
+      },
+      {
+        "id": 124,
+        "name": "UTC hourly/daily schedules, sensible ticks and deterministic ids prevent duplicate markets",
+        "status": "passed"
+      },
+      {
+        "id": 125,
+        "name": "the keeper key is gitignored, untracked, mode 0600 and cannot be overwritten",
+        "status": "passed"
+      },
+      {
+        "id": 126,
+        "name": "desk modules do not load keeper signing code or its key",
+        "status": "failed"
+      },
+      {
+        "id": 127,
+        "name": "keeper questions retain exact payout/expiry meaning in desk hedge proposals",
+        "status": "passed"
+      },
+      {
+        "id": 128,
+        "name": "waitlist GET and valid POST report the exact missing Upstash URL",
+        "status": "passed"
+      },
+      {
+        "id": 129,
+        "name": "email validation rejects malformed input before any storage request",
+        "status": "passed"
+      },
+      {
+        "id": 130,
+        "name": "honeypot rejects filled and non-string fields",
+        "status": "passed"
+      },
+      {
+        "id": 131,
+        "name": "request bodies enforce JSON, object shape and size",
+        "status": "passed"
+      },
+      {
+        "id": 132,
+        "name": "all handlers reject unsupported methods and advertise allowed methods",
+        "status": "passed"
+      },
+      {
+        "id": 133,
+        "name": "missing Redis token is identified without contacting the configured URL",
+        "status": "passed"
+      },
+      {
+        "id": 134,
+        "name": "preorder and status setup never produce a URL, reference or receipt",
+        "status": "passed"
+      },
+      {
+        "id": 135,
+        "name": "reservation creation requires explicit terms acceptance",
+        "status": "passed"
+      },
+      {
+        "id": 136,
+        "name": "missing merchant, terms and storage block checkout in sequence",
+        "status": "passed"
+      },
+      {
+        "id": 137,
+        "name": "invalid price, address, terms and network cannot enable checkout",
+        "status": "passed"
+      },
+      {
+        "id": 138,
+        "name": "status validates public references, including repeated query parameters",
+        "status": "passed"
+      },
+      {
+        "id": 139,
+        "name": "reference generation and SDK URL parsing preserve exact USDC expectations",
+        "status": "passed"
+      },
+      {
+        "id": 140,
+        "name": "rate-limit identity ignores spoofed forwarded headers locally and uses Vercel identity in deployment",
+        "status": "passed"
+      },
+      {
+        "id": 141,
+        "name": "unknown API routes return JSON 404 rather than the static landing",
+        "status": "passed"
+      }
+    ]
+  },
+  "historyRun": {
+    "command": "node --test --test-concurrency=1 --test-reporter=tap desk/test/backtest*.test.mjs desk/test/history.live.test.mjs",
+    "exitCode": 0,
+    "total": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "durationMs": 202438.596292,
+    "tests": [
+      {
+        "id": 1,
+        "name": "backtest routes enforce auth, methods, validation and expose catalog without upstream data",
+        "status": "passed"
+      },
+      {
+        "id": 2,
+        "name": "real pool-history HTTP strategy, prediction and agent tool round trips",
+        "status": "passed"
+      },
+      {
+        "id": 3,
+        "name": "real Phoenix fee schedule and historical funding payments",
+        "status": "passed"
+      },
+      {
+        "id": 4,
+        "name": "real Jupiter Perps on-chain opening and closing fee schedules",
+        "status": "passed"
+      },
+      {
+        "id": 5,
+        "name": "real Jupiter route fees are disclosed or fail explicitly, never assumed zero",
+        "status": "passed"
+      },
+      {
+        "id": 6,
+        "name": "real pool candles cache, corrupt cache recovery, no fabricated volume and equity reference",
+        "status": "passed"
+      },
+      {
+        "id": 7,
+        "name": "real history replay accounts for both fees, funding, slippage, sizing, exits and metrics",
+        "status": "passed"
+      },
+      {
+        "id": 8,
+        "name": "no look-ahead: delayed real data delays decisions; truncated/future-shifted paths preserve past fills",
+        "status": "passed"
+      },
+      {
+        "id": 9,
+        "name": "every book strategy uses real Pyth data and gate warmup; volume absence is explicit",
+        "status": "passed"
+      },
+      {
+        "id": 10,
+        "name": "prediction exact helpers replay real Pyth path and disclose counterfactual edge",
+        "status": "passed"
+      },
+      {
+        "id": 11,
+        "name": "Pyth symbols, bounded ranges, completed historical time and resolutions",
+        "status": "passed"
+      },
+      {
+        "id": 12,
+        "name": "bounded declarative rules reject arbitrary code, unknown operators, warmup and invalid sizing",
+        "status": "passed"
+      },
+      {
+        "id": 13,
+        "name": "metrics use net equity, sample returns, elapsed exposure and undefined nulls",
+        "status": "passed"
+      },
+      {
+        "id": 14,
+        "name": "prediction model and agent schema enforce required inputs and forbid fee/candle overrides",
+        "status": "passed"
+      },
+      {
+        "id": 15,
+        "name": "real mint-pinned stable-pool discovery, USD volume and persistent cache",
+        "status": "passed"
+      },
+      {
+        "id": 16,
+        "name": "real OHLCV pages backward beyond 1000 bars with complete UTC coverage",
+        "status": "passed"
+      },
+      {
+        "id": 17,
+        "name": "30-minute and two-hour bars aggregate only complete real provider groups",
+        "status": "passed"
+      },
+      {
+        "id": 18,
+        "name": "a real missing mint reports secondary Pyth availability separately",
+        "status": "passed"
+      },
+      {
+        "id": 19,
+        "name": "concurrent ranges share a real page without truncating the wider request",
+        "status": "passed"
+      }
+    ]
+  },
+  "firmware": {
+    "command": "arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad",
+    "exitCode": 0,
+    "flash": "compiled, not yet flashed"
+  },
+  "designDetectorFindings": 0
+}

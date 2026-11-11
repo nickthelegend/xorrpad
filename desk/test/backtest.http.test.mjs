@@ -33,10 +33,10 @@ test('backtest routes enforce auth, methods, validation and expose catalog witho
   assert.equal((await call('/backtest/history?symbol=SOL&to=2')).status,400);
   await assert.rejects(executeTool('backtest',{...options,strategy:'future'},{request,signals:server.signals}),/invalid strategy/);
 });
-test('real Pyth HTTP strategy, prediction and agent tool round trips',{timeout:120000},async t=>{
+test('real pool-history HTTP strategy, prediction and agent tool round trips',{timeout:120000},async t=>{
   const r=await call('/backtest',options);
-  if(r.status===502&&/^Pyth history unavailable:/.test(r.body.error)){console.log(`SKIP: ${r.body.error}`);t.skip(r.body.error);return;}
-  assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.history.barCount>0);assert.ok(r.body.trades.length>0);
+  if(r.status===502&&/^History unavailable:/.test(r.body.error)){console.log(`SKIP: ${r.body.error}`);t.skip(r.body.error);return;}
+  assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.history.barCount>0);assert.equal(r.body.history.provider,'geckoterminal');assert.match(r.body.history.source,/GeckoTerminal · /);assert.equal(r.body.history.reference,'spot reference for the perp');assert.ok(r.body.trades.length>0);
   const tool=await executeTool('backtest',options,{request,signals:server.signals});assert.deepEqual(tool.trades,r.body.trades);
   const h=await call(`/backtest/history?symbol=SOL&from=${options.from}&to=${options.to}`);assert.equal(h.status,200);assert.equal(h.body.networkRequests,0);
   const prediction={kind:'predict',symbol:'SOL',from:options.from,to:options.to,strike:h.body.candles[0].close,liquidityUsdc:1000};

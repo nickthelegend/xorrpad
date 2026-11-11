@@ -1,28 +1,41 @@
 # T6 backtesting
 
-History uses the specified [Pyth Benchmarks TradingView shim](https://benchmarks.pyth.network/v1/shims/tradingview/history).
-`history({symbol,from,to,resolution:'60'})` takes Unix seconds and returns
-chronological candles with millisecond `t` and exclusive `tClose`. Only completed
-bars entirely inside the requested range are returned. Up to 20,000 bars are
-requested in bounded chunks; gaps are preserved, never interpolated.
+History now prefers real GeckoTerminal Solana pool OHLCV, with Pyth Benchmarks
+as a separately labelled fallback. `history({symbol,from,to,resolution:'60'})`
+takes Unix seconds and returns chronological candles with millisecond `t` and
+exclusive `tClose`. Only completed bars entirely inside the requested range are
+returned, up to 20,000 requested bars. Gaps remain unfilled.
 
-The desk's xStock symbols (for example `AAPLx` or `AAPL`) map to
-`Equity.US.AAPL/USD`; crypto maps to `Crypto.SOL/USD`. Explicit Pyth crypto and
-equity USD symbols are accepted. A missing symbol/range reports setup required.
-Equity prices are the underlying reference, not historical xStock pool prices;
-split adjustment is not assumed. Do not replay across corporate actions without
-checking the reference path.
+Pool lookup uses exact catalog mint identities, the pinned wrapped BTC/ETH
+underlyings, and actual xStock mints. It selects the greatest `reserve_in_usd`
+among eligible USDC/USDT-quoted pools in the token endpoint's returned top pools,
+then caches that selection for 24 hours. An `AAPLx` request retains the legacy
+`Equity.US.AAPL/USD` symbol identity, but its provenance names the **AAPLx pool**;
+it is tokenized-share history rather than a NYSE oracle path. Exact allowlisted
+mint and qualified catalog identities are accepted without ticker guessing.
 
-Completed responses are cached atomically beneath `appDataDir()/history/pyth-v1`
-(Electron's userData directory, or the existing platform default). Each cache
-entry includes the request URL, fetch timestamp and original Pyth payload.
-Responses are validated on network reads and cache reads. Missing volume stays
-missing, and all-zero oracle volume is reported as unavailable.
+History labels are `GeckoTerminal · <pool name> · <DEX>`. USD OHLCV pages contain
+up to 1000 rows and are fetched backward until the requested start or the
+available archive boundary. No-swap intervals are omitted, not interpolated.
+All existing resolutions remain: 30-minute and two-hour bars sum/aggregate only
+complete consecutive 15-minute/hourly provider groups. `volumeUnit` is USD.
+Raw responses are cached atomically beneath `appDataDir()/history/geckoterminal-v1`
+with URL and fetch timestamp, and revalidated for each requested range. Shared
+in-flight pages retain their raw payload so a narrow request cannot truncate a
+concurrent wider request. Identical requested-window duplicates are deduplicated;
+conflicting ones fail. A process-wide 2.1-second request queue and 429 backoff
+respect the public API's approximate 30/minute allowance.
 
-On 2026-11-12 the specified public shim returned HTTP 404 for both SOL history
-and symbol metadata. This is an upstream availability error, not an empty or
-successful backtest. The newer [Pyth OHLC API](https://docs.pyth.network/api-reference/historical-prices/history)
-requires authentication; T6 does not silently replace its specified data source.
+Pyth's crypto/equity symbols and the existing `pyth-v1` cache are preserved.
+If no pool feed can be read, Pyth is attempted; its HTTP 404 and the pool-provider
+reason are both exposed if neither succeeds. A fallback success keeps the failed
+primary reason in warnings. The keeper's Pyth settlement is unaffected.
+
+The public pool API returned HTTP 401 for an older BTC page. Already-read bars
+remain usable only with `complete:false`, actual first/last/gap coverage and
+explicit archive warnings. No missing price or volume is fabricated. Perp
+replays label the path **spot reference for the perp**; the Trade chart displays
+the separate current venue mark. Those candles are not historical perp fills.
 
 ## Replay contract
 
@@ -48,12 +61,12 @@ amounts in both directions. An undisclosed fee reports setup required, never
 zero. These are **current observed schedules applied to the historical path**,
 not reconstructed historical schedules. Price impact is represented only by the
 stated fixed slippage model (plus Jupiter Perps' current impact fee). Network
-fees/rent, historical liquidity and liquidations are excluded. Oracle-price
+fees/rent, historical liquidity and liquidations are excluded. Historical-price
 results are research estimates, not executable historical fills.
 
 The book's trend gate uses only BTC bars closed by the decision time: the latest
 BTC close vs 200 completed daily closes. Missing warm-up disables gated entries.
-Pyth has no traded volume: volume-dependent strategies are disabled explicitly.
+Volume-dependent strategies are disabled when the selected provider has no usable volume; GeckoTerminal supplies actual pool USD volume.
 All rules use completed bars, with a bounded JSON expression format; no code or
 `eval` is accepted. For example:
 
@@ -77,7 +90,7 @@ marked at each completed bar, not at unobserved intrabar prices.
 `predictionBacktest({symbol,from,to,strike,liquidityUsdc,...})` tests a question
 like “SOL above $X at hour H”, with `to` as expiry. **Liquidity is an explicit
 model input, not fabricated historical pool data.** A balanced 50/50 pm-AMM curve
-starts at the first Pyth candle; `marketState` accrues its real decay formula and
+starts at the first history candle; `marketState` accrues its real decay formula and
 `quoteSwap` prices both sides including the protocol's 2% USDC fee. The one
 model trade updates reserves; no invented external order flow is supplied.
 
@@ -92,7 +105,7 @@ execution, does not consume a future candle. All probability inputs are prefixes
 
 This is a **counterfactual curve experiment on real underlying history**, not
 empirical pm-AMM execution or a profitable-market claim. It requires contiguous
-Pyth bars and a bar closing exactly at expiry, settles `close > strike` (ties NO),
+history bars and a bar closing exactly at expiry, settles `close > strike` (ties NO),
 and labels the difference from the keeper's exact timestamp/confidence oracle
 resolution. It never signs, submits, or creates a real prediction market.
 
@@ -100,7 +113,7 @@ resolution. It never signs, submits, or creates a real prediction market.
 
 - `GET /backtest`: strategy names, venues, defaults, rule format and assumptions.
 - `GET /backtest/history?symbol=SOL&from=...&to=...&resolution=60`: cached real
-  Pyth candles and provenance, including volume availability.
+  pool/oracle candles and provenance, including volume availability.
 - `POST /backtest`: the strategy request documented above.
 - `POST /backtest/predict`: prediction request; `to` is expiry, `strike` and
   `liquidityUsdc` required. Optional capital, slippage, lookback, minimum edge.
@@ -113,10 +126,9 @@ The agent's `backtest` tool supports the same fields, with optional
 BOOK names and rule schema are disclosed in its description/schema. T5 owns the
 UI page; T6 changes only the backend/tool surface.
 
-Run `npm run test:backtest --prefix desk`. Validation/arithmetic and real venue
-checks run independently of Pyth. Candle/cache, book/rule accounting,
-causality/data-shift, prediction and successful HTTP/tool replay checks use only
-actual Pyth candles, and skip explicitly if the history service is unreachable.
-See [TESTING.md](../../TESTING.md#v1-t6--real-history-backtesting) for measured
-counts and current upstream blockers; no successful replay is asserted while
-the specified shim returns 404.
+Run `npm run test:backtest --prefix desk` plus
+`node --test desk/test/history.live.test.mjs`. Validation/arithmetic and live
+venue checks run independently of history availability. Candle/cache, backward
+pagination, aggregation, book/rule accounting, causality/data-shift, prediction
+and HTTP/tool replay checks use real APIs; an unreachable dependency is skipped
+with its actual reason. [TESTING.md](../../TESTING.md) records measured counts.

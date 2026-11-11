@@ -167,7 +167,7 @@ export function replay({candles,options,fees,funding={status:'funding not modell
 export async function backtest(input,{history=new History()}={}) {
   const o=validateBacktest(input),h=await history.get(o);
   const needsGate=o.strategy==='book'||GATED_BOOK.includes(o.strategy)||o.rule?.requireUptrend;
-  let market=o.symbol.replace(/^Crypto\./,'').replace(/^Equity\.[A-Z]{2}\./,'').replace('/USD','');
+  let market=o.symbol.startsWith('mint:')?o.symbol.slice(5):o.symbol.replace(/^Crypto\./,'').replace(/^Equity\.[A-Z]{2}\./,'').replace('/USD','');
   if(o.venue==='jupiter'&&o.symbol.startsWith('Equity.')) {
     market=Object.keys(MARKETS).find(s=>s.replace(/x$/i,'').toUpperCase()===market&&MARKETS[s].class==='equity')??market;
   }
@@ -176,5 +176,8 @@ export async function backtest(input,{history=new History()}={}) {
     needsGate?history.get({symbol:'BTC',from:Math.max(0,o.from-202*86400),to:o.to,resolution:'1D'}):null,
     needsGate?(o.symbol==='Crypto.BTC/USD'?h:history.get({symbol:'BTC',from:o.from,to:o.to,resolution:o.resolution})):null,
   ]);
-  return {...replay({candles:h.candles,options:input,fees,funding,btcDaily:daily?.candles,btcHourly:hourly?.candles}),history:{...h,candles:undefined,barCount:h.candles.length}};
+  const result=replay({candles:h.candles,options:input,fees,funding,btcDaily:daily?.candles,btcHourly:hourly?.candles});
+  return {...result,warnings:[...result.warnings,...(h.warnings || []),...(daily?.warnings || []).map(w=>'BTC gate: '+w)],
+    history:{...h,candles:undefined,barCount:h.candles.length},
+    gateHistory:daily?{source:daily.source,complete:daily.complete,coverage:daily.coverage}:null};
 }

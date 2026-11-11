@@ -252,7 +252,8 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function geckoJson(url) {
   const task = geckoTail.then(async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
-      await pause(Math.max(0, nextGeckoAt - Date.now()));
+      while (Date.now() < nextGeckoAt)
+        await pause(Math.min(60000, nextGeckoAt - Date.now()));
       nextGeckoAt = Date.now() + 2100;
       let response;
       try {
@@ -272,10 +273,10 @@ async function geckoJson(url) {
           ? Number.isFinite(seconds)
             ? seconds * 1000
             : Date.parse(header) - Date.now()
-          : 30000 * 2 ** attempt;
+          : Math.min(60000, 30000 * 2 ** attempt);
         nextGeckoAt = Math.max(
           nextGeckoAt,
-          Date.now() + Math.min(60000, Math.max(2100, retry || 30000)),
+          Date.now() + Math.max(2100, retry || 30000),
         );
         await response.body?.cancel();
         if (attempt < 2) continue;
@@ -315,8 +316,8 @@ async function cachedGecko(
   let job = inflight.get(file);
   if (!job) {
     job = (async () => {
-      const payload = await geckoJson(url),
-        value = decode(payload);
+      const payload = await geckoJson(url);
+      decode(payload);
       await mkdir(dir, { recursive: true, mode: 0o700 });
       const tmp = file + "." + randomUUID() + ".tmp";
       try {
@@ -329,7 +330,7 @@ async function cachedGecko(
       } finally {
         await unlink(tmp).catch(() => {});
       }
-      return value;
+      return payload;
     })();
     inflight.set(file, job);
     job
@@ -339,7 +340,7 @@ async function cachedGecko(
       .catch(() => {});
     counts.networkRequests++;
   } else counts.cacheHits++;
-  return job;
+  return decode(await job);
 }
 export function selectPool(payload, mint) {
   if (!Array.isArray(payload?.data))
@@ -375,7 +376,7 @@ export function selectPool(payload, mint) {
       "Largest reserve_in_usd among mint-base, USDC/USDT-quote pools returned by the token top-pools endpoint",
   };
 }
-function decodeGecko(payload, mint, step) {
+function decodeGecko(payload, mint, step, range) {
   const list = payload?.data?.attributes?.ohlcv_list;
   if (!Array.isArray(list) || payload.meta?.base?.address !== mint)
     throw new Error("invalid GeckoTerminal OHLCV payload or base mint");
@@ -408,10 +409,18 @@ function decodeGecko(payload, mint, step) {
         volume,
       };
     })
+    .filter((c) => c.t >= range.from * 1000 && c.tClose <= range.to * 1000)
     .sort((a, b) => a.t - b.t);
-  if (candles.some((c, i) => i && c.t === candles[i - 1].t))
-    throw new Error("duplicate GeckoTerminal candle");
-  return candles;
+  const unique = new Map();
+  for (const c of candles) {
+    const prior = unique.get(c.t);
+    if (prior && JSON.stringify(prior) !== JSON.stringify(c))
+      throw new Error(
+        "conflicting GeckoTerminal candles at " + new Date(c.t).toISOString(),
+      );
+    unique.set(c.t, c);
+  }
+  return [...unique.values()];
 }
 function aggregateBars(candles, sourceStep, targetStep) {
   if (sourceStep === targetStep) return candles;
@@ -466,6 +475,7 @@ export class GeckoHistory {
     const [unit, aggregate, sourceStep] = FORMATS[req.resolution],
       rows = new Map();
     let before = req.to - 1;
+    const limitations = [];
     while (before >= req.from) {
       const query = new URLSearchParams({
         aggregate,
@@ -476,12 +486,30 @@ export class GeckoHistory {
         include_empty_intervals: false,
       });
       const url = `${GECKO_HISTORY}/pools/${pool.address}/ohlcv/${unit}?${query}`;
-      const page = await cachedGecko(
-        this.dir,
-        url,
-        { prefix: "ohlcv", decode: (j) => decodeGecko(j, mint, sourceStep) },
-        counts,
-      );
+      let page;
+      try {
+        page = await cachedGecko(
+          this.dir,
+          url,
+          {
+            prefix: "ohlcv",
+            decode: (j) => decodeGecko(j, mint, sourceStep, req),
+          },
+          counts,
+        );
+      } catch (e) {
+        if (
+          rows.size &&
+          e instanceof HistoryUnavailable &&
+          /GeckoTerminal: HTTP (401|403|404)/.test(e.message)
+        ) {
+          limitations.push(
+            e.message + " while paging older history; coverage is partial.",
+          );
+          break;
+        }
+        throw e;
+      }
       if (!page.length) break;
       for (const c of page)
         if (c.t >= req.from * 1000 && c.tClose <= req.to * 1000)
@@ -517,6 +545,11 @@ export class GeckoHistory {
       ...counts,
       volumeAvailable: candles.some((c) => c.volume > 0),
       volumeUnit: "USD",
+      complete:
+        !limitations.length &&
+        !gaps &&
+        candles[0].t === req.from * 1000 &&
+        candles.at(-1).tClose === req.to * 1000,
       coverage: {
         firstOpen: candles[0].t,
         lastClose: candles.at(-1).tClose,
@@ -529,6 +562,7 @@ export class GeckoHistory {
           ? "Provider OHLCV"
           : `${req.step / sourceStep} consecutive provider ${sourceStep}s bars; incomplete groups omitted`,
       warnings: [
+        ...limitations,
         ...(gaps
           ? ["No-swap intervals are omitted, never filled or interpolated."]
           : []),

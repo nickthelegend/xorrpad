@@ -1,3 +1,57 @@
+# T10 history-source verification
+
+Run on **2026-11-12 (Asia/Kolkata)** / November 11 UTC, Node 26.5.0.
+The source is now real GeckoTerminal Solana pool OHLCV, with named Pyth fallback.
+No responses, candles, prices, fees, fills or signatures are mocked.
+
+| Run | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| History + backtest, focused | 19 | 19 | 0 | 0 |
+| Full desk | 118 | 110 | 0 | 8 |
+| Full keeper | 9 | 7 | 1 | 1 |
+| Full site | 14 | 14 | 0 | 0 |
+| **Full combined run** | **141** | **131** | **1** | **9** |
+
+Focused command: `node --test --test-concurrency=1 --test-reporter=tap desk/test/backtest*.test.mjs desk/test/history.live.test.mjs`.
+Exit 0, **202,438.596292 ms**. It verifies real SOL/AAPLx candles, stable-quote
+pool selection by mint/depth, USD volume, cache corruption recovery, pagination
+past 1000 bars, complete 30-minute/two-hour aggregation, concurrent cache ranges,
+replay fee/funding accounting, every book strategy, data-shift/no-look-ahead,
+prediction modelling and authenticated HTTP/agent round trips.
+
+Full command: `node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs`.
+Exit 1, **393,845.415833 ms**, cancelled 0, TODO 0. The focused run is a subset
+and is not added to the full total. [Every result and skip reason](docs/v1/T10-HISTORY-RESULTS.json).
+The six prior Pyth-history skips are gone. The sole failure remains the unchanged
+keeper isolation assertion (test 126) forbidding all desk `.sign()` calls,
+including the SPEC-approved session executor. No existing test was weakened.
+
+The nine remaining skips are actual dependencies: Ollama unavailable;
+`ANTHROPIC_API_KEY` and `DEEPGRAM_API_KEY` absent; Meteora account read HTTP 429;
+the pad test wallet unfunded; two Phoenix trader/account setup cases;
+`PMAMM_TEST_OWNER` unfunded with the devnet airdrop closed; and Hermes requiring
+`PYTH_API_KEY`. The historical T8 report below gives recovery actions. No new
+mainnet transaction was sent; mainnet calls are reads/builds/simulations only.
+
+Data limitations remain explicit. The Pyth secondary probe returned HTTP 404.
+The free pool endpoint returned HTTP 401 while paging older BTC history; the
+available prefix is labelled `complete:false` with first/last/gap coverage and
+warnings. Insufficient daily warm-up disables the 200-day gate; no daily bars are
+invented. All book strategies still run on the actual available path. One early
+focused attempt failed on conflicting AAPLx timestamps outside its requested
+week; decoding now checks duplicates within each requested window and still
+rejects conflicts inside it. The final 19-test run above has no failures/skips.
+
+Firmware compiled successfully using the exact command already recorded in
+[firmware/README.md](firmware/README.md):
+`arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad`.
+Sketch **1,476,455 bytes**, globals **59,060 bytes**. **Compiled, not yet flashed**.
+The source-label UI detector returned 0 findings; changed modules passed syntax
+and formatting checks. Browser evidence is recorded separately in the screen
+manifest after the real chart capture step. Nothing was pushed.
+
+---
+
 # T9 judge-fix verification
 
 Run on **2026-11-12 (Asia/Kolkata)** / November 11 UTC, using Node 26.5.0.

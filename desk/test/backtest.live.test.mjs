@@ -1,4 +1,4 @@
-/** Real Pyth history and venue reads. Only unreachable dependencies are skipped. */
+/** Real pool/oracle history and venue reads. Only unreachable dependencies are skipped. */
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm,readdir,writeFile} from 'node:fs/promises';
@@ -50,18 +50,19 @@ test('real Jupiter route fees are disclosed or fail explicitly, never assumed ze
     if(!unavailable(e))throw e;t.skip(e.message);
   }
 });
-test('real Pyth candles cache, corrupt cache recovery, no fabricated volume and equity reference',{timeout:120000},async t=>{
+test('real pool candles cache, corrupt cache recovery, no fabricated volume and equity reference',{timeout:120000},async t=>{
   const h=await real(t);if(!h)return;
+  assert.equal(h.provider,'geckoterminal');assert.match(h.source,/GeckoTerminal · .+ · .+/);assert.equal(h.volumeUnit,'USD');
   assert.ok(h.candles.length>100);assert.ok(h.candles.every((c,i)=>c.t>=from*1000&&c.tClose<=to*1000&&(!i||c.t>h.candles[i-1].t)));
   const hit=await history.get({symbol:'SOL',from,to});assert.deepEqual(hit.candles,h.candles);assert.equal(hit.networkRequests,0);assert.ok(hit.cacheHits>0);
   assert.equal(h.volumeAvailable,h.candles.some(c=>c.volume>0));
-  const cacheDir=path.join(dir,'history','pyth-v1'),file=(await readdir(cacheDir))[0];
+  const cacheDir=history.dir,file=(await readdir(cacheDir)).find(f=>f.startsWith('ohlcv-'));
   await writeFile(path.join(cacheDir,file),'corrupt cache');
   const recovered=await history.get({symbol:'SOL',from,to});assert.ok(recovered.networkRequests>0);assert.deepEqual(recovered.candles,h.candles);
   let equity;
   try{equity=await history.get({symbol:'AAPLx',from,to});}catch(e){if(!(e instanceof HistoryUnavailable))throw e;t.skip(e.message);return;}
   assert.equal(equity.symbol,'Equity.US.AAPL/USD');assert.ok(equity.candles.length>0);
-  console.log(`REAL Pyth SOL ${h.candles.length} bars, AAPL ${equity.candles.length} bars; cache re-read and corruption recovery verified`);
+  console.log(`REAL GeckoTerminal SOL ${h.candles.length} bars, AAPL ${equity.candles.length} bars; cache re-read and corruption recovery verified`);
 });
 test('real history replay accounts for both fees, funding, slippage, sizing, exits and metrics',{timeout:120000},async t=>{
   const h=await real(t);if(!h)return;
@@ -106,7 +107,7 @@ test('no look-ahead: delayed real data delays decisions; truncated/future-shifte
   assert.deepEqual(entries(prefix),entries(original));assert.deepEqual(entries(changed),entries(original));
   console.log('REAL shifted path delayed the first decision/fill by one hour; changing the future preserved every prior fill');
 });
-test('every book strategy uses real Pyth data and gate warmup; volume absence is explicit',{timeout:120000},async t=>{
+test('every book strategy uses real pool data and gate warmup; volume absence is explicit',{timeout:120000},async t=>{
   const h=await real(t);if(!h)return;
   let fees,daily,btc;
   try{[fees,daily,btc]=await Promise.all([feeSchedule('phoenix','SOL',100),history.get({symbol:'BTC',from:from-202*86400,to,resolution:'1D'}),history.get({symbol:'BTC',from,to})]);}
@@ -119,7 +120,7 @@ test('every book strategy uses real Pyth data and gate warmup; volume absence is
   }
   const result=await backtest({...options,strategy:'mr_band_fade',rule:undefined},{history});assert.equal(result.history.barCount,h.candles.length);
 });
-test('prediction exact helpers replay real Pyth path and disclose counterfactual edge',{timeout:120000},async t=>{
+test('prediction exact helpers replay real pool path and disclose counterfactual edge',{timeout:120000},async t=>{
   const h=await real(t);if(!h)return;
   const input={symbol:'SOL',from,to,strike:h.candles[0].close,liquidityUsdc:1000,lookback:20,minEdgePct:0};
   const r=replayPrediction(h.candles,input);

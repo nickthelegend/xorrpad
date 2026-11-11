@@ -198,10 +198,12 @@ at least 0.5 devnet SOL and the configured mUSDC liquidity budget, supply
 `PYTH_API_KEY` in the process environment, then run `node keeper/run.mjs --cycle`
 for a real create/resolve check. Never open its private key for documentation.
 
-Backtest replays actual Pyth history, with disclosed current fee schedules,
-funding gaps and adverse slippage. Prediction replay is a counterfactual curve
-experiment; it is not historical pm-AMM liquidity or proof of profitability.
-The specified Pyth history endpoint currently returns 404.
+Backtest replays actual GeckoTerminal Solana pool candles, labelled with the
+pool and DEX, with disclosed current fee schedules, funding gaps and adverse
+slippage. Perps use the underlying spot reference plus the venue's live mark.
+Pyth remains a secondary provider; its current HTTP 404 is reported when tried.
+Partial archive coverage is explicit. Prediction replay is a counterfactual
+curve experiment, not historical pm-AMM liquidity or proof of profitability.
 [Replay contract and limits](docs/v1/BACKTEST.md).
 
 ```sh

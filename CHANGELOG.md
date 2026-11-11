@@ -4,6 +4,20 @@ All notable changes to xorrpad are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-11-12
+
+### Fixed
+
+- Replace the dead primary Pyth Benchmarks history URL with mint-pinned
+  GeckoTerminal Solana pool OHLCV, including cached pool selection, backward
+  paging, a shared rate limiter and HTTP 429 backoff.
+- Preserve Pyth as the secondary history provider and expose each attempted
+  provider's failure. Disclose partial archive coverage and missing gate warm-up.
+- Name the pool and DEX in chart/replay provenance; label perp charts as an
+  underlying spot reference alongside the venue's live mark.
+- Preserve all candle resolutions through complete-bar aggregation, validate
+  requested-window duplicates, and share raw in-flight pages across ranges.
+
 ## [1.0.0] - 2026-11-12
 
 ### Added

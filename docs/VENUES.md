@@ -238,3 +238,42 @@ venue's unsigned transaction. YES/NO and other pad controls take priority over
 same-named catalog tickers. Rejections, quote-only results and unsigned
 handoffs remain distinct from fills. Public owner setup uses `SOLANA_ADDRESS`,
 `PHOENIX_AUTHORITY` or `JUPPERPS_AUTHORITY`; no signer is created here.
+
+
+## 1.0.1: on-chain history for charts and research
+
+T10 observed real, key-free responses from the
+[GeckoTerminal public API](https://api.geckoterminal.com/docs/index.html).
+The desk resolves an exact pinned Solana mint, reads its
+[token pools](https://api.geckoterminal.com/api/v2/networks/solana/tokens/So11111111111111111111111111111111111111112/pools?include=base_token,quote_token,dex),
+and selects the greatest `reserve_in_usd` among the returned pools with that
+base mint and the canonical USDC or USDT quote mint. This is the deepest eligible
+pool in the endpoint's top-pool response, not a claim to enumerate every pool.
+The selected pool is cached for 24 hours. Symbols alone never authorize a
+similarly named token. BTC/ETH use the wrapped mint identities already pinned
+by the Jupiter Perps adapter; xStock history uses the actual tokenized share.
+
+SOL selected **SOL / USDC · Orca**, pool
+`Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE`.
+[Pool OHLCV](https://docs.coingecko.com/reference/pool-ohlcv-contract-address)
+is fetched backward, up to 1000 rows per call, in USD with no empty-interval
+filling. A process-wide queue starts at most one public request every 2.1 seconds;
+429 responses honor Retry-After or use 30/60-second backoff. Completed raw
+responses are cached atomically in app data, with URL/timestamp provenance.
+30-minute and two-hour resolutions aggregate complete real 15-minute/hourly
+bars; missing groups are omitted. Conflicting candles inside the requested
+window fail validation rather than choosing a price.
+
+Chart/replay labels name **GeckoTerminal · pool name · DEX**. Perps explicitly
+show **spot reference for the perp**, separately from the venue's live mark.
+These are underlying spot candles, not historical executable perp prices.
+Pyth Benchmarks remains secondary when a pool feed is unavailable. Both provider
+reasons are returned if it also fails; its actual HTTP 404 is never converted
+into an empty successful backtest. No Pyth credential is needed for pool reads,
+and the keeper's exact-expiry Pyth resolution remains unchanged.
+
+The public service denied an older BTC history page with HTTP 401. A usable
+prefix is returned only with `complete:false`, actual coverage and the provider
+error in warnings; no missing bars are invented. Insufficient BTC daily warm-up
+disables the existing 200-day gate. See [replay limits](v1/BACKTEST.md) and
+[measured testing](../TESTING.md) for the actual run.

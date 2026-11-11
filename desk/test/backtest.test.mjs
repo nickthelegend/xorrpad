@@ -1,13 +1,15 @@
 /** Validation and arithmetic only; no fake market candles or service responses. */
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {historyRequest,pythSymbol} from '../main/history.mjs';
+import {historyRequest,pythSymbol,historyMint} from '../main/history.mjs';
 import {metrics,validateBacktest,validateRule} from '../main/backtest.mjs';
 import {validatePrediction} from '../main/prediction-backtest.mjs';
 import {validateTool} from '../main/agent-tools.mjs';
 const base={symbol:'SOL',from:1793491200,to:1794096000,strategy:'mr_band_fade',venue:'phoenix'};
 test('Pyth symbols, bounded ranges, completed historical time and resolutions',()=>{
   assert.equal(pythSymbol('SOL-PERP'),'Crypto.SOL/USD');
+  assert.equal(historyMint(pythSymbol('SOL-PERP')),'So11111111111111111111111111111111111111112');
+  assert.equal(historyMint(pythSymbol('BTC-PERP')),'3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
   for(const s of ['AAPL','AAPLx','aaplx'])assert.equal(pythSymbol(s),'Equity.US.AAPL/USD');
   assert.equal(pythSymbol('Equity.US.NVDA/USD'),'Equity.US.NVDA/USD');
   assert.equal(historyRequest({...base,resolution:'D'}).step,86400);
