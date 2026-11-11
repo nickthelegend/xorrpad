@@ -24,9 +24,11 @@
   "dependencies": {
     "@anchor-lang/core": "1.0.1",
     "@ellipsis-labs/rise": "0.7.10",
+    "@meteora-ag/dlmm": "1.9.14",
     "@pm-amm/sdk": "0.2.0",
     "@solana/spl-token": "0.4.14",
-    "@solana/web3.js": "1.98.4"
+    "@solana/web3.js": "1.98.4",
+    "bn.js": "5.2.2"
   },
   "main": "main/electron.mjs",
   "devDependencies": {
