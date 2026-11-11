@@ -54,7 +54,7 @@ export function pcmToWav(pcm, sampleRate = SR) {
 const DEADLINE = (ms) => ({ signal: AbortSignal.timeout(ms) });
 
 export async function stt(wav) {
-  if (!dgKey()) throw new Error("DEEPGRAM_API_KEY missing");
+  if (!dgKey()) throw new Error("Setup required: DEEPGRAM_API_KEY");
   const r = await fetch(
     "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true",
     { method: "POST", headers: { Authorization: `Token ${dgKey()}`, "content-type": "audio/wav" },
@@ -65,7 +65,7 @@ export async function stt(wav) {
 }
 
 export async function tts(text) {
-  if (!dgKey()) throw new Error("DEEPGRAM_API_KEY missing");
+  if (!dgKey()) throw new Error("Setup required: DEEPGRAM_API_KEY");
   const r = await fetch(
     `https://api.deepgram.com/v1/speak?model=aura-2-thalia-en&encoding=linear16&sample_rate=${SR}`,
     { method: "POST", headers: { Authorization: `Token ${dgKey()}`, "content-type": "application/json" },
