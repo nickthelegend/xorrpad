@@ -4,6 +4,7 @@
 #include <vector>
 #include "logic/presentation.h"
 #include "logic/predict-state.h"
+#include "logic/perps-state.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // What the pad knows, as plain data.
@@ -24,6 +25,8 @@ struct PadPosition {
 
 struct PadState {
   xorr::Predict predict;
+  xorr::Perps perps;
+  xorr::LiqGuard liqGuard;
   xorr::Fund fund;
   xorr::Portfolio portfolio;
   bool alertsOnly=false;String alertNotice;uint32_t alertUntil=0;
@@ -33,6 +36,7 @@ struct PadState {
   bool clearSigning=false,blindSigning=false,blindAllowed=false,clearReviewed=false;
   size_t clearPage=0;uint32_t confirmDuration=800;
   std::vector<std::string> clearRows;
+  bool positionsVisible=false;
   PadPosition positions[8]; uint8_t positionN=0; int positionCount=-1;
   uint32_t replyAt=0;
   bool factory=false; int factoryStage=0, factoryMic=0;
@@ -45,6 +49,7 @@ struct PadState {
   uint8_t otaProgress=0;bool updating=false;float holdProgress=0;int waveform[32]={};
 
   String keyLabels[14];uint32_t keymapUntil=0;
+  bool signalReduceOnly=false;
   bool autoAccept = false;
   String link, signalId, signalState, receiptSignature, receiptExplorer, lastKeyLabel;
   uint32_t signalDeadline=0, receiptUntil=0, labelUntil=0;

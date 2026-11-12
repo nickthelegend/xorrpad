@@ -1,3 +1,4 @@
+import {guardRecord,guardKey} from './perps-cockpit.mjs';
 import {predictRecord, outcomePositionsRecord, predictProposal} from "./pad-predict.mjs";
 import {otaEligible, verifyPatch} from "./ota.mjs";
 import {verifyCrewApproval} from "./crew.mjs";
@@ -166,6 +167,7 @@ export class PadLink extends EventEmitter {
     legacyV1: false,
     allowBlindSigning: false,
     holdThreshold: 100,
+    liqGuardPct: 10,
     brightness: 220,
     night: false,
     highContrast: false,
@@ -274,6 +276,8 @@ export class PadLink extends EventEmitter {
           killed: this.killed.has(p.device),
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
+          perps:p.perps,
+          liqGuard:p.liqGuard,
           predict: p.predict,
           predictSelected: p.predictSelected || 0,
           outcomePositions: p.outcomePositions,
@@ -488,7 +492,29 @@ export class PadLink extends EventEmitter {
     catch {p.outcomePositions={type:"outcome_positions",cluster:"devnet",positions:[],message:"Setup required: connect your devnet outcome wallet and RPC"};}
     this.send(p,p.outcomePositions);
   }
+  async perpsPulse(p) {
+    if(p.perpsBusy)return;p.perpsBusy=true;
+    try {
+      p.perps=await this.read('/pad/perps');p.perpsAt=Date.now();
+      this.send(p,{...p.perps,positions:p.perps.positions.slice(0,6).map(({market,venue,side,entry,mark,leverage,liq,nextFunding,distancePct})=>({market,venue,side,entry,mark,leverage,liq,nextFunding,distancePct})),message:p.perps.message.slice(0,240)});
+      const next=guardRecord(p.perps.positions,this.options.liqGuardPct);
+      const same=next.active && (p.liqGuard?.active || p.liqGuard?.dismissed) && next.proposal.positionId===p.liqGuard.proposal.positionId;
+      next.id=same?p.liqGuard.id:randomUUID();next.observedAt=new Date().toISOString();
+      if(!same)p.guardDismissed=false;
+      const changed=next.active && !same;
+      p.liqGuard={...next,active:next.active && !p.guardDismissed};
+      // Keep the episode identity while dismissed until recovery or another position is closest.
+      if(p.guardDismissed)p.liqGuard={...next,active:false,dismissed:true};
+      this.send(p,p.liqGuard);
+      if(changed && !p.guardDismissed)this.signals?.publish({...p.liqGuard,device:p.device});
+    } catch {
+      p.perps={type:'perps',positions:[],message:'Setup required: live perp position feed unavailable'};
+      p.liqGuard={type:'liq_guard',active:false,proposal:null};p.perpsAt=0;
+      this.send(p,p.perps);this.send(p,p.liqGuard);
+    } finally {p.perpsBusy=false;}
+  }
   async marketPulse(p) {
+    this.perpsPulse(p);
     if(this.isPredictor(p) || p.predict?.enabled)await this.predictPulse(p);
     if (p.pulseBusy) return;
     p.pulseBusy = true;
@@ -539,6 +565,7 @@ export class PadLink extends EventEmitter {
     for (const k of Object.keys(next))
       if (!(k in this.options)) throw Error("unknown pad setting");
     if (
+      !Number.isFinite(next.liqGuardPct) || next.liqGuardPct<=0 || next.liqGuardPct>100 ||
       !Number.isFinite(next.holdThreshold) ||
       next.holdThreshold < 0 ||
       next.holdThreshold > 1000000 ||
@@ -644,6 +671,8 @@ export class PadLink extends EventEmitter {
         market: s.symbol,
         side: s.side,
         sizeUsd: v.sizeUsd,
+        reduceOnly:s.reduceOnly===true,
+        reducePct:s.reducePct,
         venue: trusted?.venue || routing?.best?.venue || s.venue || "",
         why: (v.why || []).join("; ").slice(0, 180),
         trusted,
@@ -1302,6 +1331,20 @@ export class PadLink extends EventEmitter {
           : m,
     });
     if (m.type === "key") {
+      if(m.edge==='down' && ['liq:yes','liq:no'].includes(m.action)) {
+        const proposal=guardKey({peer:p,message:m,killed:this.killed.has(p.device),
+          pending:!!p.clearReview || !!p.sessionRequest || this.signals?.list().some(e=>e.state==='awaiting' && e.expiresAt>Date.now())});
+        if(proposal) {
+          // Re-read the actual position; never accept or execute on this press.
+          const live=guardRecord((await this.read('/pad/perps')).positions,this.options.liqGuardPct);
+          if(!live.active || live.proposal.positionId!==proposal.positionId || live.proposal.size!==proposal.size)throw Error('Liquidation guard changed; refresh position');
+          if(this.signals?.list().some(e=>e.state==='awaiting' && e.expiresAt>Date.now()))throw Error('Decision pending');
+          await this.request('/signals',proposal);
+        }
+        p.guardDismissed=true;p.liqGuard={...p.liqGuard,active:false,dismissed:true};this.send(p,p.liqGuard);
+        this.signals?.publish({...p.liqGuard,device:p.device,decision:proposal?'proposed':'refused'});
+        this.send(p,{type:'result',id:m.id,ok:true});return;
+      }
       if(m.action!=="portfolio")p.outcomePositions=null;
       if(m.action==="predict:close") {this.send(p,{type:"result",id:m.id,ok:true});return;}
       if(m.edge==="down" && ["predict:yes","predict:no"].includes(m.action)) {

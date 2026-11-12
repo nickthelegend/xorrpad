@@ -64,8 +64,17 @@ function CrewPolicy({ policy, devices, onClose }) {
 export function PadActivity() {
   const d = useDesk(), crew = useRead("/pad/crew", 3000, true), link = useRead("/desk/link", 3000, true);
   const [editing, setEditing] = useState(false);
-  const records = [...(d.padEvents || [])].reverse();
+  const records = [...(d.padEvents || [])].filter(r=>r.type!=="liq_guard").reverse();
+  const guards=[...(d.padEvents || [])].filter(r=>r.type==="liq_guard").reverse();
   return <section className="pad-activity" aria-label="Pad activity">
+    <h2>Liquidation guard</h2>
+    {!guards.length && <p>No liquidation guard events received in this desktop session.</p>}
+    {guards.map(r=><article className="surface" key={r.recordId}>
+      <h3>{r.market} · {r.decision || 'LIQ GUARD'}</h3>
+      <p>{r.device} · Mark {r.mark} · Liquidation {r.liq} · Distance {r.distancePct}%</p>
+      <p>Reduce 50% only after proposal review and confirmation. Existing permissions apply.</p>
+      <details><summary>View actual guard record</summary><pre>{JSON.stringify(r,null,2)}</pre></details>
+    </article>)}
     <div className="section-title ability-list-title"><h2>Clear-sign results</h2><span className="badge">{d.online ? "Live events" : "Event stream disconnected"}</span></div>
     <p>Results received in this desktop session. A review approval is not a transaction signature or a confirmed fill.</p>
     <PadTarget label="Review pad">{(device) => <ClearReview device={device} />}</PadTarget>

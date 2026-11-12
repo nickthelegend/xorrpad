@@ -1,3 +1,4 @@
+import {assertCloseSnapshot} from './perp-close.mjs';
 /** Phoenix perpetuals: mainnet data, unsigned orders and read-only simulation. */
 import { createPhoenixClient, Side, OrderFlags, calculateLiquidationPriceUsd,
   baseUnitsToBaseLotsWithMarketParams, baseLotsToBaseUnits } from "@ellipsis-labs/rise";
@@ -142,7 +143,7 @@ export async function positions(authority, options = {}) {
       side:lots>0n?"long":"short", baseLots:lots.toString(), baseUnits:Math.abs(units), baseUnitsDecimal:lotsDecimal(lots,m.baseLotsDecimals), entryPrice:entry,
       markPrice:m.markPrice, notionalUsd:m.markPrice==null?null:Math.abs(units)*m.markPrice,
       unrealizedPnlUsd:m.markPrice==null?null:units*(m.markPrice-entry), unsettledFundingQuoteLots:p.unsettledFundingQuoteLots,
-      accountCollateralQuoteLots:sub.collateral, cluster:"mainnet-beta", slot:state.slot }];
+      accountCollateralQuoteLots:sub.collateral, leverage:null, liquidationPrice:null, nextFunding:null, cluster:"mainnet-beta", slot:state.slot }];
   }));
 }
 export const balances = positions;
@@ -188,14 +189,27 @@ export async function buildOpen(input, { request = true } = {}) {
     collateralNote:"USD is the sizing budget; this order does not deposit or transfer collateral. Actual leverage is account-wide."},
     ()=>buildOpen({...input,authority,traderPdaIndex,subaccountIndex},{request:false}),request);
 }
+export function closeLots(baseLots, reducePct=100) {
+  if(![50,100].includes(reducePct))throw Error('invalid reducePct');
+  const lots=BigInt(baseLots), magnitude=(lots<0n?-lots:lots)*BigInt(reducePct)/100n;
+  if(magnitude<=0n)throw Error('reduce size rounds below one base lot');
+  return magnitude;
+}
+export async function quoteClose(input) {
+  const authority=authorityKey(input.authority), m=await marketOf(input.market);
+  const rows=(await positions(authority,input)).filter(p=>p.market===m.market && (input.subaccountIndex==null || p.subaccountIndex===Number(input.subaccountIndex)));
+  if(!rows.length)throw Error('no open Phoenix position in the requested market/subaccount');
+  if(rows.length>1)throw Error('specify subaccountIndex to close one of multiple positions in this market');
+  const p=rows[0];assertCloseSnapshot(p,input);
+  const lots=closeLots(p.baseLots,input.reducePct),baseUnits=baseLotsToBaseUnits(lots,m.baseLotsDecimals);
+  const side=p.side==='long'?'short':'long',execution=walk(await bookOf(m.market),side,baseUnits);
+  return {authority,market:m.market,side,baseUnits,baseUnitsDecimal:lotsDecimal(lots,m.baseLotsDecimals),
+    traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex,reduceOnly:true,
+    reducePct:input.reducePct ?? 100,fee:execution.notionalUsd*m.takerFeeRate,...execution,cluster:'mainnet-beta'};
+}
 export async function buildClose(input, { request = true } = {}) {
-  const authority = authorityKey(input.authority), m = await marketOf(input.market), slippageBps = tolerance(input.slippageBps);
-  const rows = (await positions(authority,input)).filter(p=>p.market===m.market && (input.subaccountIndex==null || p.subaccountIndex===Number(input.subaccountIndex)));
-  if (!rows.length) throw new Error("no open Phoenix position in the requested market/subaccount");
-  if (rows.length>1) throw new Error("specify subaccountIndex to close one of multiple positions in this market");
-  const p = rows[0], side = p.side==="long"?"short":"long", execution = walk(await bookOf(m.market),side,p.baseUnits);
-  const built = await orderInstruction({authority,market:m.market,side,baseUnits:p.baseUnitsDecimal,
-    priceLimit:execution.worstPrice*(1+(side==="long"?1:-1)*slippageBps/10000),reduceOnly:true,traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex});
-  return serialize(authority,built.instruction,{market:m.market,side,baseUnits:p.baseUnits,reduceOnly:true,slippageBps,
-    traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex},()=>buildClose({...input,authority,traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex},{request:false}),request);
+  const q=await quoteClose(input),slippageBps=tolerance(input.slippageBps);
+  const built=await orderInstruction({...q,baseUnits:q.baseUnitsDecimal,priceLimit:q.worstPrice*(1+(q.side==='long'?1:-1)*slippageBps/10000)});
+  return serialize(q.authority,built.instruction,{...q,slippageBps},
+    ()=>buildClose({...input,authority:q.authority,traderPdaIndex:q.traderPdaIndex,subaccountIndex:q.subaccountIndex},{request:false}),request);
 }

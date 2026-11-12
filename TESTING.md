@@ -2165,3 +2165,83 @@ model3d parity, Fund/Portfolio, cap persistence, clear-sign, crew, OTA and audio
 Test-generated v3 PNG changes were restored with `git checkout -- docs/screens/v3`.
 The final app bundle was rebuilt after the final firmware WASM, and the native
 suite was rerun after the final firmware request-error feedback change.
+
+## Firmware v4 F2 — Perps cockpit and liquidation guard (2026-11-13)
+
+F2 adds actual Phoenix/Jupiter public position reads, unavailable-safe cockpit
+fields, the default 10% `liqGuardPct` option, red LIQ GUARD/LED and distinct alarm,
+manual reduce-50% proposals and venue-bound reduction builders, Activity records,
+Core/desktop mirror, encrypted padsim, native parser/input tests and uipreview.
+Existing features, tests, key roles and desktop styles remain.
+
+`bash firmware/test/run.sh`: **281 cases / 2,790 assertions passed, 0 failures,
+0 skips**. This includes the new parser bounds/unknowns, exact 30-second expiry
+across clock wrap, two-step guard intent, unchanged KILL LED priority and distinct
+alarm sequence. Focused preflight: **6 tests passed / 0 failed**, including the
+actual HTTP/paired encrypted padsim Setup flow and all **16 distinct native/WASM
+RGB565 frames** (plus independent Fund QR decoding). The final full desk suite
+also includes half-close identity/side/size/cap and padsim input coverage added
+after that preflight.
+
+The live integration deliberately has no configured perp public authority. It
+asserts actual Setup required, no fabricated positions/quotes, no created signals
+on connection or invalid/replayed input, validated persistent threshold options,
+and the existing desktop form at 1440/375. Layout vectors explicitly say
+LAYOUT TEST. No positive funded-position reduction or physical-pad behavior is
+claimed. Jupiter's documented decrease request is unsigned and reduce-only;
+Phoenix retains its actual ReduceOnly flag and decimal lot sizing. Existing
+mainnet acknowledgement gates are preserved and additionally checked for every
+reduce-only routed build, including phone mode.
+
+WASM was rebuilt from final `ui.h` using the required EMSDK. Public evidence logs
+are `firmware/build/f2-{native,wasm,app-build,focused,pro,core,desk}.log`.
+`f2-source-sha256.json` binds the implementation/tests/public artifacts to the
+isolated source; no existing private key, `.env`, `.loom` or wallet directory is
+copied or opened. Dependencies and Python venv are linked; native public drivers
+and public firmware/manifest inputs are copied. The full regression command runs
+alone inside that copy as `SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk`.
+
+Unsigned Arduino CLI compile-only checks both exit **0**:
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 1,976,534 | 68,820 |
+| Core release (`XORR_CORE=1`) | 1,956,479 | 68,516 |
+
+Both use the existing FQBN
+`esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc`,
+`--jobs 4`, and `CONFIG_BT_NIMBLE_SM_SC_ONLY=1` for C/C++. Core additionally
+sets `XORR_CORE=1`, `XORR_RELEASE=1`, `CORE_DEBUG_LEVEL=0`. Existing F1 Pro/Core
+build paths were reused as compilation caches; outputs/logs are F2-specific.
+No signing step, flashing, transaction submission or push was performed.
+
+The disposable source is initialized as a local Git repository so the unchanged
+factory-key safety regression can verify its private-material ignore rules.
+Final screen WASM SHA-256:
+`6a0296ca80974ea103ccc73c49ab52db28741db3870bb76331ad6749b5016c0f`.
+The design detector reports **0 findings** on the changed desktop components;
+no CSS, tokens or commissioned art changed.
+
+Final complete desk acceptance:
+`SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk` ran alone in the matching
+isolated source, exit **0**: **262 tests / 252 passed / 10 skipped / 0 failed /
+0 cancelled**, duration **982,307.709625 ms**. All six F2 tests and every existing
+v1–v3, F1 and agent-wallet regression that ran passed. Model3d parity and all
+16 distinct native/WASM wallet/Predict/outcome/perps/guard frame cases passed.
+No test was removed or weakened. The final 32 implementation/test/public-artifact
+hashes match both working tree and isolated source before and after the run.
+
+Standalone `npm run build:app --prefix desk` also passes from the same isolated
+source; its verified public bundle is copied to the local desk build. Existing
+bundle-size and Device import warnings remain. Final 1440/375 F2 captures are
+copied from that full run; the real Setup pad frame is regenerated from its
+captured public record. `docs/screens/v3` is restored as requested. See
+`docs/screens/v4/README.md` for frame provenance and the explicitly labelled
+LAYOUT TEST guard/cockpit vectors. No existing secret files were opened, no
+release was signed or flashed, no trade was submitted and nothing was pushed.
+
+The ten skips are existing external prerequisites: unavailable Ollama,
+Anthropic, Deepgram and Electron setup; rate-limited Meteora; missing keeper
+public metadata; an unfunded devnet receipt wallet; two unconfigured Phoenix
+account cases; and an unfunded pm-AMM simulation owner. None substitutes fake
+financial data or claims a successful broadcast.

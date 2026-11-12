@@ -20,6 +20,7 @@
 #include "../../firmware/xorrpad/logic/portfolio.h"
 #include "../../firmware/xorrpad/logic/fund.h"
 #include "../../firmware/xorrpad/logic/predict.h"
+#include "../../firmware/xorrpad/logic/perps.h"
 #include <fstream>
 
 #include <cstdio>
@@ -135,6 +136,12 @@ int main(int argc, char **argv) {
     std::ifstream input(argv[3]);JsonDocument d;
     if(!input || deserializeJson(d,input))return 2;
     PadState p;ChartState ch;p.ok=true;
+    if(d["type"]=="perps" || d["type"]=="liq_guard") {
+      if(d["type"]=="perps") {if(!xorr::parsePerps(d,p.perps,millis()))return 3;}
+      else if(!xorr::parseLiqGuard(d,p.liqGuard,millis()))return 3;
+      if(d["type"]=="perps"){p.positionsVisible=true;p.positionCount=0;}
+      ui::drawFrame(c,p,ch);shot(d["type"]=="perps"?"perps-positions":"liq-guard","supplied record: see capture provenance");return made==1?0:4;
+    }
     if(d["type"]=="predict" || d["type"]=="outcome_positions") {
       bool outcomes=d["type"]=="outcome_positions";
       if(outcomes?!xorr::parseOutcomePositions(d,p.predict):!xorr::parsePredict(d,p.predict,millis()))return 3;

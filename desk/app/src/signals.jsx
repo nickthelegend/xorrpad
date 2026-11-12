@@ -36,7 +36,7 @@ export function SignalCard({ signal: s, onAnswer }) {
     <article className="signal-card">
       <div className="section-title">
         <b>
-          {a.side} {a.symbol || a.market}
+          {a.reduceOnly ? `Reduce ${a.reducePct}% · ` : ""}{a.side} {a.symbol || a.market}
         </b>
         <span className="badge">
           {s.state === "awaiting" ? left + "s left" : s.state}

@@ -21,6 +21,17 @@ export async function drawFirmware(
     signalId: pending?.id || "",
     signalDeadline: pending ? Math.max(0, pending.expiresAt - now) : 0,
   };
+  const guard=device?.liqGuard;
+  if(guard?.active && now-Date.parse(guard.observedAt)<30000)Object.assign(fields,{liqActive:true,liqMarket:guard.market,liqVenue:guard.proposal?.venue,liqMark:guard.mark,liqPrice:guard.liq,liqDistance:guard.distancePct});
+  const perps=device?.perps;
+  if(perps) {
+    fields.perpsMessage=perps.message || '';
+    if(now-Date.parse(perps.observedAt)<30000) {
+      fields.positionsScreen=!pending && !guard?.active && Math.floor(now/6000)%2===1;
+      perps.positions?.slice(0,6).forEach((p,i)=>Object.assign(fields,{[`perpRow${i}Market`]:p.market,[`perpRow${i}Venue`]:p.venue,[`perpRow${i}Side`]:p.side,
+        [`perpRow${i}Entry`]:p.entry ?? '',[`perpRow${i}Mark`]:p.mark ?? '',[`perpRow${i}Leverage`]:p.leverage ?? '',[`perpRow${i}Liq`]:p.liq ?? '',[`perpRow${i}Distance`]:p.distancePct ?? '',[`perpRow${i}Funding`]:p.nextFunding ?? ''}));
+    }
+  }
   const predict=device?.predict, market=now-Date.parse(predict?.observedAt)<(predict?.validForMs ?? 30000)?predict?.markets?.[device?.predictSelected || 0]:null;
   if(predict)Object.assign(fields,{predictEnabled:predict.enabled,predictMessage:predict.message,predictSize:predict.sizeUsd || 1,predictTotal:predict.total || 0,predictOffset:predict.offset || 0,
     ...(market?{predictQuestion:market.question,predictProbability:market.probability,predictChange:market.change24h ?? "",
@@ -31,6 +42,7 @@ export async function drawFirmware(
     outcomes.positions?.forEach((p,i)=>Object.assign(fields,{[`outcomeRow${i}Question`]:p.name,[`outcomeRow${i}Yes`]:p.yes,[`outcomeRow${i}No`]:p.no}));
   }
   if (pending) {
+    fields.signalReduceOnly=pending.proposal.signal.reduceOnly===true;
     fields.market = pending.proposal.signal.symbol;
     fields.verdict =
       pending.proposal.signal.side.toUpperCase() +

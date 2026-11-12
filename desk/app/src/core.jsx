@@ -186,7 +186,7 @@ export function Provider({ children }) {
         try {
           const next = JSON.parse(e.data);
           setEvent(next);
-          if (next.type === "clear_approval" || (next.type === "pad_signer" && next.operation === "session_signature" && next.signalId))
+          if (next.type === "liq_guard" || next.type === "clear_approval" || (next.type === "pad_signer" && next.operation === "session_signature" && next.signalId))
             setPadEvents((previous) => [...previous, { ...next, recordId: crypto.randomUUID() }].slice(-100));
         } catch {}
       };

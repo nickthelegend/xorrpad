@@ -32,6 +32,10 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
   for(const state of [
+   {ok:'1',liqActive:'1',liqMarket:'LAYOUT TEST',liqVenue:'jupperps',liqMark:'100',liqPrice:'95',liqDistance:'5'},
+   {ok:'1',positionsScreen:'1',perpRow0Market:'LAYOUT TEST',perpRow0Venue:'phoenix',perpRow0Side:'long',perpRow0Entry:'100',perpRow0Mark:'101'},
+   {ok:'1',positionsScreen:'1',perpRow0Market:'LAYOUT TEST',perpRow0Venue:'jupperps',perpRow0Side:'short',perpRow0Entry:'100',perpRow0Mark:'101',perpRow0Leverage:'5',perpRow0Liq:'105',perpRow0Distance:'3.96',perpRow0Funding:'1800000000'},
+
    {ok:'1',predictEnabled:'1',predictMessage:'Setup required: pm-AMM devnet feed unavailable'},
    ...[0,0.42,1].map(p=>({ok:'1',predictEnabled:'1',predictQuestion:'Layout only: will this question wrap across at most three lines on the physical pad?',predictProbability:String(p),predictClosesIn:'93600',predictChange:''})),
    {ok:'1',outcomeVisible:'1',outcomeMessage:'Setup required: connect your devnet outcome wallet and RPC'},
@@ -59,6 +63,6 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,13,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,16,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });

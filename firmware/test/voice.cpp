@@ -72,3 +72,10 @@ TEST_CASE("TTS malformed Opus aborts stream and permits fresh PCM fallback") {
   CHECK(p.decode("bad",0,"opus",16000,invalid,3,false,true,out)==-1);
   CHECK(p.decode("fresh",0,"pcm",16000,pcm,2,true,false,out)==1);CHECK(out[0]==1);
 }
+TEST_CASE("liquidation alarm is distinct from every existing earcon and bounded") {
+ auto alarm=chime(Chime::LiqAlarm);
+ CHECK(alarm[0].ms+alarm[1].ms==320);
+ for(auto k:{Chime::Accept,Chime::Refuse,Chime::Fill,Chime::Error,Chime::Kill}) {
+  auto old=chime(k);CHECK(alarm[0].hz!=old[0].hz);CHECK(alarm[1].hz!=old[1].hz);
+ }
+}

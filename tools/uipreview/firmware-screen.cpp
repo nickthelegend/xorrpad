@@ -7,6 +7,26 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"liqActive")){pad.liqGuard.active=atoi(v)!=0;return;}
+ if(!strcmp(k,"liqMarket")){pad.liqGuard.market=v;return;}
+ if(!strcmp(k,"liqVenue")){pad.liqGuard.venue=v;return;}
+ if(!strcmp(k,"liqMark")){pad.liqGuard.mark=atof(v);return;}
+ if(!strcmp(k,"liqPrice")){pad.liqGuard.liq=atof(v);return;}
+ if(!strcmp(k,"liqDistance")){pad.liqGuard.distancePct=atof(v);return;}
+ if(!strcmp(k,"perpsMessage")){pad.perps.message=v;return;}
+ if(!strcmp(k,"positionsScreen")){pad.positionsVisible=atoi(v)!=0;return;}
+ if(!strncmp(k,"perpRow",7) && k[7]>='0' && k[7]<='5') {
+  size_t i=k[7]-'0';pad.perps.positions.resize(std::max(pad.perps.positions.size(),i+1));auto &r=pad.perps.positions[i];
+  if(!strcmp(k+8,"Market"))r.market=v;
+  else if(!strcmp(k+8,"Venue"))r.venue=v;
+  else if(!strcmp(k+8,"Side"))r.side=v;
+  else if(!strcmp(k+8,"Entry"))r.entry=strlen(v)?atof(v):NAN;
+  else if(!strcmp(k+8,"Mark"))r.mark=strlen(v)?atof(v):NAN;
+  else if(!strcmp(k+8,"Leverage"))r.leverage=strlen(v)?atof(v):NAN;
+  else if(!strcmp(k+8,"Liq"))r.liq=strlen(v)?atof(v):NAN;
+  else if(!strcmp(k+8,"Distance"))r.distancePct=strlen(v)?atof(v):NAN;
+  else if(!strcmp(k+8,"Funding"))r.nextFunding=strlen(v)?atof(v):NAN;return;
+ }
  if(!strcmp(k,"predictEnabled")){pad.predict.enabled=atoi(v)!=0;return;}
  if(!strcmp(k,"predictSize")){pad.predict.sizeUsd=atof(v);return;}
  if(!strcmp(k,"predictTotal")){pad.predict.total=atoi(v);return;}
@@ -46,7 +66,7 @@ void screen_set(const char *k,const char *v){
  S(agent) S(market) S(mode) S(verdict) S(chain) S(venue) S(hoursState) S(hoursNote) S(nyTime) S(link) S(signalId) S(receiptSignature) S(receiptExplorer) S(lastKeyLabel)
 #undef S
 #define B(name) if(!strcmp(k,#name)){pad.name=atoi(v)!=0;return;}
- B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
+ B(signalReduceOnly) B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
 #undef B
 #define N(name) if(!strcmp(k,#name)){pad.name=atof(v);return;}
  N(price) N(unrealised) N(spentToday) N(dayLimit) N(signalDeadline) N(receiptUntil) N(labelUntil)

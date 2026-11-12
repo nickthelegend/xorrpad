@@ -824,3 +824,22 @@ limits. Clean native suite **268 cases / 2,658 assertions** passes. Complete des
 suite: **208 passed / 9 setup skips / 0 failed**, with the legacy existing-private-
 key-file test explicitly excluded; V3 scenario runner **54/54**. See TESTING.md
 for commands, working-tree comparison and the unfunded broadcast limitation.
+
+### Firmware v4 F2 — Perps cockpit + liquidation guard
+
+Positions retains spot rows and pages through real Phoenix/Jupiter perp cockpit
+records. Unknown entry/mark/leverage/liquidation/funding fields render unavailable.
+The desk's connected-pad tick supplies `perps` and `liq_guard` over the existing
+encrypted link. Guard data expires after 30 seconds; KILL and pending clear-sign
+review retain priority. A red guard screen, red LED pulse and distinct I2S alarm
+ask “Reduce 50%? YES / NO”. First YES only requests a manual reduce-only proposal;
+a separate trusted YES, existing policy and byte review still govern signing.
+Core receives the same desktop/phone mirror and alarm without TFT access.
+
+`/pad/options` persists `liqGuardPct` (default 10%). See
+[the F2 records and limitations](../docs/v4/V4-NOTES.md#f2--perps-cockpit-and-liquidation-guard)
+and [verification evidence](../TESTING.md#firmware-v4-f2--perps-cockpit-and-liquidation-guard-2026-11-13).
+No private key is needed for these read/compile checks. Existing mainnet public
+position reads do not authorize trading; `XORR_ALLOW_MAINNET` is never enabled by
+this feature. Build logs are `firmware/build/f2-pro.log` and `f2-core.log`, with
+compile-only outputs in `f2-{pro,core}-out`; no signing, flashing or push.

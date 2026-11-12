@@ -313,7 +313,7 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
     int32_t left=(int32_t)(pad.signalDeadline-millis());String seconds=String(left>0?(left+999)/1000:0)+"s";textR(c,308,218,1,INK,seconds.c_str());
     return;
   }
-  textClip(c,12,10,220,2,WARN,"CHECK / "+pad.signalSide);
+  textClip(c,12,10,220,2,WARN,pad.signalReduceOnly?String("REDUCE 50%"):"CHECK / "+pad.signalSide);
   if(pad.autoAccept)pillSolid(c,308,10,"AUTO",WARN,BG);
   if(!pad.fingerprint.length()) textClip(c,12,148,296,1,MUTE,pad.verdict);
   wrap(c,12,36,296,1,INK,pad.market,2);
@@ -418,6 +418,33 @@ static void drawPortfolio(GFXcanvas16 &c, const xorr::Portfolio &p) {
   banner(c,BLUE,p.cluster=="devnet"?"DEVNET":"LIVE BALANCES",p.cluster=="devnet"?"Test tokens / no USD market value":"Any key to close / -- unpriced");
 }
 
+static void perpValue(GFXcanvas16 &c,int y,const char *label,double value,const char *suffix="") {
+ char b[64];if(std::isfinite(value))snprintf(b,sizeof b,"%s %.6g%s",label,value,suffix);
+ else snprintf(b,sizeof b,"%s unavailable",label);text(c,12,y,1,INK,b);
+}
+static void drawPerp(GFXcanvas16 &c,const xorr::PerpPosition &p) {
+ c.fillScreen(BG);text(c,12,10,2,INK,"POSITIONS / PERPS");
+ textClip(c,12,40,296,2,SOL,String(p.market.c_str())+" "+p.side.c_str());
+ text(c,12,64,1,MUTE,(String(p.venue.c_str())+" / mainnet read").c_str());
+ perpValue(c,86,"Entry $",p.entry);perpValue(c,103,"Mark $",p.mark);
+ perpValue(c,120,"Leverage",p.leverage,"x");perpValue(c,137,"Liquidation $",p.liq);
+ perpValue(c,157,"Liq distance",p.distancePct,"%");
+ c.fillRect(12,172,296,5,GRID);
+ if(std::isfinite(p.distancePct))c.fillRect(12,172,int(296*std::min(100.,p.distancePct)/100),5,p.distancePct<=10?DOWN:UP);
+ if(std::isfinite(p.nextFunding))perpValue(c,188,"Next funding UTC epoch",p.nextFunding);
+ else text(c,12,188,1,MUTE,"Next funding unavailable");
+ banner(c,BLUE,"PERPS","Venue values / unavailable stays unknown");
+}
+static void drawLiqGuard(GFXcanvas16 &c,const xorr::LiqGuard &g) {
+ c.fillScreen(BG);c.fillRect(0,0,W,38,DOWN);text(c,12,8,3,BG,"LIQ GUARD");
+ textClip(c,12,52,296,2,INK,String(g.market.c_str())+" / "+g.venue.c_str());
+ perpValue(c,82,"Mark $",g.mark);perpValue(c,102,"Liquidation $",g.liq);
+ perpValue(c,122,"Distance",g.distancePct,"%");
+ c.fillRect(12,142,296,6,GRID);c.fillRect(12,142,int(296*std::min(100.,g.distancePct)/100),6,DOWN);
+ text(c,12,162,2,INK,"Reduce 50%? YES / NO");
+ text(c,12,191,1,MUTE,"YES proposes / review before signing");
+ banner(c,DOWN,"RISK","Reduce-only / existing permissions apply");
+}
 static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
   c.fillScreen(BG);
     text(c,12,10,2,INK,"POSITIONS");
@@ -427,9 +454,13 @@ static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
     text(c,12,38,1,pad.hasPnl?(pad.unrealised>=0?UP:DOWN):MUTE,line);
     if(!pad.positionCount) text(c,12,85,2,MUTE,"No open positions");
     else if(!pad.positionN) text(c,12,85,1,MUTE,"Position details unavailable");
-    size_t pages=std::max(size_t(1),(size_t(pad.positionN)+3)/4);
-    (void)pages;
-    size_t page=(now/12000)%pages;
+    size_t spotPages=std::max(size_t(1),(size_t(pad.positionN)+3)/4);
+    bool fresh=uint32_t(now-pad.perps.at)<30000;
+    size_t perpN=fresh?pad.perps.positions.size():0;
+    size_t pages=spotPages+perpN;
+    size_t page=pad.positionsVisible && perpN?spotPages:(now/12000)%pages;
+    if(page>=spotPages){drawPerp(c,pad.perps.positions[page-spotPages]);return;}
+    if(!perpN && !pad.perps.message.empty())textClip(c,12,190,296,1,MUTE,pad.perps.message.c_str());
     for(size_t i=page*4;i<pad.positionN && i<(page+1)*4;++i) {
       const auto &position=pad.positions[i]; int y=65+int(i%4)*30;
       textClip(c,12,y,140,1,INK,position.market);
@@ -538,6 +569,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     c.fillRect(12,212,int(296*pad.holdProgress),4,WARN);return;
   }
   if(pad.pending&&pad.ok){drawConfirm(c,pad,ch);return;}
+  if(pad.ok && !pad.listening && pad.liqGuard.fresh(millis())){drawLiqGuard(c,pad.liqGuard);return;}
   if(pad.listening){text(c,12,20,3,SOL,"LISTENING");for(int i=0;i<32;i++){int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}text(c,12,204,1,INK,"Release MIC or knob to send");return;}
   if (!pad.ok)          drawOffline(c);
   else if(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0) {
@@ -566,7 +598,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     return;
   }
   else if(pad.predict.enabled && (int32_t)(pad.keymapUntil-millis())<=0) {drawPredict(c,pad);return;}
-  else if (pad.positionCount >= 0 && (millis()/6000)%2 == 1) {
+  else if (pad.positionsVisible || (pad.positionCount >= 0 && (millis()/6000)%2 == 1)) {
     drawPositions(c,pad,millis());
   }
   else if (pad.pending) drawConfirm(c, pad, ch);

@@ -1,3 +1,4 @@
+import {readPerps} from './perps-cockpit.mjs';
 import { connectionStatus } from './connection-status.mjs';
 import { Abilities } from './abilities.mjs';
 import { Profiles } from './profiles.mjs';
@@ -500,7 +501,8 @@ export function createServer(mem) {
         const kind = body.kind || "spot", side = String(body.side || "").toUpperCase();
         const sig = {agent:"agent",kind,side:kind==="predict"?"BUY":side,
           symbol:kind==="predict"?`pmamm:${body.market}:${side.toLowerCase()}`:body.market,
-          market:body.market,manualConfirmation:body.source==="pad-predict",outcomeSide:kind==="predict"?side.toLowerCase():undefined,
+          market:body.market,manualConfirmation:["pad-predict","pad-liq-guard"].includes(body.source) || body.reduceOnly===true,
+          ...(body.reduceOnly===true?{reduceOnly:true,reducePct:body.reducePct,positionId:body.positionId,venue:body.venue}:{}),outcomeSide:kind==="predict"?side.toLowerCase():undefined,
           sizeUsd:Number(body.size),leverage:Number(body.leverage ?? 1),reason:body.reason || "agent propose tool"};
         const proposal = await propose(sig,await mem.recallBrief());
         const queued = await signals.create(proposal);
@@ -533,6 +535,7 @@ export function createServer(mem) {
       if (url.pathname === "/venues") return send(200, { venues: await venues({includeMarkets:url.searchParams.get('markets') === '1'}) });
       if (url.pathname === "/hedge") return send(200, await proposeHedges(url.searchParams.get("authority") || undefined,
         await mem.recallBrief(), Object.fromEntries(url.searchParams)));
+      if (url.pathname === '/pad/perps') return send(200,await readPerps());
       if (url.pathname === "/perps/markets") return send(200, { markets: await phoenix.perpMarkets(), cluster: "mainnet-beta", mode: "read-only-mainnet", pollAfterMs: 15000 });
       if (url.pathname === "/perps/quote") return send(200, await phoenix.perpQuote(Object.fromEntries(url.searchParams)));
       if (url.pathname === "/perps/positions") return send(200, { positions: await phoenix.positions(url.searchParams.get("authority") || undefined, Object.fromEntries(url.searchParams)), cluster: "mainnet-beta", pollAfterMs: 15000 });
@@ -1350,7 +1353,7 @@ const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
   '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/agent-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
-  '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/perps':['GET'], '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

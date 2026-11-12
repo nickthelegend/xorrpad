@@ -3,6 +3,7 @@
 #include <cmath>
 #include "padstate.h"
 #include "logic/predict.h"
+#include "logic/perps.h"
 #include "logic/presentation.h"
 #include "logic/portfolio.h"
 #include "logic/fund.h"
@@ -14,12 +15,16 @@ inline bool presentationConfirmationVisible(const PadState &pad) {
 inline bool presentationWalletVisible(const PadState &pad) {
   return (pad.fund.visible || pad.portfolio.visible || pad.predict.positionsVisible) && pad.ok && !pad.pending &&
     !pad.factory && !pad.killed && !pad.updating && !pad.errorCode.length() &&
-    !pad.alertsOnly && !pad.pairCode.length() && !pad.abilityReview && !pad.listening &&
+    !pad.liqGuard.fresh(millis()) && !pad.alertsOnly && !pad.pairCode.length() && !pad.abilityReview && !pad.listening &&
     !(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0);
 }
 
+inline bool presentationLiqVisible(const PadState &p) {
+  return p.liqGuard.fresh(millis()) && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
+    !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview && !p.listening;
+}
 inline bool presentationPredictVisible(const PadState &p) {
-  return p.predict.enabled && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
+  return !presentationLiqVisible(p) && p.predict.enabled && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
     !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview &&
     !p.listening && !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible &&
     !p.reply.length() && !p.abilityWidget.length() &&
@@ -30,7 +35,11 @@ inline bool presentationPredictVisible(const PadState &p) {
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if(type=="predict") {
+  if(type=="perps") {
+    if(!xorr::parsePerps(d,pad.perps,millis())){pad.perps=xorr::Perps();pad.perps.message="Setup required: refresh perp positions";}
+  } else if(type=="liq_guard") {
+    if(!xorr::parseLiqGuard(d,pad.liqGuard,millis()))pad.liqGuard=xorr::LiqGuard();
+  } else if(type=="predict") {
     if(!xorr::parsePredict(d,pad.predict,millis())) {pad.predict.markets.clear();pad.predict.message="Setup required: refresh prediction feed";}
   } else if(type=="outcome_positions") {
     if(xorr::parseOutcomePositions(d,pad.predict)) {
@@ -62,6 +71,7 @@ inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &c
     pad.fund.visible=false;
     pad.portfolio.visible=false;
     pad.reply = "";
+    pad.signalReduceOnly=d["reduceOnly"]==true && d["reducePct"]==50;
     auto trusted = d["trusted"];
     pad.fingerprint = d["fingerprint"] | "";
     pad.signalSide = trusted["side"].is<const char*>() ? trusted["side"].as<String>() : d["side"] | "";

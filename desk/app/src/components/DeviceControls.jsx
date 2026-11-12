@@ -392,6 +392,7 @@ export function DeviceControls({
               run(async () => {
                 await d.api("/pad/options", {
                   brightness: Number(form.get("brightness")),
+                  liqGuardPct: Number(form.get("liqGuardPct")),
                   night: form.get("night") === "true",
                 });
                 d.refresh();
@@ -410,6 +411,10 @@ export function DeviceControls({
                 required
               />
             </Field>
+            <Field label="Liquidation guard distance (%)">
+              <input name="liqGuardPct" type="number" min="0.1" max="100" step="0.1" defaultValue={options.data.liqGuardPct} required />
+            </Field>
+            <p>Within this distance, YES proposes a 50% reduce-only close for review. Missing venue liquidation prices stay unavailable.</p>
             <Field label="Night mode">
               <select name="night" defaultValue={String(options.data.night)}>
                 <option value="false">Off</option>

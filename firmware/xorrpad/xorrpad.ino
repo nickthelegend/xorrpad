@@ -142,7 +142,7 @@ void ledFromState() {
   uint32_t now=millis();
   if(!killSwitch.killed && pad.alertsOnly && (int32_t)(pad.alertUntil-now)>0){led(0,100,40);return;}
   auto color=xorr::statusLed(now,killSwitch.killed,pad.errorCode.length(),
-    pad.ok && pad.pending,(int32_t)(pad.receiptUntil-now)>0);
+    pad.ok && pad.pending,(int32_t)(pad.receiptUntil-now)>0,-1,pad.liqGuard.fresh(now));
   led(color.r,color.g,color.b);
 }
 
@@ -173,7 +173,12 @@ void onPadMessage(JsonVariantConst d) {
     if (usbDebugAllowed()) onTelnetCommand(d["command"] | "");
     return;
   }
+  std::string priorGuard=pad.liqGuard.id;bool hadGuard=pad.liqGuard.fresh(millis());
   presentationMessage(d,pad,chartNow);
+  if(d["type"]=="liq_guard" && pad.liqGuard.fresh(millis())) {
+    accessibility.idle.wake(millis());screenHoldUntil=0;
+    if(!hadGuard || priorGuard!=pad.liqGuard.id)audio.chime(xorr::Chime::LiqAlarm);
+  }
   String type=d["type"] | "";
   if((type=="fund" && pad.fund.visible) || (type=="portfolio" && pad.portfolio.visible) || (type=="outcome_positions" && pad.predict.positionsVisible)) {
     accessibility.idle.wake(millis());screenHoldUntil=0;
@@ -267,6 +272,12 @@ void onPadMessage(JsonVariantConst d) {
 
 bool sendLinkedKey(const String &action) {
   if(clearSigning.active && (action=="yes" || action=="no"))return true;
+  if((action=="yes" || action=="no") && presentationLiqVisible(pad)) {
+    if(!padlink.secureReady())return true;
+    JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["edge"]="down";
+    d["action"]=xorr::liqKey(action=="yes");d["guardId"]=pad.liqGuard.id;padlink.send(d);
+    pad.liqGuard.active=false;screenDirty=true;return true;
+  }
   if((action=="yes" || action=="no") && !pad.pending && pad.predict.enabled) {
     if(!presentationPredictVisible(pad) || !pad.predict.fresh(millis()) || !padlink.secureReady())return true;
     JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["edge"]="down";

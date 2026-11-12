@@ -5,12 +5,20 @@ export class PredictPadSimulator extends SessionPadSimulator {
   constructor(options={}) {
     super(options);this.firmware='4.0.0';this.selected=0;
     this.on('message',m=>{
+      if(m.type==='perps'){this.perps=m;this.perpsAt=Date.now();}
+      if(m.type==='liq_guard'){this.liqGuard=m;this.guardAt=Date.now();}
       if(m.type==='predict'){const old=this.predict?.markets?.[this.selected]?.market;this.predict=m;this.predictAt=Date.now();this.selected=m.selected ?? Math.max(0,m.markets.findIndex(r=>r.market===old));}
       if(m.type==='outcome_positions')this.outcomePositions=m;
       if(m.type==='receipt')this.signal=null;
     });
   }
   key(action,options={}) {
+    const hasPending=this.signal?.state==='awaiting' && Date.now()<this.signal.expiresAt;
+    if(this.liqGuard?.active && !hasPending && ['yes','no'].includes(action)) {
+      if(this.killed || !this.verified || Date.now()-this.guardAt>=30000)throw Error('Setup required: refresh liquidation guard');
+      const id=options.id || this.device+':'+(++this.seq);
+      this.send({type:'key',id,action:action==='yes'?'liq:yes':'liq:no',guardId:this.liqGuard.id,edge:'down'});return id;
+    }
     if(this.outcomePositions && action!=="kill" && action!=="fund") {
       this.outcomePositions=null;const id=options.id || this.device+':'+(++this.seq);
       this.send({type:'key',id,action:'predict:close',edge:'down'});return id;

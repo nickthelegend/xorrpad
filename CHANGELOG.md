@@ -6,6 +6,19 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F2: Perps cockpit and liquidation guard
+
+- Positions gains venue-supplied entry, mark, leverage, liquidation, distance bar
+  and next funding, preserving unknowns as unavailable and prior spot pages.
+- Each connected-pad tick reads real configured perp positions. `liqGuardPct`
+  defaults to 10%; a red LIQ GUARD screen, distinct alarm and red LED pulse offer
+  a 50% reduction. YES only proposes; a separate trusted YES and existing
+  permissions, caps, clear-sign/session/crew and mainnet gates remain required.
+- Venue-bound reduce-only builders halve Phoenix lots or Jupiter raw USD size;
+  they never route to opening orders. Device threshold controls, actual Activity
+  events, Core mirror, encrypted padsim, native/WASM tests and uipreview evidence
+  accompany F2. Missing authorities return Setup required. No live trade claimed.
+
 ### Added — Firmware 4.0.0 F1: Predict on the pad
 
 - Predictor home uses real devnet pm-AMM markets, with a YES probability arc,
@@ -20,7 +33,7 @@ All notable changes to xorrpad are documented here. This file follows
 - Encrypted v4 padsim, native parser/confirmation tests, native/WASM frame parity,
   uipreview and responsive desktop evidence accompany F1. Core can compile with
   `XORR_CORE=1` and uses the desktop/phone for visual review. No release signing,
-  flashing or push is performed. F2–F7 remain future steps.
+  flashing or push is performed. F3–F7 remain future steps.
 
 ### Added — Agent wallet W3, part 4
 

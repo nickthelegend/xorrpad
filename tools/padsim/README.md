@@ -125,3 +125,12 @@ records, pages the market catalogue with `scroll(delta)`, and maps an idle
 keys retain trusted acceptance/refusal and hold checks. An empty/stale feed
 cannot propose; an outcome card consumes its closing key. The real-route
 scenario and 1440/375 captures run in `desk/test/pad-predict.test.mjs`.
+
+
+Firmware v4 F2 extends `PredictPadSimulator` with actual `perps` and `liq_guard`
+records. A first YES/NO on a fresh guard sends `liq:yes`/`liq:no` plus its episode
+ID. Pending signal confirmation keeps the existing native-signing path. Stale
+alerts cannot propose. `desk/test/pad-perps.test.mjs` checks pure boundary vectors,
+permissions, integer half-close sizes, live-or-Setup HTTP, encrypted delivery and
+1440/375 desktop captures. External API responses are never mocked; no funded
+perp position or live reduction is claimed.

@@ -186,3 +186,33 @@ TEST_CASE("new proposal cannot inherit a held YES; trusted confirmations require
   REQUIRE(confirm.offer(d,1));confirm.key(true,true,2000);CHECK_FALSE(confirm.due(true,2,3000));
   d["fingerprint"]="tamper";CHECK_FALSE(confirm.offer(d,1));confirm.key(true,true,4000);CHECK_FALSE(confirm.due(true,1,5000));
 }
+
+#include "../xorrpad/logic/perps.h"
+TEST_CASE("perps cockpit preserves unavailable values and rejects invalid or oversized records atomically") {
+ JsonDocument d;d["positions"].to<JsonArray>();xorr::Perps p;
+ d["message"]="Setup required: configure a public perp authority";
+ REQUIRE(xorr::parsePerps(d,p,10));CHECK(p.positions.empty());CHECK_FALSE(p.message.empty());
+ auto r=d["positions"].as<JsonArray>().add<JsonObject>();r["market"]="SOL";r["venue"]="phoenix";r["side"]="short";
+ r["entry"]=123.;r["mark"]=125.;r["leverage"]=nullptr;r["liq"]=nullptr;r["nextFunding"]=nullptr;
+ REQUIRE(xorr::parsePerps(d,p,20));CHECK(p.positions[0].entry==123);CHECK(std::isnan(p.positions[0].leverage));CHECK(std::isnan(p.positions[0].liq));CHECK(std::isnan(p.positions[0].nextFunding));
+ r["liq"]=-1;CHECK_FALSE(xorr::parsePerps(d,p,30));CHECK(std::isnan(p.positions[0].liq));CHECK(p.at==20);
+ r["liq"]=130.;r["distancePct"]=4.;REQUIRE(xorr::parsePerps(d,p,40));CHECK(p.positions[0].distancePct==4);
+ r["mark"]=INFINITY;CHECK_FALSE(xorr::parsePerps(d,p,50));r["mark"]=125.;
+ for(int i=0;i<6;i++)d["positions"].as<JsonArray>().add(r);
+ CHECK_FALSE(xorr::parsePerps(d,p,50));CHECK(p.positions.size()==1);
+}
+TEST_CASE("liquidation guard requires a reduce-only half proposal and expires exactly at 30s across wrap") {
+ JsonDocument d;d["active"]=true;d["id"]="native-test";d["market"]="LAYOUT TEST";d["mark"]=100.;d["liq"]=95.;d["distancePct"]=5.;
+ auto proposal=d["proposal"].to<JsonObject>();proposal["venue"]="jupperps";proposal["reduceOnly"]=true;proposal["reducePct"]=50;
+ xorr::LiqGuard g;REQUIRE(xorr::parseLiqGuard(d,g,UINT32_MAX-10));CHECK(g.fresh(5));CHECK(g.fresh(29988));CHECK_FALSE(g.fresh(29989));
+ CHECK(std::string(xorr::liqKey(true))=="liq:yes");CHECK(std::string(xorr::liqKey(false))=="liq:no");
+ proposal["reduceOnly"]=false;CHECK_FALSE(xorr::parseLiqGuard(d,g,0));CHECK(g.id=="native-test");
+ proposal["reduceOnly"]=true;proposal["reducePct"]=100;CHECK_FALSE(xorr::parseLiqGuard(d,g,0));
+ proposal["reducePct"]=50;d["mark"]=0;CHECK_FALSE(xorr::parseLiqGuard(d,g,0));
+ d["active"]=false;REQUIRE(xorr::parseLiqGuard(d,g,0));CHECK_FALSE(g.active);CHECK(g.id.empty());
+}
+TEST_CASE("liquidation LED pulses red below the unchanged KILL priority") {
+ auto lo=xorr::statusLed(0,false,false,false,false,-1,true),hi=xorr::statusLed(180,false,false,false,false,-1,true);
+ CHECK(hi.r>lo.r);CHECK(hi.g==0);CHECK(hi.b==0);
+ auto killed=xorr::statusLed(0,true,true,true,true,1,true);CHECK(killed.r==100);CHECK(killed.g==0);CHECK(killed.b==0);
+}

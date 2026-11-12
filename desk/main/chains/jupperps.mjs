@@ -1,3 +1,4 @@
+import {assertCloseSnapshot} from './perp-close.mjs';
 /** Jupiter perps: API marks, decoded JLP accounts, unsigned owner-specific builds. */
 import {readFileSync} from 'node:fs';
 import {BorshAccountsCoder} from '@anchor-lang/core';
@@ -133,12 +134,47 @@ export async function buildOpen({owner,authority,market,side,usd,leverage,slippa
  return unsigned(await api('positions/increase',{asset:market.toUpperCase().replace(/-PERP$/,''),inputToken:'USDC',
   inputTokenAmount:String(Math.floor(Number(usd)*1e6)),side,leverage:String(leverage),maxSlippageBps:String(slippageBps),walletAddress:owner}),owner);
 }
-export async function buildClose({owner,position,slippageBps=100}){
- owner=ownerKey(owner);
- if(!Number.isInteger(slippageBps)||slippageBps<0||slippageBps>9999)throw new Error('invalid slippageBps');
+// API decimal USD fields use 6 places; no inferred liquidation or leverage.
+export function positionRow(p,owner) {
+ const usd=v=>typeof v==='string' && /^-?\d+$/.test(v) && Number.isSafeInteger(Number(v))?Number(v)/1e6:null;
+ const number=v=>typeof v==='string' && v.trim() && Number.isFinite(Number(v))?Number(v):null;
+ return {authority:owner,position:p.positionPubkey,market:p.asset,side:p.side,
+  entryPrice:usd(p.entryPriceUsd),markPrice:usd(p.markPriceUsd),liquidationPrice:usd(p.liquidationPriceUsd),
+  leverage:number(p.leverage),notionalUsd:usd(p.sizeUsd),unrealizedPnlUsd:usd(p.pnlAfterFeesUsd),
+  nextFunding:null,cluster:'mainnet-beta'};
+}
+async function rawPositions(owner) {
  const rows=await api(`positions?walletAddress=${owner}`);
- if(!rows.dataList?.some(p=>p.positionPubkey===position))throw new Error('no Jupiter position for this owner');
- return unsigned(await api('positions/decrease',{positionPubkey:position,receiveToken:'USDC',entirePosition:true,maxSlippageBps:String(slippageBps)}),owner);
+ if(!Array.isArray(rows.dataList))throw Error('Jupiter positions unavailable');
+ return rows.dataList;
+}
+export async function positions(owner=process.env.JUPPERPS_AUTHORITY||process.env.SOLANA_ADDRESS) {
+ owner=ownerKey(owner);return (await rawPositions(owner)).map(p=>positionRow(p,owner)).filter(p=>p.notionalUsd>0);
+}
+export function decreaseSize(sizeUsd,reducePct=100) {
+ if(![50,100].includes(reducePct) || typeof sizeUsd!=='string' || !/^\d+$/.test(sizeUsd))throw Error('invalid reduce size');
+ const n=BigInt(sizeUsd)*BigInt(reducePct)/100n;
+ if(n<=0n)throw Error('reduce size rounds to zero');return n.toString();
+}
+export async function buildClose({owner,position,slippageBps=100,reducePct=100,expectedSide,expectedNotionalUsd}){
+ owner=ownerKey(owner);
+ if(!Number.isInteger(slippageBps)||slippageBps<0||slippageBps>9999)throw Error('invalid slippageBps');
+ const p=(await rawPositions(owner)).find(p=>p.positionPubkey===position);
+ if(!p)throw Error('no Jupiter position for this owner');
+ assertCloseSnapshot(positionRow(p,owner),{expectedSide,expectedNotionalUsd});
+ const sizeUsdDelta=decreaseSize(p.sizeUsd,reducePct);
+ const result=await api('positions/decrease',{positionPubkey:position,receiveToken:'USDC',entirePosition:reducePct===100,
+  ...(reducePct===50?{sizeUsdDelta,collateralUsdDelta:'0'}:{}),maxSlippageBps:String(slippageBps)});
+ return {...unsigned(result,owner),reduceOnly:true,reducePct,sizeUsdDelta};
+}
+export async function quoteClose(input) {
+ const p=(await positions(input.owner)).find(p=>p.position===input.position);
+ if(!p)throw Error('no Jupiter position for this owner');
+ assertCloseSnapshot(p,input);
+ const built=await buildClose(input),q=built.quote,price=p.markPrice;
+ // Live API mark reference only; exact decrease is reviewed in transaction bytes.
+ return {...built,quoteBasis:'live API mark reference; decrease API does not expose an execution price',entryPrice:Number.isFinite(price)&&price>0?price:null,
+  notionalUsd:Number(built.sizeUsdDelta)/1e6,fee:q?.totalFeeUsd==null?null:Number(q.totalFeeUsd)/1e6};
 }
 export const available=()=>true;
 export async function info(){const rows=await perpMarkets();return {cluster:'mainnet-beta',marketCount:rows.length,signing:'external',mode:'indicative quotes / unsigned API builds'};}
