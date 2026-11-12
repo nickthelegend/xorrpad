@@ -618,3 +618,25 @@ was signed or flashed. OTA tests verify the pre-existing signed public image
 (SHA-256 `202fd32f33a6c0e6f7674c8603d808797e4326a2cacf978a1e13d8d13d7ca26e`,
 1,752,144 bytes), not the new normal/release images. No signing key is needed
 or opened for that verification.
+
+## v3 V1 clear signing (2026-11-12)
+
+**Compiled, not yet flashed.** [V3-NOTES.md](V3-NOTES.md) records the exact
+parser/decoder coverage, real builder fixture provenance, review API, blind-sign
+gate and remaining trust boundaries. This implements V3-SPEC item 1 only. The
+stable firmware label remains 2.0.0 pending the complete v3 release.
+
+Compile-only commands (Arduino CLI 1.5.1, ESP32 core 3.3.10), from repo root:
+
+```sh
+mkdir -p firmware/build/v3-tmp
+env TMPDIR="$PWD/firmware/build/v3-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/v3-normal" --output-dir firmware/build/v3-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/v3-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/v3-release" --output-dir firmware/build/v3-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The isolated staged-source builds use identical flags/FQBN, source
+`firmware/build/v3-snapshot/firmware/xorrpad`, build paths
+`firmware/build/v3-isolated-{normal,release}`, and corresponding `-out` output
+directories. That snapshot contains V1 plus committed v2, excluding the earlier
+unfinished firmware changes. Native results and image/static RAM sizes for
+both source trees are recorded in [TESTING.md](../TESTING.md).

@@ -6,6 +6,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V1 clear signing
+
+- Bounded Solana legacy/v0 message parsing and the specified transfer, compute,
+  pm-AMM, Jupiter v6 and Phoenix decoders, using real unsigned builder captures.
+- On-pad transaction-byte fingerprints and full paged review; default-off red
+  blind signing requires a fresh extra-three-second hold. Authenticated chunked
+  desk transport records one approval for the exact message without signing it.
+- Native/adversarial and real encrypted-link tests. Unauthenticated lookup
+  evidence remains blind; Jupiter input mints use verified ATA derivations.
+  Phoenix shows native lots/ticks and discloses absent account-wide leverage.
+  This is item 1 of v3, compiled, not yet flashed; the full v3 release is pending.
+
 ### Added — firmware 2.0.0, S7 validation and research
 
 - End-to-end padsim checks of encrypted wire records, live signal fingerprints,
