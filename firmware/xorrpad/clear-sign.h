@@ -3,12 +3,14 @@
 #include "padstate.h"
 #include "session-sign.h"
 #include <deque>
+#include <functional>
+#include "logic/crew.h"
 class ClearSigning {
   uint32_t connection=0;
   xorr::SignalState signal;
   xorr::Hold hold;
   SessionSigning signer;
-  bool signing=false,configuring=false;
+  bool signing=false,cosigning=false,configuring=false;
   std::string policyRequest;
   xorr::session::Policy proposed;
   std::vector<bool> policySeen;
@@ -17,11 +19,12 @@ class ClearSigning {
   void queue(JsonDocument &d){std::string text;serializeJson(d,text);if(responses.size()<4)responses.push_back(text);}
   bool seen()const{return configuring?!policySeen.empty() && std::all_of(policySeen.begin(),policySeen.end(),[](bool b){return b;}):approval.allSeen();}
 public:
+  std::function<std::string(const uint8_t*,size_t)> deviceSigner;
   xorr::solana::Approval approval;
   xorr::solana::Upload upload;
   bool active=false;
   void reset(PadState &pad) {
-    approval.reset();upload.reset();hold.release();active=false;signing=configuring=false;signingBytes.clear();policySeen.clear();pad.clearSigning=false;pad.sessionPolicy=false;pad.clearRows.clear();
+    approval.reset();upload.reset();hold.release();active=false;signing=cosigning=configuring=false;signingBytes.clear();policySeen.clear();pad.clearSigning=false;pad.sessionPolicy=false;pad.clearRows.clear();
     pad.clearPage=0;pad.confirmDuration=800;
   }
   void sync(uint32_t epoch,bool secure,PadState &pad) {
@@ -56,6 +59,7 @@ public:
       pad.confirmDuration=3800;pad.holdRequired=true;pad.holdProgress=0;pad.ok=true;pad.autoAccept=false;pad.errorCode="";
       return true;
     }
+    if(type=="clear_cancel" && secure){reset(pad);pad.pending=false;return true;}
     if(type=="signal")reset(pad);
     if(active && type=="signal_state")return true;
     if(!type.startsWith("clear_")){pad.blindAllowed=approval.allowed(epoch);return false;}
@@ -68,9 +72,13 @@ public:
       ok=d["offset"].is<uint32_t>() && upload.chunk(d["offset"],d["data"] | "",epoch,millis());
     }else if(type=="clear_end"){
       xorr::solana::Request request;ok=upload.finish(request,epoch,millis());
+      if(ok && request.cosign){
+        if(request.value.blind)ok=false;
+        else request.value.rows.push_back("CREW APPROVAL / device signs message hash only");
+      }
       if(ok)ok=approval.offer(std::move(request.value),epoch);
       if(ok){
-        const auto &v=approval.get();signing=request.sign;signingBytes=std::move(request.bytes);active=true;pad.clearSigning=true;pad.blindSigning=v.blind;
+        const auto &v=approval.get();signing=request.sign;cosigning=request.cosign;signingBytes=std::move(request.bytes);active=true;pad.clearSigning=true;pad.blindSigning=v.blind;
         pad.clearRows=v.rows;pad.clearPage=0;pad.clearReviewed=false;
         pad.confirmDuration=approval.holdMs();pad.holdRequired=true;pad.holdProgress=0;
         pad.fingerprint=v.message.fingerprint.c_str();pad.signalId=request.id.c_str();pad.signalState="awaiting";
@@ -90,6 +98,16 @@ public:
     if(configuring){
       bool ok=yes && signer.configure(proposed);signer.status(out);out["requestId"]=policyRequest;out["ok"]=ok;
       if(!ok)out["error"]="policy refused or storage failed";
+      pad.pending=false;reset(pad);return true;
+    }
+    if(cosigning){
+      out["type"]="crew_approval";out["signalId"]=signal.id;out["messageHash"]=approval.get().message.hash;
+      out["heldMs"]=hold.elapsed(millis());out["blind"]=false;out["ok"]=false;
+      uint8_t digest[32];
+      if(yes && deviceSigner && xorr::crew::consume(approval,hold.elapsed(millis()),epoch,digest)){
+        auto signature=deviceSigner(digest,32);out["ok"]=signature.size()==128;out["signature"]=signature;
+      }
+      if(!out["ok"].as<bool>())out["error"]="crew approval refused on pad";
       pad.pending=false;reset(pad);return true;
     }
     if(signing){

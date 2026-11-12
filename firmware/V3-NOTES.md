@@ -300,3 +300,36 @@ without credentials; omit `--capture` for a live pinned-root smoke check.
 
 Compiled, not yet flashed. Wi-Fi/TLS clock establishment, worker memory pressure,
 NVS power failure and physical TFT/LED/chime behavior still need the board.
+
+## V5 — Multi-pad co-sign (2026-11-12)
+
+Item 6 adds a persistent, default-off desk policy, a native-reviewed device-key
+approval path, executor quorum checks for all three wallet modes, a Connect
+crew-policy/status panel and two encrypted padsim instances. See
+[the wire/API and trust boundary](../docs/v3/CREW-PROTOCOL.md). Approvals cover
+raw SHA-256 of the exact clear-reviewed message. They never replace a Solana
+wallet signature and are not an on-chain multisig. Blind reviews and auto-accept
+are not allowed for crew approvals.
+
+The collector accepts distinct pinned device identities, finishes at N valid
+approvals and cancels the rest. A consumed native approval cannot be signed
+twice. Pending signal ID, message hash, encrypted session, live preferred
+transport, hold, expiry, signature and current policy are rechecked. Spending
+gates and crew checks run again before wallet signing and before submission.
+A second connected pad no longer makes pad-signer selection ambiguous when
+`/wallet/mode` supplies its `device`.
+
+The USD threshold remains a desk policy based on its gated quote; crew pads
+display decoded raw transaction amounts. A compromised desk can disable its own
+policy. This feature provides coordinated independent reviews under an honest
+coordinator, not an enforced treasury contract. Firmware device keys stay on the
+pad. Simulator device identities are generated only in RAM; the native driver
+applies firmware review/hold rules and Node signs the approved hashes. No new
+transaction is broadcast by the crew tests.
+
+Both normal/release firmware builds, native gates, two-pad encrypted integration,
+HTTP authorization/validation and real desktop/mobile rendering are covered.
+Final counts/sizes and the isolated source verification are in TESTING.md.
+Physical display, holds, Wi-Fi and NVS still require hardware; compiled, not
+yet flashed. Existing unfinished attestation work is excluded from both V5
+feature commits.

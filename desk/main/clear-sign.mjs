@@ -17,7 +17,7 @@ export function clearSignFrames(request) {
   frames.push({type:'clear_end'});
   return {frames,fingerprint:base58(hash).slice(0,6),messageHash:hash.toString('hex')};
 }
-export async function prepareClearSign({unsignedTx,cluster,signalId,remainingMs=120000,inputMint,sign=false}) {
+export async function prepareClearSign({unsignedTx,cluster,signalId,remainingMs=120000,inputMint,sign=false,cosign=false}) {
   if(!['devnet','mainnet-beta'].includes(cluster))throw Error('clear-sign cluster must be devnet or mainnet-beta');
   if(typeof unsignedTx!=='string' || unsignedTx.length>1644)throw Error('invalid unsigned transaction');
   const raw=Buffer.from(unsignedTx,'base64');
@@ -45,6 +45,6 @@ export async function prepareClearSign({unsignedTx,cluster,signalId,remainingMs=
       mintProofs.push({account:account.toBase58(),owner:owner.toBase58(),mint:mint.toBase58(),program:program.toBase58(),bump});
     }
   }
-  const request={signalId,remainingMs,message:Buffer.from(tx.message.serialize()).toString('hex'),tables,mintProofs,...(sign?{sign:true}:{})};
+  const request={signalId,remainingMs,message:Buffer.from(tx.message.serialize()).toString('hex'),tables,mintProofs,...(sign?{sign:true}:{}),...(cosign?{cosign:true}:{})};
   return {request,...clearSignFrames(request)};
 }

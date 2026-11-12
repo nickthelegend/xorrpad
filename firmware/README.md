@@ -706,3 +706,24 @@ Build with the same ESP32-S3 FQBN/SC-only flags as V4 above, using
 `firmware/build/v5-{normal,release}` build paths and `v5-{normal,release}-out`
 output directories. Native checks: `firmware/test/run.sh`; live pinned HTTPS:
 `node tools/padsim/price-alerts.mjs`. Compiled, not yet flashed.
+
+## v3 V5 crew co-sign
+
+Connect → Crew approvals sets a USD threshold, the required number of distinct
+paired pads and crew membership. Large trades wait for each pad's full clear
+review and physical hold. Approver names appear in the same panel.
+[CREW-PROTOCOL.md](../docs/v3/CREW-PROTOCOL.md) documents the API, signer selection
+and the coordinator trust boundary. Tests: `node --test desk/test/crew.test.mjs`
+and `node desk/test/crew-ui.mjs` after `firmware/test/run.sh`. Run browser and
+full desk tests sequentially because their real local servers share test ports.
+
+Final builds (working tree):
+
+```sh
+TMPDIR="$PWD/firmware/build/v5-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v5-normal" --output-dir firmware/build/v5-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/v5-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v5-release" --output-dir firmware/build/v5-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The isolated index snapshot uses `firmware/build/v5-final-snapshot/firmware/xorrpad`
+as its sketch and `v5-isolated-{normal,release}` paths with the same flags.
+See TESTING.md for sizes. Compiled, not yet flashed.

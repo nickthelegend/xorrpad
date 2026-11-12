@@ -1,3 +1,4 @@
+import {verifyCrewApproval} from "./crew.mjs";
 import {validatePriceAlerts} from "./price-alerts.mjs";
 import {verifyAbility} from "./abilities.mjs";
 import {assertSigningCluster} from "./session-wallet.mjs";
@@ -237,6 +238,7 @@ export class PadLink extends EventEmitter {
   }
   snapshot() {
     return {
+      crew: this.crewStatus?.() || [],
       observedAt: new Date().toISOString(),
       options: this.options,
       pairing: [...this.pendingPairings.values()].map(
@@ -248,6 +250,7 @@ export class PadLink extends EventEmitter {
           device: p.device,
           link: p.name,
           firmware: p.firmware,
+          devicePublicKey: p.candidate?.pk,
           secure: !!p.secure,
           ota: p.otaStatus,
           telemetry: p.telemetry,
@@ -604,15 +607,28 @@ export class PadLink extends EventEmitter {
     if(candidates.length!==1)throw Error("Setup required: select one paired, online, rearmed pad");
     return candidates[0];
   }
-  waitSession(p, expected, send) {
+  waitSession(p, expected, send, timeoutMs=120000) {
     if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
     return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>finish(Error("pad signing timed out; debit may remain reserved")),120000);
+      const timer=setTimeout(()=>finish(Error("pad signing timed out; debit may remain reserved")),timeoutMs);
       timer.unref();
       const finish=(error,value)=>{clearTimeout(timer);if(p.sessionRequest?.finish===finish)p.sessionRequest=null;error?reject(error):resolve(value);};
       p.sessionRequest={...expected,secure:p.secure,finish,reject:error=>finish(error)};
       try{send();}catch(error){finish(error);}
     });
+  }
+  approveCrew(device,prepared,expiresAt) {
+    const p=this.sessionPeer(device);
+    if(prepared.request?.cosign!==true || prepared.request.sign===true || expiresAt<=Date.now())throw Error("invalid crew request");
+    return this.waitSession(p,{type:"crew_approval",signalId:prepared.request.signalId,messageHash:prepared.messageHash},()=>{
+      for(const frame of prepared.frames)this.send(p,frame.type==="clear_begin"?{...frame,signalId:prepared.request.signalId,remainingMs:Math.min(prepared.request.remainingMs,expiresAt-Date.now())}:frame);
+    },Math.max(1,expiresAt-Date.now()));
+  }
+  cancelCrew(device,signalId) {
+    for(const p of this.peers)if(p.device===device && p.sessionRequest?.type==="crew_approval" && p.sessionRequest.signalId===signalId){
+      p.sessionRequest.reject(Error("crew round closed"));
+      if(p.secure && p.verified)this.send(p,{type:"clear_cancel"});
+    }
   }
   priceAlerts(device,alerts) {
     if(alerts!==undefined)alerts=validatePriceAlerts(alerts);
@@ -1095,7 +1111,7 @@ export class PadLink extends EventEmitter {
   }
   async receive(p, m) {
     if (!this.peers.has(p)) return;
-    if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature"].includes(m.type) &&
+    if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
     if (p.secure && this.killed.has(p.device)) throw Error("pad kill latch active");
@@ -1130,13 +1146,14 @@ export class PadLink extends EventEmitter {
       this.signals?.publish({ type: "pad", device: p.device, message: m });
       return;
     }
-    if(m.type==="price_alerts_state" || m.type==="session_state" || m.type==="session_signature"){
+    if(m.type==="crew_approval" || m.type==="price_alerts_state" || m.type==="session_state" || m.type==="session_signature"){
       const pending=p.sessionRequest;
       if(!p.secure || !p.verified || !pending || pending.secure!==p.secure || pending.type!==m.type ||
-        (m.type!=="session_signature"?pending.requestId!==m.requestId:pending.signalId!==m.signalId || pending.messageHash!==m.messageHash) ||
+        (!["crew_approval","session_signature"].includes(m.type)?pending.requestId!==m.requestId:pending.signalId!==m.signalId || pending.messageHash!==m.messageHash) ||
         typeof m.ok!=="boolean")throw Error("unsolicited or stale pad signer response");
       if(m.type==="session_state" && m.ok){p.sessionState=m;}
       if(m.type==="session_signature" && m.ok && (!/^[0-9a-f]{128}$/.test(m.signature) || typeof m.publicKey!=="string"))throw Error("invalid pad signature");
+      if(m.type==="crew_approval" && m.ok)verifyCrewApproval({device:p.device,publicKey:p.candidate.pk,name:p.device},{...m,device:p.device},pending.messageHash);
       pending.finish(m.ok?null:Error(m.error || "pad signing refused"),{...m,device:p.device});
       this.signals?.publish({type:"pad_signer",device:p.device,ok:m.ok,automatic:m.automatic===true,signalId:m.signalId});
       return;

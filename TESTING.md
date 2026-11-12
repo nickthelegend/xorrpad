@@ -1062,3 +1062,58 @@ normal **1,937,730 / 67,804**, release **1,935,622 / 67,732**. Final V5 combined
 validation is recorded below with the crew feature. No board flash or trade
 broadcast was performed by the new tests. Physical Wi-Fi, SNTP, NVS persistence,
 worker timing, TFT, LED and chime behavior require hardware verification.
+
+## Firmware v3 V5 — final offline alerts + crew co-sign (2026-11-12)
+
+**Compiled, not yet flashed.** Item 5 and item 6 are implemented; these results
+are not evidence of a physical board test or a new funded trade. Existing
+unfinished attestation changes remain outside both feature commits.
+
+- Final working-tree `firmware/test/run.sh`: **267 cases, 2,462 assertions,
+  zero failures**. The five crew cases cover consumed exact hashes, full review,
+  hold/session requirements, unconditional blind refusal, real Ed25519 hashes
+  and incompatible/malformed request modes. The twelve price-alert cases use a
+  live Jupiter response captured by the public smoke tool.
+- Final isolated staged source `firmware/build/v5-final-snapshot/firmware/test/run.sh`:
+  **253 cases, 2,409 assertions, zero failures**. It excludes the pre-existing
+  attestation tests; the working tree includes those tests too.
+- Final working-tree `cd desk && npm test`: **204 tests, 194 passed, 10 setup
+  skips, zero failures/cancellations**. The skips explicitly require provider
+  credentials, Electron, keeper public metadata or funded devnet accounts.
+  No `.env` or user key file was loaded for this work. The new crew tests
+  generate ephemeral identities in memory and send no transaction.
+- Final isolated `node --test desk/test/{crew,pad-signer,clear-sign,price-alerts,executor}.test.mjs`:
+  **27 passed, zero failures/skips**. Actual encrypted pairs plus the native
+  firmware review gate prove two distinct approvals, one-pad blocking, refusal,
+  disconnect, expiry, replay rejection, wrong signature/hash/identity/hold,
+  exact-message binding and policy/permission changes.
+- `node desk/test/crew-ui.mjs` passed for both the final working tree and isolated
+  source. The real HTTP server checks authentication/method/policy validation;
+  two actual encrypted padsim peers complete 2-of-2; desktop (1440×1100) and
+  mobile (390×844) render approver names without overflow or browser errors.
+  Screenshots are in `firmware/build/v5-ui/` and the isolated snapshot's matching
+  build directory. Impeccable's detector reported no findings for changed UI.
+  An initial browser run exposed the missing static module allowlist entry;
+  it was fixed. A concurrent regression attempt encountered test-port collisions
+  and was stopped by PID; the complete final suite and UI checks ran sequentially.
+- `node tools/padsim/price-alerts.mjs`: **PASS**, actual keyless Jupiter Price v3
+  with the firmware's pinned Amazon Root CA 1. This verifies endpoint/root
+  compatibility on the host; ESP32 Wi-Fi/SNTP/TLS still needs hardware.
+
+Final `arduino-cli compile` commands/FQBN/flags are recorded in firmware/README.md.
+Both normal and release builds pass, including the isolated commit source:
+
+| Source | Normal flash / static RAM | Release flash / static RAM |
+|---|---:|---:|
+| Working tree | 1,942,322 B / 67,844 B | 1,940,210 B / 67,772 B |
+| Isolated staged source | 1,932,630 B / 67,588 B | 1,930,470 B / 67,508 B |
+
+App slot maximum is 3,145,728 B; static RAM maximum is 327,680 B. Isolated
+build directories are `firmware/build/v5-isolated-{normal,release}` with
+`v5-final-isolated-{normal,release}.log` logs. Native, desk, UI and live-root
+logs also live under the ignored `firmware/build/` directory. Only dependency
+and virtualenv directories were symlinked into the snapshot; tested source
+came from the index. Real Wi-Fi behavior, worker/watchdog latency, NVS power-loss
+persistence, TFT review readability, physical holds, LED and chimes still need
+the board. The crew threshold is enforced by the coordinating desk; this is not
+an on-chain multisig or protection from a desk that disables its own policy.

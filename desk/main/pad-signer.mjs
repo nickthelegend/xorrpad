@@ -13,7 +13,7 @@ export function attachPadSignature(tx,result,owner){
 }
 export class PadSigner {
   constructor(link){this.link=link;}
-  async info(){const state=await this.link.sessionStatus();if(!state.configured || !state.publicKey)throw Error('Setup required: approve signing policy on pad');return state;}
+  async info(device){const state=await this.link.sessionStatus(device);if(!state.configured || !state.publicKey)throw Error('Setup required: approve signing policy on pad');return state;}
   async sign(tx,{device,owner,signalId,expiresAt,cluster,inputMint,recheck}){
     assertSigningCluster(cluster);await recheck();
     const result=await this.link.signSession(device,{unsignedTx:Buffer.from(tx.serialize()).toString('base64'),signalId,

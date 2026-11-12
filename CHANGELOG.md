@@ -6,6 +6,15 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V5 multi-pad co-sign
+
+- Persistent desk threshold/quorum policies with distinct paired crew identities;
+  every pad clear-reviews the exact message and signs its raw SHA-256 after a hold.
+- Executor gates phone, session and selected-pad signing/submission on fresh
+  verified approvals; Connect displays the crew policy and approver names.
+- Two encrypted native-backed simulated pads cover 2-of-2, refusal, expiry,
+  disconnect, replay, identity/signature substitution and policy changes.
+
 ### Added — firmware 3.0.0, V5 offline price alerts
 
 - Up to eight desk-configured, NVS-persisted one-shot price alerts; keyless

@@ -552,6 +552,7 @@ void setup() {
   if (factory.active) { WiFi.mode(WIFI_STA); return; }
   abilities.begin();
   priceAlerts.begin();
+  clearSigning.deviceSigner=[](const uint8_t *hash,size_t n){return std::string(padlink.identity.sign(String(reinterpret_cast<const char*>(hash),n)).c_str());};
   if (!XORR_RELEASE) Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();

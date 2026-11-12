@@ -1,3 +1,4 @@
+import {CrewGate} from "./crew.mjs";
 /** Shared executor. The venue adapters remain unsigned builders. */
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import path from 'node:path';
@@ -35,7 +36,7 @@ function saveJson(file, value) {
 export class Executor {
   #pending = new Map(); #ledger; #file; #settings;
   constructor({mem,signals,dir = appDataDir(),isArmed = () => true} = {}) {
-    Object.assign(this,{mem,signals,isArmed});
+    Object.assign(this,{mem,signals,isArmed});this.dir=dir;this.crew=new CrewGate({dir,link:null,publish:e=>this.signals.publish(e)});
     this.permissions = new Permissions({dir}); this.wallet = new SessionWallet({dir});
     this.#file = path.join(dir,'execution-ledger.json'); this.#settings = path.join(dir,'wallet-mode.json');
     this.#ledger = readJson(this.#file,{});
@@ -44,11 +45,12 @@ export class Executor {
     });
   }
   mode() { return readJson(this.#settings,{mode:'phone'}).mode; }
-  setMode(mode) {
+  setMode(mode,device) {
     if (!['phone','session','pad'].includes(mode)) throw new Error('wallet mode must be phone, session or pad');
-    saveJson(this.#settings,{mode}); return {mode};
+    if(device!==undefined && (typeof device!=="string" || !/^[\w-]{1,96}$/.test(device)))throw Error("invalid pad signer device");
+    const settings={mode,...(device?{device}:{})};saveJson(this.#settings,settings);return settings;
   }
-  setPadLink(link) { this.padSigner = new PadSigner(link); }
+  setPadLink(link) { this.padSigner = new PadSigner(link); this.crew.link=link;link.crewStatus=()=>this.crew.status(); }
   async budgetStatus() {
     const {brief,context}=this.#budget(await this.mem.recallBrief());
     const policy=this.permissions.read();
@@ -94,7 +96,7 @@ export class Executor {
       const mode = this.mode(), cluster = entry.proposal.routing?.best?.network;
       if (mode === 'session' || mode === 'pad') assertSigningCluster(cluster);
       if(mode==='pad' && !this.padSigner)throw Error('Setup required: paired pad signer');
-      const padInfo=mode==='pad'?await this.padSigner.info():null;
+      const padInfo=mode==='pad'?await this.padSigner.info(readJson(this.#settings,{}).device):null;
       const owner = padInfo?.publicKey || (mode === 'session' ? (await this.wallet.info()).publicKey
         : entry.proposal.signal.kind === 'perp' ? (entry.proposal.signal.venue === 'phoenix' ? process.env.PHOENIX_AUTHORITY : process.env.JUPPERPS_AUTHORITY) || process.env.SOLANA_ADDRESS : process.env.SOLANA_ADDRESS);
       if (!owner) throw new Error('Setup required: SOLANA_ADDRESS (phone wallet public key)');
@@ -109,19 +111,22 @@ export class Executor {
       const gated = await this.#gate(id,fresh);
       this.#ledger[id] = {usd:fresh.verdict.sizeUsd,symbol:fresh.signal.symbol,side:fresh.signal.side,at:Date.now(),status:'reserved',cluster}; this.#save();
       const record = {proposal:fresh,built,tx,connection,cluster,owner,mode}; this.#pending.set(id,record);
+      if(this.crew)record.crew=await this.crew.collect(tx,{usd:fresh.verdict.sizeUsd,signalId:id,expiresAt:gated.entry.expiresAt,cluster,
+        inputMint:fresh.routing?.best?.quote?.inputMint,recheck:()=>this.#gate(id,fresh)});
       if(mode==='pad') {
         const signed=await this.padSigner.sign(tx,{device:padInfo.device,owner,signalId:id,expiresAt:gated.entry.expiresAt,cluster,
-          inputMint:fresh.routing?.best?.quote?.inputMint,recheck:()=>this.#gate(id,fresh)});
+          inputMint:fresh.routing?.best?.quote?.inputMint,recheck:async()=>{await this.#gate(id,fresh);this.crew.assert(tx,fresh.verdict.sizeUsd,record.crew);}});
         return await this.#submit(id,record,signed);
       }
       if (mode === 'session') {
         const permit = authorizeSigning(tx,{...gated.entry,proposal:fresh,cluster},gated.brief,gated.policy,gated.context);
-        const signed = await this.wallet.sign(tx,{permit,cluster,connection,recheck:() => this.#gate(id,fresh)});
+        const signed = await this.wallet.sign(tx,{permit,cluster,connection,recheck:async() => {await this.#gate(id,fresh);this.crew.assert(tx,fresh.verdict.sizeUsd,record.crew);}});
         return await this.#submit(id,record,signed);
       }
       const variable = fresh.signal.venue === 'pmamm' ? 'PMAMM_PUBLIC_URL' : fresh.signal.venue === 'phoenix' ? 'PHOENIX_PUBLIC_URL' : 'SOLANA_PAY_PUBLIC_URL';
       const handoff = walletHandoff(owner,async () => withTradeLock(async () => {
         await this.#gate(id,fresh);
+        this.crew?.assert(tx,fresh.verdict.sizeUsd,record.crew);
         // Keep the exact message so a submitted phone signature can be bound to it.
         if (!this.#pending.has(id)) throw new Error('signal handoff is no longer active');
         return built;
@@ -138,6 +143,7 @@ export class Executor {
     if (!record || record.mode !== 'phone') throw new Error('no pending phone wallet transaction');
     try {
       await this.#gate(id,record.proposal);
+      this.crew?.assert(record.tx,record.proposal.verdict.sizeUsd,record.crew);
       if (signedTx) {
         const tx = decode(signedTx);
         if (hash(tx) !== hash(record.tx)) throw new Error('signed message differs from the accepted transaction');
@@ -154,8 +160,10 @@ export class Executor {
     } catch(error) { return this.#fail(id,error); }
   }); }
   async #submit(id,record,tx) {
+    this.crew?.assert(tx,record.proposal.verdict.sizeUsd,record.crew);
     verifySignedTransaction(tx);
     await this.#gate(id,record.proposal);
+    this.crew.assert(tx,record.proposal.verdict.sizeUsd,record.crew);
     // Record signed before the network call: an ambiguous timeout must retain its reservation.
     await this.signals.transition(id,'signed');
     this.#ledger[id].status = 'signed'; this.#save();

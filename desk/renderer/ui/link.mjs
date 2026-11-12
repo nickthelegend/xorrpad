@@ -1,3 +1,4 @@
+import {mountCrew} from "./crew.mjs";
 import {
   $,
   esc,
@@ -41,13 +42,16 @@ export async function mount({ el, api, subscribe, signal }) {
     )}
     </div><div class="stack">${panel("Signed firmware update", `<form id="firmware-update" class="panel-body"><p>Select the release manifest and matching app image. The desk and pad both verify the signature.</p><label>Paired pad<select name="device" id="update-device" required></select></label><label>manifest.json<input name="manifest" type="file" accept=".json,application/json" required></label><div id="manifest-detail" role="status"></div><label>app.bin<input name="image" type="file" accept=".bin,application/octet-stream" required></label><button id="install-update" class="primary" disabled>Verify & install update</button><p class="hint">Keep USB power connected. Progress appears on the TFT and in device status. A failed boot health check rolls back within 60 seconds.</p><div id="update-feedback" role="status"></div></form>`)}
     ${panel("Profiles & layers", `<form id="profiles" class="panel-body"><p>Save up to eight profiles. Each keeps separate Spot, Perps and Predict keymaps.</p><label>Target pad<select name="device" id="profile-device"></select></label><p class="hint device-hint">Connect and pair a v2 pad to install updates or use a profile. Profiles can be saved while disconnected.</p><label>Profile<select name="profile" id="profile-select"></select></label><label>Layer<select name="layer"><option value="0">Spot</option><option value="1">Perps</option><option value="2">Predict</option></select></label><label>Profile name<input name="name" maxlength="20" placeholder="Scalper, Swing, Predictor…"></label><div class="actions"><button name="save" value="save">Save current keys to layer</button><button id="activate-profile" name="activate" value="activate" disabled>Use on pad</button></div><p class="hint">Program keys on the Pad screen, then save them into a profile layer. Bind profile:next or layer:next to cycle on the pad.</p></form>`)}
+    <div id="crew-panel"></div>
     ${panel("Connection guide", `<div class="panel-body"><h3>USB-C</h3><p>Use a data cable with the native USB port. Pair with the TFT code and QR before trading.</p><h3>BLE</h3><p>Use the optional desk Bluetooth adapter or XOR phone relay. LE Secure Connections protects Bluetooth; v2 frames are also encrypted. Voice uses 16 kHz mono Opus.</p><h3>Wi-Fi</h3><p>Use the captive portal to set Wi-Fi and the reachable desk URL. The ESP32 does not join Tailscale itself; use LAN or the configured HTTPS Funnel.</p><p>Links expire after 15 seconds. Offline inputs never queue trades. Hold KILL for 2 seconds to latch trading off across reboot.</p><button id="reconnect-desk">Change desk connection</button></div>`)}
     </div></div>`;
+  const crew=await mountCrew($("#crew-panel",el),api,signal);
   let devices = [],
     profiles = [],
     settingsLoaded = false;
   function render(d) {
     devices = d.devices || [];
+    crew.update(d);
     $("#link-status", el).innerHTML =
       `<div class="panel-body">${["usb", "ble", "wifi"].map((t) => `<div class="row-top"><h3>${t === "usb" ? "USB-CDC" : t === "ble" ? "Bluetooth LE" : "Wi-Fi"}</h3><span class="tag">${devices.some((p) => p.link === t) ? "CONNECTED" : "NO VERIFIED DEVICE"}</span></div>`).join("")}<p class="hint">Observed ${esc(d.observedAt)}</p>${d.pairing?.length ? "<p>Pad found. Use its displayed code and QR to finish pairing.</p>" : ""}</div>`;
     $("#link-devices", el).innerHTML = devices.length
@@ -223,6 +227,7 @@ export async function mount({ el, api, subscribe, signal }) {
   $("#reconnect-desk", el).onclick = () => $("#connect").click();
   const off = subscribe((e) => {
     if (e.type === "pad_link") render(e);
+    if (e.type === "crew_approval") refresh();
     if (e.type === "ota_error") notice(e.error);
   });
   await Promise.all([refresh(), loadProfiles()]);

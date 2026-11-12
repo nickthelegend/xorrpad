@@ -229,7 +229,7 @@ export function createServer(mem) {
     // so requiring the token to reach it would lock a fresh install out of
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
-    const uiFiles = new Set(['abilities.mjs','status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
+    const uiFiles = new Set(['crew.mjs','abilities.mjs','status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
     const open = url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
@@ -388,6 +388,7 @@ export function createServer(mem) {
       }
       if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
       if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
+      if (url.pathname === '/pad/crew') return send(200,req.method==='GET'?{policy:executor.crew.read(),rounds:executor.crew.status()}:executor.crew.write(body));
       if (url.pathname === '/pad/price-alerts') return send(200,await srv.padlink.priceAlerts(req.method==='GET'?url.searchParams.get('device'):body.device,req.method==='GET'?undefined:body.alerts));
       if (url.pathname === '/pad/session') return send(200,req.method==='GET'?await srv.padlink.sessionStatus(url.searchParams.get('device')):await srv.padlink.configureSession(body.device,body.policy));
       if (url.pathname === '/pad/clear-sign') return send(202,await srv.padlink.clearSign(body.device,body));
@@ -409,7 +410,7 @@ export function createServer(mem) {
         const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
         if (req.method === 'POST' && !local) return send(403,{error:'wallet configuration is local only'});
         try {
-          if (url.pathname === '/wallet/mode') return send(200,req.method === 'GET' ? {mode:executor.mode()} : executor.setMode(body.mode));
+          if (url.pathname === '/wallet/mode') return send(200,req.method === 'GET' ? {mode:executor.mode()} : executor.setMode(body.mode,body.device));
           return send(200,req.method === 'GET' ? await executor.wallet.info() : body.secretKey
             ? await executor.wallet.import(body.secretKey) : await executor.wallet.create());
         } catch(e) { return send(e.message.startsWith('Setup required:') ? 503 : 400,{error:e.message}); }
@@ -1284,7 +1285,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
