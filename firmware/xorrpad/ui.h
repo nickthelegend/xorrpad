@@ -299,12 +299,12 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   if(pad.clearSigning) {
     uint16_t color=pad.blindSigning?DOWN:WARN;
     if(pad.blindSigning)c.fillScreen(0x6000);
-    text(c,12,10,2,color,pad.blindSigning?"Blind sign":"Clear signing");
-    text(c,12,36,1,INK,"SHA256 / BASE58");text(c,126,32,2,color,pad.fingerprint.c_str());
+    text(c,12,10,2,color,pad.sessionPolicy?"Signing policy":pad.blindSigning?"Blind sign":"Clear signing");
+    if(!pad.sessionPolicy){text(c,12,36,1,INK,"SHA256 / BASE58");text(c,126,32,2,color,pad.fingerprint.c_str());}
     String page=String((unsigned)pad.clearPage+1)+" / "+String((unsigned)pad.clearRows.size());
     textClip(c,12,58,296,1,MUTE,"TURN KNOB TO REVIEW / "+page);
     if(pad.clearPage<pad.clearRows.size())wrap(c,12,82,296,2,INK,String(pad.clearRows[pad.clearPage].c_str()),5);
-    const char *hint=!pad.blindAllowed?"BLIND SIGNING DISABLED ON DESK":!pad.clearReviewed?"REVIEW ALL PAGES FIRST":pad.blindSigning?"HOLD YES 3.8s (+3s BLIND)":"HOLD YES 800ms";
+    const char *hint=pad.sessionPolicy?(!pad.clearReviewed?"REVIEW ALL PAGES FIRST":"HOLD YES 3.8s TO STORE POLICY"):!pad.blindAllowed?"BLIND SIGNING DISABLED ON DESK":!pad.clearReviewed?"REVIEW ALL PAGES FIRST":pad.blindSigning?"HOLD YES 3.8s (+3s BLIND)":"HOLD YES 800ms";
     textClip(c,12,188,296,1,color,hint);
     c.drawRect(12,205,int(296*pad.holdProgress),3,color);
     text(c,12,218,1,INK,"NO / REFUSE");

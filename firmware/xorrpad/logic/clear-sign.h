@@ -2,7 +2,7 @@
 #include "solana.h"
 #include <ArduinoJson.h>
 namespace xorr::solana {
-struct Request { std::string id;uint32_t remainingMs=0;Review value; };
+struct Request { std::string id;uint32_t remainingMs=0;bool sign=false;std::vector<uint8_t> bytes;Review value; };
 inline bool parseRequest(const std::string &json,Request &out) {
   out={};if(json.size()>131072)return false;JsonDocument d;
   if(deserializeJson(d,json) || !d["signalId"].is<const char*>() || !d["remainingMs"].is<uint32_t>() ||
@@ -32,7 +32,8 @@ inline bool parseRequest(const std::string &json,Request &out) {
        !keyFromString(row["program"] | "",p.program))return false;
     p.bump=row["bump"];if(!verifyMintProof(p))return false;proofs.push_back(p);
   }
-  out.value=review(bytes,tables,proofs);return out.value.valid();
+  if(!d["sign"].isNull() && !d["sign"].is<bool>())return false;
+  out.sign=d["sign"] | false;out.bytes=bytes;out.value=review(bytes,tables,proofs);return out.value.valid();
 }
 class Upload {
   std::string data,digest;size_t total=0;uint32_t epoch=0,since=0;
