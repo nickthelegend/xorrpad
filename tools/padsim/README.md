@@ -74,3 +74,37 @@ provider outages are reported as explicit skips, not simulated successes.
 Disk persistence models NVS semantics only. Physical hold timing, BLE security
 and throughput, flash writes, power-loss persistence and OTA boot/rollback need
 the board. Firmware remains **compiled, not yet flashed**.
+
+## Firmware v3 scenario runner
+
+Build the native adapters with `firmware/test/run.sh`, compile the current
+normal image to `firmware/build/v7-normal-out` (commands in firmware/README.md),
+then run `node tools/padsim/v3.mjs`. It runs clear-sign, pad-signer, attestation,
+abilities, offline-alert, crew and OTA test files sequentially to avoid port
+collisions. OTA uses the new compiled image; `XORR_OTA_TEST_IMAGE` can explicitly
+select another compiled image. The old public signed bootstrap artifacts are
+still required by the OTA tests; no signing key is read.
+
+The runner then pairs an encrypted native-backed pad on loopback 8725, verifies
+real devnet genesis and mint state, approves its stored policy, and clear-reviews
+and signs a live SDK `transferChecked` message. The transfer is one base unit of
+the real devnet collateral **to the signer's own associated token account**.
+It independently verifies Ed25519 and broadcasts those exact bytes only when
+the signer has at least 0.01 devnet SOL and one collateral base unit in its ATA.
+The funding instruction requests 1 mUSDC for convenience. It creates no token
+account, requests no airdrop, and submits nothing on mainnet.
+
+The exact public signer/ATA are printed before the balance check. To fund this
+ephemeral identity while it exists, run
+`node tools/padsim/v3.mjs --funding-wait=300` (0–3,600 seconds), or add
+`--broadcast-only` to run only the live path. Private material stays in native
+process RAM; only public policy/accounting reaches the temporary directory.
+The address cannot be reused after process exit. Simulated reboot retains the
+RAM identity and reloads accounting; it does not establish physical NVS recovery.
+
+`V3 TOTAL` reports regression tests/pass/fail/skip totals and explicit BLOCKED
+reasons. Missing funding/provider access is BLOCKED, never a passed broadcast;
+a failing regression, invalid signature or wrong genesis exits nonzero.
+Attestation tests missing from a committed checkout are also explicitly BLOCKED;
+an uncommitted working-tree test does not establish committed feature delivery.
+Do not run the runner alongside the desk suite because they share test ports.

@@ -15,7 +15,7 @@ import {PadLink} from '../main/padlink.mjs';
 import {PadSimulatorV2} from '../../tools/padsim/v2.mjs';
 // Actual compiled ESP32 images, never signed with a repository/private file key.
 const base=readFileSync(new URL('../../firmware/build/artifacts/app.bin',import.meta.url));
-const image=readFileSync(new URL('../../firmware/build/v6-normal-out/xorrpad.ino.bin',import.meta.url));
+const image=readFileSync(process.env.XORR_OTA_TEST_IMAGE || new URL('../../firmware/build/v6-normal-out/xorrpad.ino.bin',import.meta.url));
 const pair=generateKeyPairSync('ed25519'),pk=rawPublic(pair.publicKey);
 const release=(options={})=>releaseManifest(image,pair.privateKey,{base,fromVersion:'2.0.0',...options});
 const native=(manifest,options={})=>{
