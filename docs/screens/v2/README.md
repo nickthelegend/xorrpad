@@ -1,3 +1,16 @@
+# MODEL-3D evidence
+
+[Current CAD contact sheet](sheet-3d.jpg) · [All 16 art assets](art-contact.jpg).
+The six screens at 1440×900 and 375×812 plus palette-1440.png use the real CAD.
+Nine browser groups pass, including real mesh raycasting, keyboard assignment,
+hover lift, preference changes, NDJSON knob rotation, actual installs and a real
+devnet quote-backed proposal followed by Refuse. No mock API or fill is used.
+Mobile uses the true render without a WebGL context. Layouts stay unchanged.
+[Native M4 benchmark](model-metal-performance.json) and
+[headless software benchmark](model-performance.json) are distinct measurements.
+The full earlier FIX-1 capture guide below is historical; its rings were replaced
+by the true CAD turntable for MODEL-3D.
+
 # Desktop v2 · FIX-1 evidence
 
 [Contact sheet](sheet.jpg) · [Machine-readable manifest](manifest.json)

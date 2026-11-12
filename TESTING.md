@@ -1,3 +1,18 @@
+# MODEL-3D verification
+
+Completed 2026-11-12: full desk + keeper + site **151 tests, 142 passed, 9 skipped,
+0 failed**, exit 0, 416,946.845916 ms. Four new CAD/artifact/native-WASM tests pass.
+Browser: **9 groups, 13 captures, zero runtime errors or overflow**. Native Metal
+on Apple M4 measured **60.12 fps** at browser DPR 2, 1440×900. Headless SwiftShader
+was slower and is recorded separately, not represented as native GPU performance.
+[Results](docs/v2/MODEL-3D-RESULTS.json) · [Contact sheet](docs/screens/v2/sheet-3d.jpg).
+
+Both 1.4 MB GLBs pass gltf-validator with zero errors and warnings. Movies are
+six seconds at 1920×1080 / 30 fps. All 16 commissioned assets are below 400 KB.
+Firmware RGB565 pixels match native and WebAssembly byte for byte. ESP32-S3
+compiled with the previously recorded FQBN: 1,476,455 sketch bytes, 59,060 global
+bytes. **Compiled, not yet flashed.** No mainnet transaction was sent.
+
 # Desktop v2 · FIX-1 verification
 
 Run on **2026-11-12 (Asia/Kolkata)**, Node 26.5.0. The approved brand direction

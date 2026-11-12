@@ -2749,3 +2749,16 @@ summary {
   float: right;
   margin-left: 12px;
 }
+
+.real-pad {
+  overflow: clip;
+  --poster-scale: 1.5;
+}
+.real-pad .model-poster {
+  transform: scale(var(--poster-scale));
+}
+@media (max-width: 700px) {
+  .real-pad {
+    --poster-scale: 1.4;
+  }
+}

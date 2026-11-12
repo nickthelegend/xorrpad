@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-11-12T03:52:06.486Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "fps": 60.121841605912316,
+  "frames": 301,
+  "elapsedMs": 5006.5,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 2,
+  "animated": true,
+  "errors": [],
+  "scope": "Actual production CAD scene, native headed Chromium with --use-angle=metal; real local backend; no trading actions"
+}

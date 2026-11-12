@@ -6,13 +6,15 @@ import React, {
   useRef,
   Component,
 } from "react";
-import { useReducedMotion } from "motion/react";
 import { useDesk } from "../core";
 const Scene = lazy(() => import("./PadScene"));
 class ModelBoundary extends Component {
   state = { error: null };
   static getDerivedStateFromError(error) {
     return { error };
+  }
+  componentDidCatch() {
+    this.props.onError?.();
   }
   render() {
     return this.state.error ? (
@@ -37,15 +39,24 @@ export function PadModel({
   onKnob,
 }) {
   const d = useDesk(),
-    reduced = useReducedMotion(),
+    [reduced, setReduced] = useState(
+      () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ),
     root = useRef(),
     hits = useRef({});
   const [mobile, setMobile] = useState(
       () => matchMedia("(max-width:700px)").matches,
     ),
     [ready, setReady] = useState(false),
+    [failed, setFailed] = useState(false),
     [layout, setLayout] = useState(null),
     [live, setLive] = useState({});
+  useEffect(() => {
+    const q = matchMedia("(prefers-reduced-motion: reduce)"),
+      change = () => setReduced(q.matches);
+    q.addEventListener("change", change);
+    return () => q.removeEventListener("change", change);
+  }, []);
   useEffect(() => {
     const q = matchMedia("(max-width:700px)"),
       f = () => {
@@ -101,7 +112,8 @@ export function PadModel({
     <img
       className="model-poster"
       src="/desktop/media/pad/hero-34.png"
-      alt="True studio render of the real xorrpad CAD"
+      alt="Static studio render of the real xorrpad CAD"
+      title="Static CAD preview; live connection and signal state are in the device island"
       fetchPriority="high"
     />
   );
@@ -114,14 +126,18 @@ export function PadModel({
         h = box.clientHeight,
         iw = Math.min(w, h * layout.posterAspect),
         ih = iw / layout.posterAspect;
+      const scale = mobile ? 1.4 : (h / ih) * 1.15;
+      box.style.setProperty("--poster-scale", scale);
       for (const [id, uv] of [
         ...layout.keys.map((k) => [k.name, k.posterUV]),
         ["knob", layout.knobUV],
       ]) {
         const el = hits.current[id];
         if (el) {
-          el.style.left = (w - iw) / 2 + uv[0] * iw + "px";
-          el.style.top = (h - ih) / 2 + uv[1] * ih + "px";
+          el.style.left =
+            ((w - iw) / 2 + uv[0] * iw - w / 2) * scale + w / 2 + "px";
+          el.style.top =
+            ((h - ih) / 2 + uv[1] * ih - h / 2) * scale + h / 2 + "px";
         }
       }
     };
@@ -136,14 +152,20 @@ export function PadModel({
   }, [layout, mobile, ready]);
   return (
     <div
-      className={`premium-pad real-pad ${mobile ? "poster-mode" : ""}`}
+      className={`premium-pad real-pad ${mobile || failed ? "poster-mode" : ""}`}
       ref={root}
       data-model-ready={mobile ? "poster" : ready ? "webgl" : "loading"}
       data-knob-angle={angle}
     >
       {(!ready || mobile) && poster}
       {!mobile && (
-        <ModelBoundary poster={poster}>
+        <ModelBoundary
+          poster={poster}
+          onError={() => {
+            setFailed(true);
+            setReady(false);
+          }}
+        >
           <Suspense fallback={null}>
             <Scene
               layout={layout}
