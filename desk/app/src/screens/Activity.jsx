@@ -130,7 +130,7 @@ export function Activity() {
             verify a confirmed transaction. No activity is invented to fill the
             page.
           </Empty>
-          <img src="/desktop/media/vault.webp" alt="" />
+          <img src="/desktop/media/pad/hero-34.png" alt="" />
         </div>
       )}
       <div className="activity-timeline">

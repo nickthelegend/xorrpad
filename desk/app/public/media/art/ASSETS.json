@@ -1,0 +1,136 @@
+{
+  "generator": "ChatGPT built-in image_gen",
+  "style": "glossy premium 3D, soft studio light, xorr.finance palette (night #030304, lime #c8f53c, cobalt #2f5bff, lavender #b7a6ff, mint #0dd87e), matches glossy 3D coin art; no text, no logos, no real brands",
+  "padReference": "../pad/hero-34.png used by the OG generation; no other generated asset depicts the pad",
+  "optimization": "All square alpha assets resized to 1024 and optimized with pngquant; OG 1536x1024 WebP. Every asset below 400 KB.",
+  "assets": [
+    {
+      "name": "voice",
+      "file": "voice.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 219703,
+      "alpha": true
+    },
+    {
+      "name": "auto",
+      "file": "auto.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 179975,
+      "alpha": true
+    },
+    {
+      "name": "signals",
+      "file": "signals.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 240125,
+      "alpha": true
+    },
+    {
+      "name": "hedge",
+      "file": "hedge.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 165163,
+      "alpha": true
+    },
+    {
+      "name": "pulse",
+      "file": "pulse.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 177027,
+      "alpha": true
+    },
+    {
+      "name": "discipline",
+      "file": "discipline.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 260954,
+      "alpha": true
+    },
+    {
+      "name": "backtest",
+      "file": "backtest.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 167940,
+      "alpha": true
+    },
+    {
+      "name": "brief",
+      "file": "brief.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 171427,
+      "alpha": true
+    },
+    {
+      "name": "empty-pad",
+      "file": "empty-pad.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 121685,
+      "alpha": true
+    },
+    {
+      "name": "empty-chats",
+      "file": "empty-chats.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 169889,
+      "alpha": true
+    },
+    {
+      "name": "empty-positions",
+      "file": "empty-positions.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 126160,
+      "alpha": true
+    },
+    {
+      "name": "empty-keeper",
+      "file": "empty-keeper.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 141682,
+      "alpha": true
+    },
+    {
+      "name": "usb",
+      "file": "usb.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 174350,
+      "alpha": true
+    },
+    {
+      "name": "bluetooth",
+      "file": "bluetooth.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 215007,
+      "alpha": true
+    },
+    {
+      "name": "wifi",
+      "file": "wifi.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 133632,
+      "alpha": true
+    },
+    {
+      "name": "og",
+      "file": "og.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 65170,
+      "alpha": false
+    }
+  ]
+}

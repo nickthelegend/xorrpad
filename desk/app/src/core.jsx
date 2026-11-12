@@ -63,13 +63,11 @@ export function State({
     );
   return null;
 }
-export function Empty({ title, children, action }) {
+export function Empty({ title, children, action, art = "empty-positions" }) {
   return (
     <div className="state empty-state">
       <div className="empty-orbit" aria-hidden="true">
-        <i />
-        <i />
-        <span />
+        <img src={"/desktop/media/art/" + art + ".png"} alt="" loading="lazy" />
       </div>
       <h3>{title}</h3>
       <p>{children}</p>

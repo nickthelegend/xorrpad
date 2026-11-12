@@ -116,13 +116,11 @@ try {
   await page.mouse.move(20, 20);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const sample = () =>
-    page
-      .locator(".real-pad")
-      .evaluate((n) => ({
-        frames: Number(n.dataset.frames),
-        at: performance.now(),
-        sway: Number(n.dataset.sway),
-      }));
+    page.locator(".real-pad").evaluate((n) => ({
+      frames: Number(n.dataset.frames),
+      at: performance.now(),
+      sway: Number(n.dataset.sway),
+    }));
   const start = await sample();
   await page.waitForTimeout(2200);
   const end = await sample();
@@ -288,6 +286,15 @@ try {
     await page.goto(url + "#" + name);
     await page.reload(); // A fresh app session: preceding verification actions cannot leak into captures.
     await ready(name);
+    await page
+      .locator("img:visible")
+      .evaluateAll((images) => Promise.all(images.map((im) => im.decode())));
+    if (name === "connect")
+      await page.locator("video").evaluate(async (v) => {
+        const im = new Image();
+        im.src = v.poster;
+        await im.decode();
+      });
     assert.equal(
       await page.locator(".notice").count(),
       0,

@@ -356,6 +356,7 @@ export function Markets() {
           </div>
           {pm.data && !pm.data.markets?.length && (
             <Empty
+              art="empty-keeper"
               title="No open outcomes."
               action={<button onClick={d.refresh}>Check devnet again</button>}
             >
@@ -369,6 +370,11 @@ export function Markets() {
               ours.data.markets.map((m) => <p key={m.market}>{m.name}</p>)
             ) : (
               <p>
+                <img
+                  className="empty-inline-art"
+                  src="/desktop/media/art/empty-keeper.png"
+                  alt=""
+                />
                 Setup required: fund and run the devnet keeper. Its actual
                 created markets will appear here.
               </p>

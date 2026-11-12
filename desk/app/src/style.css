@@ -2712,3 +2712,40 @@ summary {
     width: 292px;
   }
 }
+
+/* Generated art fills the existing illustration/icon slots, without changing their boxes. */
+.ability-art > img {
+  width: 115px;
+  height: 115px;
+  object-fit: contain;
+}
+.ability-icon > img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.empty-orbit > img {
+  width: 110px;
+  height: 85px;
+  object-fit: contain;
+}
+.transport-art {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  object-fit: contain;
+}
+.connection-empty-art {
+  width: 16px;
+  height: 12px;
+  object-fit: contain;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.empty-inline-art {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  float: right;
+  margin-left: 12px;
+}

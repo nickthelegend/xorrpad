@@ -25,12 +25,22 @@ export function Connect() {
       <div className="pairing-layout">
         <div className="pairing-theater">
           <LoopVideo
-            sources={[{ src: "/desktop/media/rings.webm", type: "video/webm" }]}
-            poster="/desktop/media/rings.jpg"
+            sources={[
+              { src: "/desktop/media/pad/turntable.webm", type: "video/webm" },
+              { src: "/desktop/media/pad/turntable.mp4", type: "video/mp4" },
+            ]}
+            poster="/desktop/media/pad/turntable-poster.png"
             className="rings-film"
           />
           <div className="pairing-copy">
             <span className="badge">
+              {!found.length && (
+                <img
+                  className="connection-empty-art"
+                  src="/desktop/media/art/empty-pad.png"
+                  alt=""
+                />
+              )}
               {found.length ? "Verified device" : "Let’s find your pad"}
             </span>
             <h2>{found.length ? found[0].device : "A little closer."}</h2>
@@ -60,7 +70,15 @@ export function Connect() {
                   setSearched(false);
                 }}
               >
-                <Icon name={id === "usb" ? "bolt" : "wave"} />
+                <img
+                  className="transport-art"
+                  src={
+                    "/desktop/media/art/" +
+                    (id === "ble" ? "bluetooth" : id) +
+                    ".png"
+                  }
+                  alt=""
+                />
                 <div>
                   <b>{name}</b>
                   <small>{desc}</small>

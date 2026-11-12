@@ -155,3 +155,27 @@ test(
     }
   },
 );
+
+test("all sixteen commissioned art assets retain their dimensions and stay below 400 KB", async () => {
+  const base = path.join(repo, "desk/app/public/media/art"),
+    manifest = JSON.parse(
+      await readFile(path.join(base, "ASSETS.json"), "utf8"),
+    );
+  assert.equal(manifest.assets.length, 16);
+  for (const a of manifest.assets) {
+    const b = await readFile(path.join(base, a.file));
+    assert.equal(a.bytes, b.length);
+    assert.ok(b.length < 400 * 1024);
+    if (a.file.endsWith(".png")) {
+      assert.equal(b.readUInt32BE(16), 1024);
+      assert.equal(b.readUInt32BE(20), 1024);
+      assert.ok(
+        b.includes(Buffer.from("tRNS")),
+        "Real indexed alpha is retained",
+      );
+    } else {
+      assert.equal(a.width, 1536);
+      assert.equal(a.height, 1024);
+    }
+  }
+});

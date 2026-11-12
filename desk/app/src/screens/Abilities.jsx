@@ -55,25 +55,11 @@ export function Abilities() {
                 }
               >
                 <div className="ability-art" aria-hidden="true">
-                  {i ? (
-                    <div className="shield-orbits">
-                      <i />
-                      <i />
-                      <Icon name="shieldCheck" />
-                    </div>
-                  ) : (
-                    <div className="sound-bars">
-                      {Array.from({ length: 23 }, (_, n) => (
-                        <i
-                          key={n}
-                          style={{
-                            height: 18 + Math.sin(n * 0.8) ** 2 * 76,
-                            animationDelay: n * 0.08 + "s",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <img
+                    src={"/desktop/media/art/" + a.id + ".png"}
+                    alt=""
+                    loading="lazy"
+                  />
                 </div>
                 <div className="section-title">
                   <span className="badge new">New ability</span>
@@ -115,7 +101,15 @@ export function Abilities() {
             {list.data.abilities.slice(2).map((a) => (
               <div className="ability-row" key={a.id}>
                 <div className={"ability-icon icon-" + a.id}>
-                  <Icon name={a.icon} />
+                  <img
+                    src={
+                      "/desktop/media/art/" +
+                      (a.id === "morning" ? "brief" : a.id) +
+                      ".png"
+                    }
+                    alt=""
+                    loading="lazy"
+                  />
                 </div>
                 <div>
                   <h3>{a.name}</h3>

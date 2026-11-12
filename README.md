@@ -277,3 +277,7 @@ the printable enclosure. [Spec](docs/v1/SPEC.md) · [Changelog](CHANGELOG.md).
 
 MIT · Copyright (c) 2026 Nivesh Gajengi. No tag is created by T8; Claude tags
 `v1.0.0` after review.
+
+Art generated with ChatGPT; pad renders from the real CAD.
+The [studio render pipeline](tools/render3d/README.md) and
+[asset prompts/provenance](tools/render3d/ART-PROMPTS.md) document the source.

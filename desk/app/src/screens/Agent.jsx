@@ -432,7 +432,10 @@ export function Agent() {
                 </button>
               ))
             ) : (
-              <Empty title="Your next conversation starts here.">
+              <Empty
+                art="empty-chats"
+                title="Your next conversation starts here."
+              >
                 Setup required: choose a model, then send your first message.
               </Empty>
             )}
