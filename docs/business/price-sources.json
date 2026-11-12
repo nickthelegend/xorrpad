@@ -1,0 +1,548 @@
+{
+  "currency": "USD",
+  "method": "GET public LCSC HTML productPriceList usdPrice; stockNumber is a snapshot, not a reservation",
+  "read_date": "2026-11-12",
+  "parts": {
+    "C2913202": {
+      "url": "https://www.lcsc.com/product-detail/C2913202.html",
+      "read_date": "2026-11-12",
+      "mpn": "ESP32-S3-WROOM-1-N16R8",
+      "stock": 18796,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 4.9997
+        },
+        {
+          "min_qty": 10,
+          "usd": 4.3456
+        },
+        {
+          "min_qty": 30,
+          "usd": 3.8319
+        },
+        {
+          "min_qty": 100,
+          "usd": 3.3843
+        },
+        {
+          "min_qty": 650,
+          "usd": 3.2241
+        },
+        {
+          "min_qty": 1300,
+          "usd": 3.1548
+        }
+      ],
+      "status": "observed"
+    },
+    "C2803348": {
+      "url": "https://www.lcsc.com/product-detail/C2803348.html",
+      "read_date": "2026-11-12",
+      "mpn": "CPG151101S11",
+      "stock": 0,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.1374
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.107
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.094
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0777
+        },
+        {
+          "min_qty": 2000,
+          "usd": 0.0705
+        },
+        {
+          "min_qty": 4000,
+          "usd": 0.0661
+        }
+      ],
+      "status": "observed"
+    },
+    "C5656610": {
+      "url": "https://www.lcsc.com/product-detail/C5656610.html",
+      "read_date": "2026-11-12",
+      "mpn": "ICS-43434",
+      "stock": 4259,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 4.2847
+        },
+        {
+          "min_qty": 10,
+          "usd": 3.7066
+        },
+        {
+          "min_qty": 30,
+          "usd": 3.4126
+        },
+        {
+          "min_qty": 100,
+          "usd": 3.0161
+        },
+        {
+          "min_qty": 500,
+          "usd": 2.8741
+        },
+        {
+          "min_qty": 1000,
+          "usd": 2.8146
+        }
+      ],
+      "status": "observed"
+    },
+    "C910544": {
+      "url": "https://www.lcsc.com/product-detail/C910544.html",
+      "read_date": "2026-11-12",
+      "mpn": "MAX98357AETE+T",
+      "stock": 28953,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 1.3199
+        },
+        {
+          "min_qty": 10,
+          "usd": 1.1533
+        },
+        {
+          "min_qty": 30,
+          "usd": 0.9966
+        },
+        {
+          "min_qty": 100,
+          "usd": 0.8811
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.8332
+        },
+        {
+          "min_qty": 1000,
+          "usd": 0.8101
+        }
+      ],
+      "status": "observed"
+    },
+    "C370970": {
+      "url": "https://www.lcsc.com/product-detail/C370970.html",
+      "read_date": "2026-11-12",
+      "mpn": "EC11E15244G1",
+      "stock": 2814,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 2.4201
+        },
+        {
+          "min_qty": 10,
+          "usd": 2.0827
+        },
+        {
+          "min_qty": 30,
+          "usd": 1.8709
+        },
+        {
+          "min_qty": 120,
+          "usd": 1.4987
+        },
+        {
+          "min_qty": 480,
+          "usd": 1.4011
+        },
+        {
+          "min_qty": 960,
+          "usd": 1.3581
+        }
+      ],
+      "status": "observed"
+    },
+    "C7519": {
+      "url": "https://www.lcsc.com/product-detail/C7519.html",
+      "read_date": "2026-11-12",
+      "mpn": "USBLC6-2SC6",
+      "stock": 21950,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.1574
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.1204
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.1023
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0862
+        },
+        {
+          "min_qty": 3000,
+          "usd": 0.0818
+        },
+        {
+          "min_qty": 6000,
+          "usd": 0.0791
+        }
+      ],
+      "status": "observed"
+    },
+    "C165948": {
+      "url": "https://www.lcsc.com/product-detail/C165948.html",
+      "read_date": "2026-11-12",
+      "mpn": "TYPE-C-31-M-12",
+      "stock": 264005,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.1885
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.1488
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.1294
+        },
+        {
+          "min_qty": 1000,
+          "usd": 0.105
+        },
+        {
+          "min_qty": 2000,
+          "usd": 0.1002
+        },
+        {
+          "min_qty": 5000,
+          "usd": 0.0974
+        }
+      ],
+      "status": "observed"
+    },
+    "C52917434": {
+      "url": "https://www.lcsc.com/product-detail/C52917434.html",
+      "read_date": "2026-11-12",
+      "mpn": "WS2812B-2020-V6",
+      "stock": 896850,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.0866
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.0686
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.0593
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0517
+        },
+        {
+          "min_qty": 2500,
+          "usd": 0.0491
+        },
+        {
+          "min_qty": 4500,
+          "usd": 0.0472
+        }
+      ],
+      "status": "observed"
+    },
+    "C7484": {
+      "url": "https://www.lcsc.com/product-detail/C7484.html",
+      "read_date": "2026-11-12",
+      "mpn": "SN74AHCT1G125DBVR",
+      "stock": 2565,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.1009
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.0804
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.0701
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0624
+        },
+        {
+          "min_qty": 3000,
+          "usd": 0.0523
+        },
+        {
+          "min_qty": 6000,
+          "usd": 0.0493
+        }
+      ],
+      "status": "observed"
+    },
+    "C14663": {
+      "url": "https://www.lcsc.com/product-detail/C14663.html",
+      "read_date": "2026-11-12",
+      "mpn": "CC0603KRX7R9BB104",
+      "stock": 596250,
+      "tiers": [
+        {
+          "min_qty": 50,
+          "usd": 0.0061
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0048
+        },
+        {
+          "min_qty": 1500,
+          "usd": 0.004
+        },
+        {
+          "min_qty": 4000,
+          "usd": 0.0036
+        },
+        {
+          "min_qty": 24000,
+          "usd": 0.0032
+        },
+        {
+          "min_qty": 48000,
+          "usd": 0.003
+        }
+      ],
+      "status": "observed"
+    },
+    "C23186": {
+      "url": "https://www.lcsc.com/product-detail/C23186.html",
+      "read_date": "2026-11-12",
+      "mpn": "0603WAF5101T5E",
+      "stock": 14503200,
+      "tiers": [
+        {
+          "min_qty": 100,
+          "usd": 0.0016
+        },
+        {
+          "min_qty": 1000,
+          "usd": 0.0012
+        },
+        {
+          "min_qty": 5000,
+          "usd": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "usd": 0.0008
+        },
+        {
+          "min_qty": 50000,
+          "usd": 0.0007
+        }
+      ],
+      "status": "observed"
+    },
+    "C25804": {
+      "url": "https://www.lcsc.com/product-detail/C25804.html",
+      "read_date": "2026-11-12",
+      "mpn": "0603WAF1002T5E",
+      "stock": 3788000,
+      "tiers": [
+        {
+          "min_qty": 100,
+          "usd": 0.0022
+        },
+        {
+          "min_qty": 1000,
+          "usd": 0.0019
+        },
+        {
+          "min_qty": 5000,
+          "usd": 0.0017
+        },
+        {
+          "min_qty": 10000,
+          "usd": 0.0015
+        }
+      ],
+      "status": "observed"
+    },
+    "C324077": {
+      "url": "https://www.lcsc.com/product-detail/C324077.html",
+      "read_date": "2026-11-12",
+      "mpn": "TPS62160DSGR",
+      "stock": 12640,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 0.8846
+        },
+        {
+          "min_qty": 10,
+          "usd": 0.7077
+        },
+        {
+          "min_qty": 30,
+          "usd": 0.62
+        },
+        {
+          "min_qty": 100,
+          "usd": 0.5324
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.4795
+        },
+        {
+          "min_qty": 1000,
+          "usd": 0.4514
+        }
+      ],
+      "status": "observed"
+    },
+    "C81598": {
+      "url": "https://www.lcsc.com/product-detail/C81598.html",
+      "read_date": "2026-11-12",
+      "mpn": "1N4148W",
+      "stock": 1945750,
+      "tiers": [
+        {
+          "min_qty": 50,
+          "usd": 0.0125
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.0098
+        },
+        {
+          "min_qty": 3000,
+          "usd": 0.0076
+        },
+        {
+          "min_qty": 6000,
+          "usd": 0.0067
+        },
+        {
+          "min_qty": 24000,
+          "usd": 0.0063
+        },
+        {
+          "min_qty": 51000,
+          "usd": 0.0061
+        }
+      ],
+      "status": "observed"
+    },
+    "C46961948": {
+      "url": "https://www.lcsc.com/product-detail/C46961948.html",
+      "read_date": "2026-11-12",
+      "mpn": "GSPK3520037RBOX-8R1W-L100",
+      "stock": 434,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 1.2044
+        },
+        {
+          "min_qty": 10,
+          "usd": 1.0872
+        },
+        {
+          "min_qty": 30,
+          "usd": 1.0221
+        },
+        {
+          "min_qty": 100,
+          "usd": 0.9489
+        },
+        {
+          "min_qty": 450,
+          "usd": 0.918
+        },
+        {
+          "min_qty": 900,
+          "usd": 0.9033
+        }
+      ],
+      "status": "observed"
+    },
+    "C5438445": {
+      "url": "https://www.lcsc.com/product-detail/C5438445.html",
+      "read_date": "2026-11-12",
+      "mpn": "INMP441",
+      "stock": 0,
+      "tiers": [
+        {
+          "min_qty": 1,
+          "usd": 24.5443
+        },
+        {
+          "min_qty": 200,
+          "usd": 9.7937
+        },
+        {
+          "min_qty": 500,
+          "usd": 9.4664
+        },
+        {
+          "min_qty": 1000,
+          "usd": 9.3044
+        }
+      ],
+      "status": "observed"
+    },
+    "C441864": {
+      "url": "https://www.lcsc.com/product-detail/C441864.html",
+      "read_date": "2026-11-12",
+      "mpn": "GRM21BR61A226ME44L",
+      "stock": 7390,
+      "tiers": [
+        {
+          "min_qty": 5,
+          "usd": 0.2522
+        },
+        {
+          "min_qty": 50,
+          "usd": 0.2065
+        },
+        {
+          "min_qty": 150,
+          "usd": 0.1869
+        },
+        {
+          "min_qty": 500,
+          "usd": 0.1625
+        },
+        {
+          "min_qty": 3000,
+          "usd": 0.1516
+        },
+        {
+          "min_qty": 6000,
+          "usd": 0.1451
+        }
+      ],
+      "status": "observed"
+    }
+  }
+}
