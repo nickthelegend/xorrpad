@@ -302,3 +302,44 @@ test(
     }
   },
 );
+
+
+test("v2 syncs eight three-layer profiles and receives profile and knob state over encrypted USB", async () =>
+  lab(async ({ pad, server }) => {
+    const origin = "http://127.0.0.1:8719";
+    const headers = { authorization: "Bearer xorr-v2-integration-test", "content-type": "application/json" };
+    const profiles = Array.from({ length: 8 }, (_, i) => ({
+      name: `Profile ${i}`,
+      layers: Array.from({ length: 3 }, (_, layer) => ({
+        ...structuredClone(server.padlink.keymap), revision: i * 3 + layer,
+      })),
+    }));
+    const response = await fetch(origin + "/pad/profiles", {
+      method: "POST", headers, body: JSON.stringify({ profiles }),
+    });
+    assert.equal(response.status, 200);
+    await pad.waitFor((m) => m.type === "profile_map" && m.profile === 7 && m.layer === 2, { timeout: 10000 });
+    const declaration = pad.history.findLast((m) => m.type === "profiles");
+    assert.equal(declaration.names.length, 8);
+    const maps = pad.history.filter((m) => m.type === "profile_map");
+    assert.equal(maps.length, 24);
+    for (const m of maps) assert.equal(m.map.revision, m.profile * 3 + m.layer);
+    const selected = await fetch(origin + "/pad/profile", {
+      method: "POST", headers, body: JSON.stringify({ device: pad.device, profile: 7, layer: 2 }),
+    });
+    assert.equal(selected.status, 200);
+    await pad.waitFor((m) => m.type === "profile_select" && m.profile === 7 && m.layer === 2);
+    pad.send({ type: "profile_state", ok: true, profile: 7, layer: 2 });
+    await waitUntil(() => server.padlink.snapshot().devices[0].profile?.profile === 7);
+    assert.deepEqual(server.padlink.snapshot().devices[0].profile, { ok: true, profile: 7, layer: 2 });
+    pad.send({ type: "knob", id: "size-s3", mode: "size", value: 123, sizeUsd: 123 });
+    await pad.waitFor((m) => m.type === "result" && m.id === "size-s3" && m.ok);
+    assert.equal(state.sizeUsd, 10); // The real /size route retains the configured trade cap.
+    for (const [mode, value] of [["leverage", 4], ["slippage", 75]]) {
+      pad.send({ type: "knob", id: `s3-${mode}`, mode, value, sizeUsd: 123 });
+      await pad.waitFor((m) => m.type === "result" && m.id === `s3-${mode}` && m.ok);
+    }
+    const peer = [...server.padlink.peers][0];
+    assert.deepEqual(peer.knobDefaults, { leverage: 4, slippageBps: 75 });
+    assert.equal(server.signals.list().length, 0);
+  }, { serial: true }));

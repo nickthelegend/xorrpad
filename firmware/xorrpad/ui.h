@@ -418,6 +418,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   if(!pad.pending && (int32_t)(pad.labelUntil-millis())>0) {
     c.fillRect(0,H-76,W,36,BG);textClip(c,12,H-64,W-24,2,INK,pad.lastKeyLabel);
   }
+  textClip(c,12,H-44,210,1,MUTE,pad.profile+" / "+pad.layer);
   if(pad.link.length())textR(c,W-12,H-44,1,MUTE,pad.link.c_str());
 }
 

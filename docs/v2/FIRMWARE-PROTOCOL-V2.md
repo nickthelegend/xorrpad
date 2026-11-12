@@ -108,10 +108,28 @@ kill frame. Inputs that already reached the desk remain subject to its gate.
 `profiles {names}` declares up to eight names. Each `profile_map` carries
 `profile,layer,map` (the validated v1 14-key map); layer 0/1/2 is Spot/Perps/Predict.
 `profile_select` activates a saved layer. `profile:next` and `layer:next` bindings
-cycle locally. Dedicated mic/kill/yes/no cells cannot be reassigned.
+cycle locally. Dedicated mic/kill/yes/no cells cannot be reassigned. Names are
+1–20 printable ASCII bytes. Sync stages all `3 * names.length` maps in RAM;
+only a complete validated set replaces the previous NVS snapshot, as one blob
+in the `profiles` NVS partition. Map revisions survive serialization. An
+interrupted transfer or failed write preserves the installed set. Activation
+waits until a pending signal or recording finishes. Selection is persisted
+before applying a map; removed active profiles fall back to the first Spot
+layer, while a retained profile is matched by name across reordering.
+
+The pad reports `profile_state {ok,profile,layer}` on each management message;
+`ok` means the message was accepted, including staging while busy, and indices
+identify the installed selection. The desk exposes the latest response in
+`/desk/link`. A failed write reports `ok:false`; it never installs the candidate.
+Desk `profile_select` and local cycles refuse a switch while busy.
 
 Knob events carry `mode` (size/leverage/slippage), `value` and `sizeUsd`.
-Short press cycles modes; long press is PTT. Voice mode controls volume.
+Short press cycles modes; long press (600 ms after debounce) is PTT and does
+not also cycle. The first detent uses step 1; later detents use step 10 below
+40 ms, step 4 below 100 ms, otherwise step 1. Bounds are size $1–$1,000,000,
+leverage 1–100 and slippage 1–5,000 bps; desk permissions still apply. Offline,
+killed, recording and pending-signal states do not emit trade-setting changes.
+Voice mode controls volume.
 BLE `voice`/`tts` use `codec:"opus",sampleRate:16000,data:<base64>` with stream,
 sequence and end markers. Firmware encodes 20 ms mono frames at 24 kbps and
 decodes Opus TTS. USB/Wi-Fi also accept v1-shaped PCM. The desk converts codecs

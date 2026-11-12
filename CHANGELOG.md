@@ -6,6 +6,19 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S3 profiles and knob
+
+- Eight persistent profiles with Spot, Perps and Predict keymaps; desk sync
+  stages every layer before atomically replacing the saved snapshot. Selection
+  persists locally and the TFT identifies the active profile and layer.
+- A dedicated 256 KB profile NVS partition retains both 3 MB A/B app slots and
+  the 16 MB flash layout. Profile names and all fourteen bindings are validated;
+  MIC, KILL, YES and NO stay in their measured cells.
+- Debounced rotary input, speed-dependent size/leverage/slippage changes,
+  short-press mode cycling and long-press voice PTT. Offline/killed inputs do
+  not change trade settings. Encrypted USB tests cover all 24 profile maps and
+  the desk's size cap, leverage and slippage defaults.
+
 ### Added — firmware 2.0.0, S3 kill latch
 
 - A two-second physical KILL persists disarm in NVS, stops queued inputs and

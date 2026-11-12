@@ -246,6 +246,7 @@ export class PadLink extends EventEmitter {
           secure: !!p.secure,
           ota: p.otaStatus,
           telemetry: p.telemetry,
+          profile: p.profileState,
           killed: this.killed.has(p.device),
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
@@ -941,6 +942,14 @@ export class PadLink extends EventEmitter {
           device: p.device,
           result: m,
         });
+        return;
+      }
+      if (m.type === "profile_state") {
+        if (typeof m.ok !== "boolean" || !Number.isInteger(m.profile) ||
+            m.profile < 0 || m.profile > 7 || !Number.isInteger(m.layer) ||
+            m.layer < 0 || m.layer > 2) throw Error("invalid profile state");
+        p.profileState = { ok: m.ok, profile: m.profile, layer: m.layer };
+        this.signals?.publish({ type: "pad_profiles", device: p.device, ...p.profileState });
         return;
       }
       if (m.type === "kill") {

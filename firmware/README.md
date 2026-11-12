@@ -39,7 +39,7 @@ Sketch: [`xorrpad/xorrpad.ino`](xorrpad/xorrpad.ino).
 Every id is exactly what `POST /key` accepts. There is no translation table: if
 an id is not real, the backend says so and the pad speaks the refusal.
 
-**KILL is held, not tapped** — 600 ms. A brush against the key that stops all
+**KILL is held, not tapped** — 2 seconds; it latches locally in NVS, even offline. A brush against the key that stops all
 trading is not acceptable.
 
 **MIC is hold-to-talk.** The recording goes to `POST /voice` as raw 16 kHz mono
@@ -377,3 +377,50 @@ env TMPDIR="$PWD/firmware/build/s2-tmp" arduino-cli compile --jobs 4 --build-pat
 The final release used the exact release command in the S1 section above after
 other builds finished. See [TESTING.md](../TESTING.md#firmware-v2--s2-pairing-and-protocol-2026-11-12)
 for tested states, native/desk counts and remaining hardware verification.
+
+
+## v2 S3 kill latch, profiles and rotary controls (2026-11-12)
+
+Status: **compiled, not yet flashed**. KILL persists in `xorrsafety/killed` and
+requires the paired desk plus a fresh 800 ms physical hold to clear it. Failed
+NVS access fails closed. No signal or trade input can bypass the local latch.
+
+Profiles use a separate **256 KB NVS partition** labelled `profiles`, and one
+validated snapshot blob (`xorrprofiles/snapshot`). The partition table keeps
+`app0` at `0x10000` and `app1` at `0x310000`, both 3 MB, and ends at 16 MB.
+The new partition occupies `0x650000..0x68ffff`; FAT now starts at `0x690000`.
+**The updated partition table must be installed when Nick flashes the board;
+an app-only OTA cannot add the profile partition to an older layout.** No
+flash or signing command was run here.
+
+Optional encoder wiring: A **GPIO 9**, B **GPIO 21**, switch **GPIO 47**, with
+pull-ups and common ground. Those inputs are separate from the measured matrix.
+Short press cycles size/leverage/slippage; hold starts voice PTT. A programmed
+`profile:next` or `layer:next` key cycles the saved selection. Actual encoder,
+NVS power-loss, TFT and microphone behavior still need physical verification.
+
+Final builds: isolated committed S3 **1,542,703 bytes flash** in both modes,
+**63,252 bytes static RAM**. Complete working tree: normal **1,767,558 bytes**,
+release **1,766,342 bytes**, both **64,844 bytes static RAM**. Limits remain
+3,145,728 bytes per app slot and 327,680 bytes static RAM; runtime allocations
+are additional. Native results: isolated **137 cases / 460 assertions**; full
+working tree **144 cases / 483 assertions**. Full desk: **140 passed, 11 explicit
+provider/setup skips, zero failed** (151 tests, 441.87 s).
+
+Exact full-working-tree commands, run sequentially with Arduino CLI 1.5.1 and
+ESP32 core 3.3.10, from the repository root:
+
+```sh
+mkdir -p firmware/build/s3-tmp
+env TMPDIR="$PWD/firmware/build/s3-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s3-working-normal-build" --output-dir "$PWD/firmware/build/s3-working-normal-bin" --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/s3-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s3-working-release-build" --output-dir "$PWD/firmware/build/s3-working-release-bin" --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The isolated S3 commands used the identical FQBN and flags, with source
+`firmware/build/s3-source/firmware/xorrpad`, build paths
+`firmware/build/s3-kill-normal` / `firmware/build/s3-release-build`, and output
+paths `firmware/build/s3-normal-bin` / `firmware/build/s3-release-bin`.
+That source snapshot includes only the S3 commits and their committed
+prerequisites. Earlier uncommitted firmware work remains separate. No signed
+OTA artifacts were overwritten. See [TESTING.md](../TESTING.md) for coverage
+and the remaining physical verification.

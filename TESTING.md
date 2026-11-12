@@ -477,3 +477,58 @@ The latch wins over remote armed/auto-accept status and signal messages, and
 the TFT kill screen wins over pairing, stale quotes, receipts, and keymaps.
 Re-arm is authenticated, bound to its transport, and clears memory only after
 its NVS write succeeds. No signing key, flash operation, or push was used.
+
+
+## Firmware v2 — S3 profiles and knob (2026-11-12)
+
+Status: **compiled, not yet flashed**. S3 commits are built from an isolated
+snapshot so the earlier uncommitted OTA/voice/factory/health work is not folded
+into these features. The full working tree is checked separately.
+
+| Check | Result |
+| --- | --- |
+| Native isolated S3 snapshot | 137 cases, 460 assertions, all passed |
+| Native complete working tree | 144 cases, 483 assertions, all passed |
+| New encrypted USB profile/knob integration | Passed, all 24 maps and desk permission cap |
+| Partition layout check | 16 MB, no overlap, original A/B app offsets and sizes retained |
+| Existing host TFT renderer | Built and emitted nine frames; no hardware claim |
+
+The 31 new profile/knob cases exercise the production ArduinoJson parser,
+complete eight-profile/three-layer round trips (including revisions and maximum
+binding lengths), invalid storage and immutable safety cells, incomplete and
+out-of-order sync, selection preservation by name, acceleration boundaries,
+mode bounds, timer wrap, quadrature decoding, switch debounce and PTT/click
+exclusion. Tests link no mocked hardware API. Existing native tests are retained.
+
+The added desk integration uses the real server, SQLite, encrypted fragmented
+USB framing and authenticated HTTP management routes. It sends all eight
+three-layer configurations, selects profile 7/Predict, checks device state
+intake and verifies that knob size remains permission-capped, with leverage and
+slippage stored for subsequent proposals. It creates no synthetic quote/fill.
+The existing kill-reboot/re-arm simulator and real devnet signal tests remain.
+
+A single NVS blob commits only after the complete desk sync. While busy, the
+old map stays active. Failed writes preserve the installed data and retries
+are throttled. Factory reset in the complete working tree also erases the new
+profile partition. On the board, verify power-loss behavior, switching all
+24 maps, physical encoder direction/bounce, TFT status strip, and PTT audio.
+The partition table must be installed before profiles can persist; app-only
+OTA cannot create a new NVS partition on an older layout.
+
+Final full desk `npm test`: **151 tests, 140 passed, 11 explicit skips,
+0 failures, 0 cancelled**, in **441.87 s**. Existing skip conditions were
+retained: unavailable credentials/services, unfunded test accounts, public RPC
+429 limits and a Phoenix HTTP 503. The new S3 USB case and existing v2
+kill-reboot/re-arm, OTA, replay and real devnet signal cases all passed.
+
+All four ESP32 builds passed (ESP32 core 3.3.10):
+
+| Source | Normal flash | Release flash | Static RAM (both) |
+| --- | ---: | ---: | ---: |
+| Isolated committed S3 snapshot | 1,542,703 bytes | 1,542,703 bytes | 63,252 bytes |
+| Complete working tree | 1,767,558 bytes | 1,766,342 bytes | 64,844 bytes |
+
+Limits: 3,145,728 bytes per app slot, 327,680 bytes static RAM. Runtime profile,
+JSON, audio and display allocations are additional. Exact commands/FQBN are in
+[firmware/README.md](firmware/README.md#v2-s3-kill-latch-profiles-and-rotary-controls-2026-11-12).
+No upload, signing-key read, new signing operation, eFuse action or push occurred.

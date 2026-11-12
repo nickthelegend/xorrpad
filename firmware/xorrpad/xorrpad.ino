@@ -34,6 +34,8 @@
 #include "provision.h"
 #include "display.h"
 #include "logic/kill-switch.h"
+#include "profiles.h"
+#include "knob.h"
 
 Display    screen;            // the display pod
 ChartState chartNow;
@@ -48,6 +50,10 @@ Net        net;
 Provision  provision;
 Settings   settings;
 PadLink    padlink;
+Profiles profiles;
+Knob knob;
+xorr::KnobControl knobControl;
+int volume=80;
 bool telnetStarted=false, keymapShown=false;
 PadLink::Transport recTransport=PadLink::NONE;
 bool recStreaming=false;
@@ -121,6 +127,17 @@ void ledFromState() {
 void onPadMessage(JsonVariantConst d) {
   String type=d["type"] | "";
   if (type == "kill_sync") { latchKill(); }
+  else if (type == "profiles" || type == "profile_map" || type == "profile_select") {
+    bool ok=false;
+    if(padlink.secureReady()) {
+      if(type=="profiles")ok=profiles.metadata(d);
+      else if(type=="profile_map")ok=profiles.map(d,pad.pending || recording);
+      else if(d["profile"].is<int>() && d["layer"].is<int>())
+        ok=profiles.select(d["profile"],d["layer"],pad.pending || recording);
+    }
+    JsonDocument ack;ack["type"]="profile_state";ack["ok"]=ok;
+    ack["profile"]=profiles.active();ack["layer"]=profiles.layer();padlink.send(ack);
+  }
   else if (type == "rearm_request" && padlink.secureReady()) {
     killSwitch.request(true, millis()); rearmTransport=padlink.active(); showKillState();
   } else if (type == "rearm_complete") {
@@ -160,6 +177,7 @@ void onPadMessage(JsonVariantConst d) {
     if(stream!=ttsStream || seq!=ttsSeq++) {ttsStream="";return;}
     const char *base64=d["pcm"] | "";int16_t pcm[256];size_t bytes=0;
     if(strlen(base64)>684 || mbedtls_base64_decode((unsigned char*)pcm,sizeof pcm,&bytes,(const unsigned char*)base64,strlen(base64)) || bytes%2)return;
+    for(size_t i=0;i<bytes/2;++i)pcm[i]=pcm[i]*volume/100;
     audio.writeSpk(pcm,bytes/2);if(d["end"]==true)ttsStream="";
   }
   screenDirty=true;
@@ -259,6 +277,12 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
     if(killSwitch.killed)return;
   }
   if(killSwitch.killed)return;
+  if(pressed && kb.id) {
+    String action=kb.id;
+    if(action=="profile:next") {profiles.next(pad.pending || recording);return;}
+    if(action=="layer:next") {profiles.nextLayer(pad.pending || recording);return;}
+    if(action=="voice") {profiles.voice=!profiles.voice;return;}
+  }
   switch (kb.role) {
     case ROLE_MIC:
       if (pressed) startRecording(); else stopAndSend();
@@ -393,6 +417,8 @@ void setup() {
   if(safetyOK)safety.end();
   showKillState();
   loadKeymap();
+  profiles.begin();
+  knob.begin();
   screen.begin();                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
   if (!audio.begin()) Serial.println("!! audio init failed");
@@ -455,6 +481,24 @@ void loop() {
     JsonDocument d; d["type"]="rearm_confirm"; d["heldMs"]=800; padlink.send(d);
   }
   showKillState();
+  profiles.refresh(pad.pending || recording);
+  pad.profile=profiles.name();pad.layer=profiles.layerName();
+  auto event=knob.tick();
+  if(event==Knob::TalkStart)startRecording();
+  else if(event==Knob::TalkEnd)stopAndSend();
+  else if(event==Knob::Click) {
+    knobControl.cycle();pad.lastKeyLabel=String(knobControl.name())+" "+String(knobControl.values[knobControl.mode],0);pad.labelUntil=millis()+1800;
+  }
+  else if(event==Knob::Turn) {
+    if(profiles.voice)volume=constrain(volume+knob.delta*5,0,100);
+    else if(!killSwitch.killed && padlink.ready() && !pad.pending && !recording) {
+      double value=knobControl.turn(knob.delta,millis());
+      pad.lastKeyLabel=String(knobControl.name())+" "+String(value,0);pad.labelUntil=millis()+1800;
+      JsonDocument d;d["type"]="knob";d["id"]=padlink.eventId();
+      d["mode"]=knobControl.name();d["value"]=value;d["sizeUsd"]=knobControl.values[0];padlink.send(d);
+    }
+  }
+  pad.knobMode=knobControl.name();pad.knobValue=knobControl.values[knobControl.mode];
   pad.pairCode = padlink.secureReady() && !padlink.blePairing ? "" : padlink.identity.code;
   pad.pairQr = padlink.identity.qr();
   if(WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}

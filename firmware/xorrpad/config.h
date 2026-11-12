@@ -72,3 +72,8 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {18, 17, 8, 14};  // columns revers
 #define TFT_ROTATION  1             // landscape; 3 if it reads upside down (try `rot 3` on telnet)
 #define TFT_SPI_HZ    20000000      // 20 MHz — safe over dupont leads
 #define CHART_POLL_MS 60000         // the chart is hourly candles; once a minute is plenty
+
+// Optional rotary encoder (ESP32-S3 GPIOs, separate from measured key matrix).
+#define KNOB_A 9
+#define KNOB_B 21
+#define KNOB_SW 47
