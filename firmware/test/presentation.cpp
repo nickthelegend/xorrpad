@@ -92,3 +92,13 @@ TEST_CASE("LED palette animates smoothly and fill has a fully dark phase") {
   auto end=xorr::statusLed(0,false,false,true,false,1);
   CHECK(end.g>start.g);
 }
+
+TEST_CASE("hidden signal screens cannot confirm even when the key is already held") {
+  CHECK(xorr::confirmationVisible(true,true,false,false,false,false,false));
+  CHECK_FALSE(xorr::confirmationVisible(false,true,false,false,false,false,false));
+  CHECK_FALSE(xorr::confirmationVisible(true,false,false,false,false,false,false));
+  for(int overlay=0;overlay<5;++overlay) {
+    bool flags[5]={false};flags[overlay]=true;
+    CHECK_FALSE(xorr::confirmationVisible(true,true,flags[0],flags[1],flags[2],flags[3],flags[4]));
+  }
+}

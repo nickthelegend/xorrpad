@@ -125,9 +125,14 @@ test("v2 serial CRC pairing and management routes preserve authentication", asyn
       assert.equal((await fetch(origin + route, { method: "POST", headers: { "x-xorr-protocol": "2" }, body: "{}" })).status, 401);
     }
     assert.equal((await fetch(origin + "/pad/pair", { headers })).status, 405);
-    const options = await fetch(origin + "/pad/options", { method: "POST", headers, body: JSON.stringify({ holdThreshold: 25, brightness: 100 }) });
+    const options = await fetch(origin + "/pad/options", { method: "POST", headers, body: JSON.stringify({ holdThreshold: 25, brightness: 100, night: true, highContrast: true, speakAmounts: true, leftHanded: true }) });
     assert.equal(options.status, 200);
-    await pad.waitFor((m) => m.type === "config" && m.holdThreshold === 25);
+    const displayConfig = await pad.waitFor((m) => m.type === "config" && m.holdThreshold === 25);
+    for (const flag of ["night", "highContrast", "speakAmounts", "leftHanded"]) assert.equal(displayConfig[flag], true);
+    assert.equal(displayConfig.brightness, 100);
+    const invalid = await fetch(origin + "/pad/options", { method: "POST", headers, body: JSON.stringify({ brightness: 256 }) });
+    assert.equal(invalid.status, 400);
+    assert.equal(server.padlink.options.brightness, 100);
     assert.equal(pad.threshold, 25);
     const response = await fetch(origin + "/padlink?device=plaintext-injection", {
       method: "POST", headers: { "x-xorr-protocol": "2" },

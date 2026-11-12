@@ -2,6 +2,12 @@
 #include <ArduinoJson.h>
 #include <cmath>
 #include "padstate.h"
+#include "logic/presentation.h"
+
+inline bool presentationConfirmationVisible(const PadState &pad) {
+  return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed,
+    pad.updating,pad.errorCode.length(),pad.pairCode.length());
+}
 
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {

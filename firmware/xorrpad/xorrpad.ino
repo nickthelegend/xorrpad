@@ -161,6 +161,7 @@ void onPadMessage(JsonVariantConst d) {
       pad.errorCode="UI_SETTINGS";pad.errorFix="Retry desk display settings";
     }
     pad.highContrast=accessibility.highContrast();
+    accessibility.labels(pad);
   }
   if(type.startsWith("ota_")) {
     if(!padlink.secureReady()) return;
@@ -237,6 +238,7 @@ void onPadMessage(JsonVariantConst d) {
 }
 
 bool sendLinkedKey(const String &action) {
+  if(action=="yes" && !presentationConfirmationVisible(pad))return true;
   if (action == "yes" && padlink.blePairing)
     return true;
   if(killSwitch.killed && action!="kill")return true;
@@ -271,7 +273,7 @@ void startRecording(uint32_t autoStopMs = 0) {
   pad.listening = true;
   screenHoldUntil=0;screenDirty=true;
   recAutoStopAt = autoStopMs ? millis() + autoStopMs : 0;
-  led(70, 0, 0); // red = recording
+  ledFromState();
   audio.beep(1200, 70);
   telnet.logf("  ● recording…\n");
 }
@@ -281,7 +283,7 @@ void stopAndSend() {
     return;
   recording = false;
   pad.listening = false;screenDirty=true;
-  led(70, 40, 0); // amber = thinking
+  ledFromState();
   audio.beep(700, 70);
   float secs = (float)recLen / AUDIO_SAMPLE_RATE;
   if (recStreaming) {
@@ -507,6 +509,7 @@ void setup() {
   accessibility.begin();
   pad.highContrast=accessibility.highContrast();
   health.begin(screen.begin());                       // shows the test card while WiFi comes up
+  screen.brightness(accessibility.brightness(millis()));
   screenHoldUntil = millis() + 3000;
   bool audioOK = audio.begin();
   factory.hardware(health.displayUp, audioOK);
@@ -534,7 +537,7 @@ void setup() {
 
   if (!up) {
     if (!XORR_RELEASE) Serial.println("!! WiFi not connected");
-    led(80, 0, 0);
+    ledFromState();
     return;                             // loop() will still scan keys / poll
   }
 
@@ -568,6 +571,7 @@ bool serviceFactoryReset() {
   static bool failed = false;
   bool due = factoryReset.tick(Factory::resetHeld(), millis());
   if (!factoryReset.active && !failed) return false;
+  accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));
   matrix.scan(nullptr); // Consume chord edges without dispatching actions.
   if (esp_task_wdt_status(nullptr) == ESP_OK) esp_task_wdt_reset();
   padlink.stopInputs();

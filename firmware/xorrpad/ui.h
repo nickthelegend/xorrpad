@@ -296,7 +296,8 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
  */
 void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   (void)ch;
-  textClip(c,12,10,296,2,WARN,"CHECK / "+pad.signalSide);
+  textClip(c,12,10,220,2,WARN,"CHECK / "+pad.signalSide);
+  if(pad.autoAccept)pillSolid(c,308,10,"AUTO",WARN,BG);
   if(!pad.fingerprint.length()) textClip(c,12,148,296,1,MUTE,pad.verdict);
   wrap(c,12,36,296,1,INK,pad.market,2);
   wrap(c,12,64,296,1,INK,"VENUE "+pad.venue,2);
@@ -309,7 +310,8 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   c.drawRoundRect(12,182,142,30,6,UP);text(c,20,192,1,UP,pad.holdRequired?"HOLD YES 800ms":"TAP YES");
   c.drawRoundRect(166,182,142,30,6,DOWN);text(c,182,192,1,DOWN,"NO / REFUSE");
   if(pad.holdRequired){for(int a=0;a<int(pad.holdProgress*360);a+=8){float rad=a*0.01745329252f;int x=137+10*sinf(rad),y=197-10*cosf(rad);c.fillCircle(x,y,1,WARN);}}
-  textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
+  textClip(c,12,215,296,1,MUTE,pad.verdict);
+  textClip(c,12,228,296,1,MUTE,pad.profile+" / "+pad.layer);
 
 }
 

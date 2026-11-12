@@ -53,7 +53,7 @@ public:
       _tft->setCursor(12, 62); _tft->setTextSize(1); _tft->println("Enable OPI PSRAM; reboot");
     }
     if (TFT_BLK >= 0) digitalWrite(TFT_BLK, HIGH);
-    Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
+    if(!XORR_RELEASE)Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
                   W, H, (unsigned)(TFT_SPI_HZ / 1000000), _rotation, _ok ? "ok" : "FAILED");
     return _ok;
   }
@@ -78,7 +78,10 @@ public:
     _chartN = (ch.ok && ch.symbol == pad.market) ? ch.n : 0;
   }
 
-  void brightness(int value){if(TFT_BLK>=0)analogWrite(TFT_BLK,value);}
+  void brightness(int value) {
+    value=std::clamp(value,0,255);
+    if(TFT_BLK>=0 && value!=_brightness){analogWrite(TFT_BLK,value);_brightness=value;}
+  }
   // Landscape only — the pod lays the panel on its side; 1 and 3 are its two ways round.
   bool rotate(uint8_t r) {
     if (!_ok || (r != 1 && r != 3)) return false;
@@ -100,6 +103,7 @@ private:
   SPIClass *_spi = nullptr;
   Adafruit_ILI9341 *_tft = nullptr;
   GFXcanvas16 *_canvas = nullptr,*_back=nullptr;
+  int _brightness=-1;
   bool _ok = false;
   uint8_t _rotation = TFT_ROTATION;
   uint16_t _chartN = 0;

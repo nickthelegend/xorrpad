@@ -48,6 +48,11 @@ public:
     }
     return keyAt(r,xorr::leftColumn(c,movable));
   }
+  void labels(PadState &pad)const {
+    int i=0;
+    for(uint8_t r=0;r<4;++r)for(uint8_t c=0;c<4;++c)
+      if(keyAt(r,c).role!=ROLE_NONE)pad.keyLabels[i++]=key(r,c).label;
+  }
   // A wake/dismiss gesture cannot also accept a trade that was hidden.
   bool keyEvent(uint8_t r,uint8_t c,bool pressed,PadState &pad) {
     uint16_t bit=uint16_t(1)<<(r*4+c);
