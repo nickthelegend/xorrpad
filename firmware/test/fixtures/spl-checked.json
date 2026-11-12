@@ -1,0 +1,11 @@
+{
+  "name": "spl-checked",
+  "cluster": "devnet",
+  "provenance": "@solana/spl-token transfer builder; live devnet blockhash; unsigned parser exercise, not a funded transfer",
+  "capturedAt": "2026-11-12T05:15:13.684Z",
+  "unsignedTx": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAIEPV0YWsOF3tFxH0RQ2nl19dSrcV615pfpYqHpVIG03G4lP1+cJYaaPldNPMJAhJzTaLWqqLnD97wThC+HwPsxlgabiFf+q4GE+2h/Y0YYwDXaxDncGus7VZig8AAAAAABBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKnVQg4wYtREmMxEZORpvTvj0tQVJM4zGm1/u6b4f7+XngEDBAACAQAKDEDiAQAAAAAABg==",
+  "message": "010002043d5d185ac385ded1711f4450da7975f5d4ab715eb5e697e962a1e95481b4dc6e253f5f9c25869a3e574d3cc240849cd368b5aaa8b9c3f7bc13842f87c0fb3196069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f0000000000106ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9d5420e3062d44498cc4464e469bd3be3d2d41524ce331a6d7fbba6f87fbf979e010304000201000a0c40e201000000000006",
+  "sha256": "4ff4c0bb864e2ae2bb8ce3c5655901c36dc77c4e1c853d2dcb8aaf648cdc0523",
+  "tables": [],
+  "mintProofs": []
+}
