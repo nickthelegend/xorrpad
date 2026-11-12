@@ -58,10 +58,29 @@ through `tools/uipreview/preview`, using the firmware's own `ui.h`. The devnet
 capture is a newly created, unfunded disposable agent wallet (SOL 0, USDC 0),
 not a funded-account demonstration. The empty capture shows the exact no-wallet
 instruction. Both were visually inspected at 2× native resolution. Desktop
-wallet-card and Fund-screen captures belong to the later brief parts.
+wallet-card and Fund-screen captures are documented below.
 
 ```sh
 make -C tools/uipreview
 tools/uipreview/preview firmware/build/w1-pad 2 firmware/build/w1-portfolio-devnet.json
 tools/uipreview/preview firmware/build/w1-pad 2 firmware/build/w1-portfolio-no-wallet.json
 ```
+
+### Agent wallet W3 — desktop card and pad funding
+
+`agent-wallet-devnet-{1440,375}.png` captures the built Agent screen served by
+the real authenticated desktop backend. `desk/test/app-agent-wallet.test.mjs`
+creates an unfunded disposable desktop wallet, reads actual devnet SOL and SPL
+balances, checks the clipboard address, independently decodes the local QR,
+and sends its funding record to `tools/padsim` over fragmented TCP. Nothing is
+funded or submitted. Both captures use a 1000 px viewport, reduced motion,
+44×44 px controls and readable text bounds. The complete card is positioned
+above the mobile navigation using ordinary page scrolling.
+
+`agent-wallet-fund-devnet.png` renders that actual received Fund record through
+`tools/uipreview/preview`. `agent-wallet-portfolio-devnet.png` and
+`agent-wallet-portfolio-no-wallet.png` render the actual Portfolio records from
+the full run's `portfolio.live.test.mjs`. These use the firmware's `ui.h` at
+2× native resolution. Zero SOL/USDC belongs to real newly generated devnet
+identities; unavailable market USD is stated honestly. These are simulator
+and firmware-renderer captures, with no physical-pad funding claim.

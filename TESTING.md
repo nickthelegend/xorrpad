@@ -2008,3 +2008,101 @@ its generated wallet were removed. Final public log:
 `firmware/build/w2-desk-final.log`; source hashes:
 `firmware/build/w2-source-sha256.json`. W2 contains local commits only; no push,
 transaction submission, existing secret-file access or desktop restyle occurred.
+
+## Agent wallet W3 — part 4 and final acceptance (2026-11-12)
+
+The Agent wallet card uses the existing desktop surface, buttons, badges,
+icons and empty-state art. Its address, wallet source, cluster, SOL/SPL units,
+USD availability and observation time come from authenticated `/agent-wallet`.
+The funding QR uses the existing local encoder; no third-party QR service or
+secret export is involved. Creation is explicit, an absent pad is reported,
+and refresh/RPC failure clears prior balances instead of retaining stale values.
+The signing/session controls remain available below the card.
+
+The new built-app `desk/test/app-agent-wallet.test.mjs` exercises the actual
+backend and public devnet RPC without intercepted HTTP/WebSocket responses:
+
+- No-wallet instruction and Create action, with no funding QR or balances.
+- Explicit creation of one disposable wallet, identity match with the existing
+  session wallet, live zero SOL/USDC and honest devnet valuation text.
+- Clipboard address and independently decoded rendered QR match the wallet's
+  exact Solana Pay URI.
+- Card at 1440/375 px, reduced motion, text bounds, no horizontal overflow,
+  44×44 px controls and the entire card above the mobile navigation.
+- “Show QR on pad” reports no connected pad, then sends the matching public
+  Fund record to the real fragmented TCP padsim.
+- A refused RPC connection produces the actual route error, clears stale
+  balances/QR and does not offer Create for an already-created wallet.
+
+All existing W1/W2 tests remain, including the authenticated route's independent
+devnet balance checks, encrypted-v2 funding of the selected native pad wallet,
+PORTFOLIO fallback, explicit phone precedence and no-wallet instruction.
+`agent-wallet-status.test.mjs` additionally verifies that simultaneous wallet
+identity and policy-status reads share one fresh encrypted native-pad response,
+mutations remain exclusive and all readers reject together on disconnect.
+
+The first full run exposed a read race: the new wallet card could acquire the
+pad's single session request before the existing policy-status route, causing
+that route to fail and leave its controls disabled. That run was stopped and
+is not counted as completed acceptance. Read-only session-status requests now
+share their in-flight promise on the same encrypted connection. Policy changes,
+transaction signing and reviews retain their existing exclusive request gate.
+
+Screenshots are in `docs/screens/v3/`: `agent-wallet-devnet-{1440,375}.png`,
+`agent-wallet-fund-devnet.png`, `agent-wallet-portfolio-devnet.png` and
+`agent-wallet-portfolio-no-wallet.png`. The desktop images come from the new
+browser test; the pad images render actual captured public records through
+`tools/uipreview/preview` at 2× resolution. The unfunded disposable devnet
+identities have actual zero SOL/USDC. No funded-account or physical-pad scan
+claim is made. See the screenshot inventory for provenance.
+
+The full desk suite runs alone, serially, in a disposable source/runtime copy.
+Existing key material, `.env` files, `.loom`, dedicated devnet wallet directories
+and unrelated private runtime state are excluded before any file is read.
+Only dependency/venv links and explicitly public native drivers, firmware,
+manifest and SDK WASM inputs are supplied. The original repo Python venv is
+selected with `SIBYL_PY="$PWD/.venv/bin/python"` before entering the copy.
+Tests can create their own disposable identities; none is funded or submitted.
+All unrelated working-tree edits are preserved and excluded from the W3 commit.
+
+```sh
+firmware/test/run.sh
+EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' tools/uipreview/build-web-screen.sh
+npm run build:app --prefix desk
+# Inside the isolated source copy, with SIBYL_PY pointing to the repo venv:
+node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs
+```
+
+Public evidence: `firmware/build/w3-{native,wasm,app-build-final,desk-final}.log`,
+`firmware/build/w3-design-check.json` and `firmware/build/w3-source-sha256.json`.
+The mechanical design check reports no findings. The rebuilt screen WASM is
+byte-identical to W2, SHA-256
+`554e559be963087ad9823789333a43f5ebbcd3c3055c4164d79f25cb00c15058`.
+
+Native acceptance: **273/273 cases, 2,709/2,709 assertions**, zero failures or
+skips. The focused concurrent-status regression passes **1/1**; the existing
+Agent policy browser regression passes **1/1** after the race fix. Their public
+logs are `firmware/build/w3-status.log` and
+`firmware/build/w3-policy-regression.log`. The standalone isolated app build
+passes; its pre-existing bundle-size and Device import warnings remain.
+
+Final isolated desk acceptance: **252 tests, 242 passed, 10 skipped, zero
+failures or cancellations**, exit **0**, **912,977.868458 ms**. Every new W3
+test and the existing live agent-wallet/funding/Portfolio tests passed without
+skips. The existing ten skips are unavailable Ollama/Anthropic/Deepgram/Electron
+setup, rate-limited Meteora, missing keeper public metadata, an unfunded
+disposable receipt wallet, two unconfigured Phoenix account cases and an
+unfunded pm-AMM simulation owner. No test was weakened or removed.
+
+Model3d parity and the independently decoded native Fund QR plus all six
+native/WASM wallet-frame cases passed in that full run. The desktop captures
+were refreshed from its actual browser test; the pad captures were regenerated
+from its actual TCP Fund and Portfolio records and visually inspected.
+The 25 recorded W3 source/public-artifact hashes matched both the working tree
+and isolated copy before and after completion. The disposable source/runtime
+and generated unfunded identities were removed after evidence extraction.
+
+Local implementation commit: `6a64a69`. Acceptance documentation and captures
+are committed separately. No existing secret files, `.env`, `.loom` or dedicated
+wallet directories were opened; no transaction was submitted and nothing was
+pushed. Mainnet execution gating and the approved desktop look are unchanged.

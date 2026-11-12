@@ -6,6 +6,33 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Agent wallet W3, part 4
+
+- Agent now shows the existing agent wallet's full public address with copy,
+  a locally encoded Solana Pay funding QR, live SOL/SPL balances and cluster,
+  valuation availability and observation time. Refresh reads the wallet again;
+  unavailable RPC data never becomes a fabricated zero balance.
+- “Create agent wallet” appears only when no wallet exists. “Show QR on pad”
+  uses the authenticated funding route and reports delivery or an absent pad.
+  Existing signing controls, components, artwork and desktop styling remain.
+- A built-app browser regression exercises real devnet creation/readback,
+  clipboard contents, independent QR decoding, actual fragmented TCP Fund
+  delivery and RPC failure. Captures cover the card at 1440/375 px and the
+  actual pad Fund/Portfolio records through the firmware preview renderer.
+- Concurrent wallet and policy status reads share one in-flight encrypted pad
+  request. Approval/signing stays exclusive; disconnect rejects all waiting
+  readers. This prevents the wallet card from disabling existing policy controls.
+
+### Added — Agent wallet W3 acceptance
+
+- Final isolated serial desk suite: 252 tests, 242 passed, 10 existing
+  setup/provider skips, zero failures. Native suite: 273 cases and 2,709
+  assertions passed. App build, model3d parity and all native/WASM wallet
+  frames passed. W3 source and public-artifact hashes match the tested copy.
+- Saved 1440/375 px desktop wallet captures and regenerated actual pad Fund,
+  Portfolio and no-wallet screenshots in `docs/screens/v3/`; documented test
+  results, the status-read race fix and screenshot provenance in `TESTING.md`.
+
 ### Added — Agent wallet W2, part 2
 
 - The desk sends `{type:"fund", address, uri, cluster}` over the existing v1
