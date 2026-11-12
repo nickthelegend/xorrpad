@@ -12,6 +12,7 @@ const icons = {
   permissions:
     '<path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6zM8 12l3 3 5-6"/>',
   backtest: '<path d="M4 3v17h17M7 15l4-5 4 3 5-7"/>',
+  abilities: '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 17h6m-3-3v6"/>',
   link: '<path d="M8 8l3-3a5 5 0 017 7l-3 3M16 16l-3 3a5 5 0 01-7-7l3-3M8 16l8-8"/>',
 };
 const pages = [
@@ -24,6 +25,7 @@ const pages = [
   ["permissions", "Permissions"],
   ["backtest", "Backtest"],
   ["link", "Link"],
+  ["abilities", "Abilities"],
 ].map(([id, name]) => [
   id,
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${icons[id]}</svg>`,

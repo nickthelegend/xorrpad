@@ -1,0 +1,11 @@
+{
+  "name": "xorrpad-ability-template",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "asc ability.ts --outFile ../out/assemblyscript.wasm --runtime stub --noAssert --initialMemory 1 --maximumMemory 2 --stackSize 8192 --optimize --exportStart _initialize"
+  },
+  "devDependencies": {
+    "assemblyscript": "0.28.9"
+  }
+}

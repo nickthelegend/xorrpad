@@ -1,6 +1,12 @@
 import { connectionStatus } from './connection-status.mjs';
 import { Abilities } from './abilities.mjs';
 import { Profiles } from './profiles.mjs';
+function decodeOtaPatch(data) {
+  if(typeof data !== 'string' || !data.length || data.length > 4194304) throw Error('Select a valid delta.bin under 3 MB');
+  const bytes=Buffer.from(data,'base64');
+  if(bytes.toString('base64')!==data) throw Error('Select a valid base64 delta.bin');
+  return bytes;
+}
 import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
 /**
@@ -24,6 +30,8 @@ import { Agent } from './agent.mjs';
 import { Chats } from './chats.mjs';
 import { assemblePrompt, proposalSpeech } from './persona.mjs';
 import { PadLink } from "./padlink.mjs";
+import {OTA_PUBLIC_KEY} from "./firmware-release.mjs";
+import {verifyManifestSignature,verifyManifest} from "./pad-v2.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
@@ -254,7 +262,7 @@ export function createServer(mem) {
         res.writeHead(200,{'content-type':type,'cache-control':ext==='html'?'no-store':'public, max-age=3600'});return res.end(bytes);
       }catch(e){return send(['ENOENT','ENOTDIR','EISDIR'].includes(e.code)?404:500,{error:'Setup required: npm run build:app --prefix desk'});}
     }
-    const uiFiles = new Set(['status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
+    const uiFiles = new Set(['crew.mjs','abilities.mjs','status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs','device-attestation.mjs','attestation-roots.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
     const open = url.pathname === '/v1' || url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
@@ -264,7 +272,7 @@ export function createServer(mem) {
     if (!open && TOKEN) {
       const auth = req.headers.authorization || "";
       const given = auth.startsWith("Bearer ") ? auth.slice(7) : req.headers["x-pad-token"];
-      if (given !== TOKEN) return send(401, { error: "bad pad token" });
+      if(given!==TOKEN){if(url.pathname==='/padlink'&&req.headers['x-xorr-protocol']==='2')req.padV2Only=true;else return send(401,{error:"bad pad token"});}
     }
 
     if (url.pathname === '/padlink') {
@@ -406,6 +414,29 @@ export function createServer(mem) {
       const abilityMatch=url.pathname.match(/^\/abilities\/([a-z]+)(\/run)?$/);
       if(abilityMatch)return send(200,await (abilityMatch[2]?abilities().run(abilityMatch[1]):abilities().install(abilityMatch[1],body)));
       if(url.pathname==='/agent/voice-test'){if(![...srv.padlink.peers].some(p=>p.device))throw Error('Setup required: connect a verified pad for speaker playback');await speakReply('Your pad. Your rules. I am ready when you are.');return send(200,{spoken:true});}
+      if (url.pathname === '/pad/abilities') {
+        const device=req.method==='GET'?url.searchParams.get('device'):body.device;
+        if(req.method==='GET')return send(200,await srv.padlink.abilities(device));
+        if(body.action==='developer'){
+          if(typeof body.developerPublicKey!=='string'||! /^[0-9a-f]{64}$/.test(body.developerPublicKey))return send(400,{error:'Enter a 64-character developer public key'});
+          return send(200,await srv.padlink.abilities(device,{type:'ability_developer',developerPublicKey:body.developerPublicKey}));
+        }
+        if(body.action==='remove'&&Number.isInteger(body.slot)&&body.slot>=0&&body.slot<=1)return send(200,await srv.padlink.abilities(device,{type:'ability_remove',slot:body.slot}));
+        if(body.action==='install')return send(200,await srv.padlink.installAbility(device,body.slot,body.bundle));
+        return send(400,{error:'Choose developer, install or remove'});
+      }
+      if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
+      if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
+      if (url.pathname === '/pad/crew') return send(200,req.method==='GET'?{policy:executor.crew.read(),rounds:executor.crew.status()}:executor.crew.write(body));
+      if (url.pathname === '/pad/price-alerts') return send(200,await srv.padlink.priceAlerts(req.method==='GET'?url.searchParams.get('device'):body.device,req.method==='GET'?undefined:body.alerts));
+      if (url.pathname === '/pad/session') return send(200,req.method==='GET'?await srv.padlink.sessionStatus(url.searchParams.get('device')):await srv.padlink.configureSession(body.device,body.policy));
+      if (url.pathname === '/pad/clear-sign') return send(202,await srv.padlink.clearSign(body.device,body));
+      if (url.pathname === '/pad/rearm') return send(200,srv.padlink.rearm(body.device));
+      if (url.pathname === '/pad/profiles') return send(200,req.method==='GET'?srv.padlink.profiles:srv.padlink.setProfiles(body.profiles));
+      if (url.pathname === '/pad/profile') return send(200,srv.padlink.selectProfile(body));
+      if (url.pathname === '/pad/ota-channel') return send(200,await srv.padlink.otaChannel(req.method==='GET'?url.searchParams.get('device'):body.device,req.method==='GET'?undefined:body.channel));
+      if (url.pathname === '/pad/manifest'){verifyManifestSignature(body.manifest,OTA_PUBLIC_KEY);return send(200,{ok:true,...body.manifest});}
+      if (url.pathname === '/pad/ota'){if(typeof body.image!=='string'||body.image.length>4194304)return send(400,{error:'Select an app.bin under 3 MB'});const image=Buffer.from(body.image,'base64');verifyManifest(body.manifest,image,OTA_PUBLIC_KEY);srv.padlink.update(body.device,body.manifest,image,OTA_PUBLIC_KEY,body.patch===undefined?undefined:decodeOtaPatch(body.patch)).catch(error=>signals.publish({type:'ota_error',device:body.device,error:error.message}));return send(202,{ok:true,state:'uploading'});}
       if (url.pathname === '/pad/keymap') {
         try {abilities().validateBindings(body);const before=srv.padlink.keymap;const map=srv.padlink.setKeymap(body);abilities().captureBindings(before,map);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
       }
@@ -420,7 +451,7 @@ export function createServer(mem) {
         const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
         if (req.method === 'POST' && !local) return send(403,{error:'wallet configuration is local only'});
         try {
-          if (url.pathname === '/wallet/mode') return send(200,req.method === 'GET' ? {mode:executor.mode()} : executor.setMode(body.mode));
+          if (url.pathname === '/wallet/mode') return send(200,req.method === 'GET' ? {mode:executor.mode()} : executor.setMode(body.mode,body.device));
           return send(200,req.method === 'GET' ? await executor.wallet.info() : body.secretKey
             ? await executor.wallet.import(body.secretKey) : await executor.wallet.create());
         } catch(e) { return send(e.message.startsWith('Setup required:') ? 503 : 400,{error:e.message}); }
@@ -432,7 +463,9 @@ export function createServer(mem) {
         try {
           const [ ,id,action] = signalAction;
           if (action === 'sign') return send(200,await executor.completePhone(id,body));
-          const answered = await signals[action](id);
+          const answered = action === 'accept'
+            ? await signals.accept(id,body.fingerprint)
+            : await signals.refuse(id);
           return send(200,action === 'accept' && answered.state === 'accepted'
             ? {...answered,execution:await executor.execute(id)} : answered);
         }
@@ -668,10 +701,16 @@ export function createServer(mem) {
         // remembered entry there is no cost basis, and the field is null rather
         // than a zero the pad would render as "flat".
         let unrealised = null, basis = 0, open = 0, held = 0, priced = 0;
+        const positionDetails = [];
         for (const [sym, pos] of Object.entries(brief?.positions || {})) {
           if (!(pos.qty > 0)) continue;
           held++;
           const p = sym === "USDC" ? 1 : px[sym];
+          if (positionDetails.length < 8) positionDetails.push({
+            market: sym, qty: pos.qty,
+            pnl: Number.isFinite(p) && p > 0 && pos.avg_entry_usd > 0
+              ? Math.round(pos.qty * (p - pos.avg_entry_usd) * 100) / 100 : null,
+          });
           if (p == null) continue;
           priced++;
           open  += pos.qty * p;
@@ -695,7 +734,8 @@ export function createServer(mem) {
           verdict: state.pending?.verdict?.action || null,
           chainOk,
           remembers: !!brief?.limits,
-          positions: Object.keys(brief?.positions || {}).length,
+          positions: held,
+          positionDetails,
           rules: (brief?.rules || []).length,
           spentToday: Number.isFinite(brief?.spent_today) ? brief.spent_today : null,
           dayLimit: brief?.limits?.max_day_usd ?? null,
@@ -966,6 +1006,7 @@ export function createServer(mem) {
       // Disarming is one-way from the red key and from /panic. Re-arming is
       // its own deliberate act, so nobody re-arms by mashing KILL twice.
       if (url.pathname === "/arm" && req.method === "POST") {
+        if(srv.padlink.killed.size)return send(409,{error:"Clear the pad kill latch with a desk rearm request and an 800ms hold on the pad"});
         state.armed = true;
         note("ARMED — trading re-enabled");
         return send(200, { armed: true });
@@ -1026,6 +1067,7 @@ export function createServer(mem) {
       // before any handler runs. What is left is genuinely an unknown path.
       return send(404, { error: "no such route" });
     } catch (e) {
+      if(url.pathname.startsWith("/pad/"))return send(400,{error:e.message});
       console.error("[route]", url.pathname, e.message);
       if (res.headersSent) return;
       // Distinguish "the trade failed" from "the chain is not answering": they
@@ -1052,7 +1094,7 @@ export function createServer(mem) {
   const refreshPadBrief=() => mem.recallBrief().then(b => {padBrief=b;}).catch(() => {padBrief=null;});
   refreshPadBrief();const padBriefTimer=setInterval(refreshPadBrief,5000);padBriefTimer.unref();
   srv.once('close',() => clearInterval(padBriefTimer));
-  srv.padlink = new PadLink({token:TOKEN,signals,voiceInput:async device => {
+  srv.padlink = new PadLink({token:TOKEN,signals,speak:speakReply,voiceInput:async device => {
     if(!(await credentials.get('deepgram')))return null;
     const live=await deepgram.transcribeLive({onTranscript:t => signals.publish({type:'transcript',device,...t})});
     return {write:pcm => live.write(pcm),abort:() => live.abort(),finish:async () => {
@@ -1061,6 +1103,15 @@ export function createServer(mem) {
     }};
   },status:() => ({...livePulse,armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
+  executor.setPadLink(srv.padlink);
+  signals.on('event',e=>{
+    if(e.type!=='pad_signer' || !e.ok || !e.automatic)return;
+    const text=`Pad policy auto-accepted signing for ${e.signalId}.`;note(text);
+    (async()=>{
+      if(await credentials.get('deepgram'))await speakReply(text);
+      else {const pcm=await tts(text);signals.publish({type:'speech',text,pcm:pcm.toString('base64'),sampleRate:16000});}
+    })().catch(error=>signals.publish({type:'pad_signer_speech_error',error:error.message}));
+  });
   srv.padlink.bind(srv);
   let seenDevices=new Set();
   const abilityEvent=e=>{if(e.type!=='pad_link')return;const next=new Set(e.devices.map(d=>d.device));for(const id of next)if(!seenDevices.has(id)&&abilities().state().morning?.installed)abilities().run('morning').catch(error=>signals.publish({type:'ability_error',error:error.message}));seenDevices=next;};
@@ -1123,7 +1174,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
     const selected = options.market || state.market;
     const market = ["long","short"].includes(id) ? {prices:{}} : await getMarket([selected]);
     const sig = { agent: state.agent, side: id.toUpperCase(), symbol: selected,
-                  kind:["long","short"].includes(id)?"perp":"spot",leverage:Number(options.leverage ?? 1),
+                  kind:["long","short"].includes(id)?"perp":"spot",leverage:Number(options.leverage ?? 1),slippageBps:Number(options.slippageBps ?? 50),
                   sizeUsd: state.sizeUsd, reason: `${id} pressed on the pad`, confidence: 1 };
     const proposal = await propose(sig,brief,{price:market.prices[selected]});
     const {verdict,routing} = proposal;
@@ -1282,6 +1333,7 @@ const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
   '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

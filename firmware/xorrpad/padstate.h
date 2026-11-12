@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+#include <string>
+#include <vector>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // What the pad knows, as plain data.
@@ -14,7 +16,29 @@
 // Everything the pad reads back from the xorr-pad backend in one poll. This is
 // the whole model the firmware holds: it keeps no opinion of its own about what
 // is armed or what is in hand, because the backend is the only thing that knows.
+struct PadPosition {
+  String market; float qty=0, pnl=0; bool hasPnl=false;
+};
+
 struct PadState {
+  bool alertsOnly=false;String alertNotice;uint32_t alertUntil=0;
+  bool abilityReview=false;
+  String abilityDeveloper,abilityWidget,abilityName;
+  bool sessionPolicy=false;
+  bool clearSigning=false,blindSigning=false,blindAllowed=false,clearReviewed=false;
+  size_t clearPage=0;uint32_t confirmDuration=800;
+  std::vector<std::string> clearRows;
+  PadPosition positions[8]; uint8_t positionN=0; int positionCount=-1;
+  uint32_t replyAt=0;
+  bool factory=false; int factoryStage=0, factoryMic=0;
+  String factoryInstruction;
+  String knobMode="size";
+  double knobValue=100;
+  float rearmProgress = 0;
+  bool killed=false,rearmRequested=false,holdRequired=false,listening=false,highContrast=false;
+  String fingerprint,signalSide,signalSize,signalPrice,signalFee,profile="Scalper",layer="Spot",pairCode,pairQr,errorCode,errorFix,reply;
+  uint8_t otaProgress=0;bool updating=false;float holdProgress=0;int waveform[32]={};
+
   String keyLabels[14];uint32_t keymapUntil=0;
   bool autoAccept = false;
   String link, signalId, signalState, receiptSignature, receiptExplorer, lastKeyLabel;

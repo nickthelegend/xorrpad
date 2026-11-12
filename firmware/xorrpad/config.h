@@ -1,5 +1,11 @@
 #pragma once
-#define XORR_FW_VERSION "1.0.0"
+#ifndef XORR_RELEASE
+#define XORR_RELEASE 0
+#endif
+#if XORR_RELEASE != 0 && XORR_RELEASE != 1
+#error "XORR_RELEASE must be 0 or 1"
+#endif
+#define XORR_FW_VERSION "3.0.0"
 // ─────────────────────────────────────────────────────────────────────────────
 // Board + wiring for the ESP32-S3 macropad. Only fixed hardware facts live here;
 // WiFi and the backend address are provisioned at runtime through the captive
@@ -56,7 +62,7 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {18, 17, 8, 14};  // columns revers
 
 // ---- The kill key is HELD, not tapped. A brush against a key that stops all
 //      trading is not acceptable, so it needs a deliberate hold. ----
-#define HOLD_TO_KILL_MS 600
+#define HOLD_TO_KILL_MS 2000
 
 // ---- Display pod: 2.8" ILI9341 320x240 on SPI — LCDwiki MSP2807, laid landscape
 //      with its header on the right (cad/part_display.py). Eight wires: VCC -> 3V3,
@@ -72,3 +78,8 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {18, 17, 8, 14};  // columns revers
 #define TFT_ROTATION  1             // landscape; 3 if it reads upside down (try `rot 3` on telnet)
 #define TFT_SPI_HZ    20000000      // 20 MHz — safe over dupont leads
 #define CHART_POLL_MS 60000         // the chart is hourly candles; once a minute is plenty
+
+// Optional rotary encoder (ESP32-S3 GPIOs, separate from measured key matrix).
+#define KNOB_A 9
+#define KNOB_B 21
+#define KNOB_SW 47

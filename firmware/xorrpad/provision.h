@@ -22,6 +22,7 @@ public:
   // Starts the portal without blocking USB/BLE; poll() services it in loop().
   bool run(Settings &s) {
     _settings=&s;
+    _wm.setDebugOutput(false);
     _url=new WiFiManagerParameter("url", "Backend URL (http://LAN:port or https://machine.ts.net)",s.backendUrl,120);
     _token=new WiFiManagerParameter("token", "Pad token",s.padToken,90);
     _wm.setTitle("xorr-pad");

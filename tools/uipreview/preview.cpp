@@ -164,10 +164,13 @@ int main(int argc, char **argv) {
     p.agent = "momentum"; p.market = "NVDAx"; p.chain = "solana";
     p.price = 221.67f; p.verdict = "BUY: limits recalled from memory (max $100/trade); NYSE is closed and this trades anyway";
     p.hoursState = "AFTER"; p.marketOpen = false; p.nyTime = "17:44";
+    // Existing native/JS canonical conformance vector, never a live quote.
+    p.market="SOL";p.venue="Jupiter";p.signalSide="buy";p.signalSize="100";
+    p.signalPrice="150.5";p.signalFee="0.25";p.fingerprint="AgrJHn";
     p.hoursNote = "shut on the NYSE - this trades anyway";
     fillChart(ch, "NVDAx", 219.0f, 0.012f);
     ui::drawFrame(c, p, ch);
-    shot("04-confirm-buy", "a decision waiting on a human");
+    shot("04-confirm-buy", "canonical conformance vector layout, not a live quote");
   }
 
   // 5. stopped + memory wiped
@@ -210,6 +213,41 @@ int main(int argc, char **argv) {
     p.receiptSignature="5hFEx7T33RLSekreevbuEZ1khnJojRi97eJ3EWndjpACwvxcFhtBfyPbRS8NQrcRtTW7ACcaCo2Be5kyxsqPnoKU";
     p.receiptExplorer=String("https://explorer.solana.com/tx/")+p.receiptSignature+"?cluster=devnet";
     ui::drawFrame(c,p,ch);shot("10-receipt","historical devnet receipt layout, not a new trade");
+  }
+
+  // P1 layout-only states. They contain no invented live quote or fill.
+  {
+    PadState p; ChartState ch; p.ok=true;
+    p.reply="The pad keeps every character in an agent reply, including the last line. Replies scroll in eight-line pages every six seconds. A receipt or pending signal takes priority. Press a key to return to Market Pulse.";
+    ui::drawFrame(c,p,ch);shot("11-agent-reply","layout text, first reply page");
+    p.highContrast=true;
+    ui::drawFrame(c,p,ch);shot("12-high-contrast","same reply with white text on night");
+    p.reply="";p.positionCount=0;
+    ui::drawPositions(c,p,0);shot("13-positions-empty","truthful empty portfolio");
+    p.positionCount=-1;p.listening=true;
+    ui::drawFrame(c,p,ch);shot("14-listening","quiet microphone waveform");
+    p.listening=false;p.updating=true;p.otaProgress=0;
+    ui::drawFrame(c,p,ch);shot("15-ota","update progress at start");
+    p.updating=false;p.errorCode="DISPLAY_RAM";p.errorFix="Enable OPI PSRAM; reboot";
+    ui::drawFrame(c,p,ch);shot("16-error","error code and one-line fix");
+    p.errorCode="";p.killed=true;p.pairCode="------";
+    ui::drawFrame(c,p,ch);shot("17-killed","latched kill instructions");
+    std::vector<uint16_t> killed(c.getBuffer(),c.getBuffer()+ui::W*ui::H);
+    p.pending=p.updating=p.listening=true;
+    ui::drawFrame(c,p,ch);
+    if(!std::equal(killed.begin(),killed.end(),c.getBuffer())) return 2;
+  }
+
+  // V3 layout exercise: public destination from system-v0.json; no trade execution.
+  {
+    PadState p;ChartState ch;p.ok=p.pending=p.clearSigning=p.blindAllowed=true;p.signalDeadline=120000;
+    p.fingerprint="4Sf2XH"; // SHA-256/base58 of the captured system-v0 message.
+    p.clearRows={"to So11111111111111111111111111111111111111112"};
+    ui::drawFrame(c,p,ch);shot("18-clear-review","full transaction address review");
+    p.blindSigning=true;p.blindAllowed=false;
+    ui::drawFrame(c,p,ch);shot("19-blind-disabled","red blind-sign refusal");
+    p.blindAllowed=p.clearReviewed=true;p.holdProgress=0.5;
+    ui::drawFrame(c,p,ch);shot("20-blind-hold","extra three-second physical hold");
   }
 
   printf("\n%d frames -> %s/ (at %dx)\n", made, dir, scale);

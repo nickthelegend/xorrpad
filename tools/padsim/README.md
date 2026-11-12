@@ -41,3 +41,70 @@ skips. After funding, rerun the test command above to execute the real 1 mUSDC
 key → signal → accept → confirmation → receipt path. It never sends mainnet.
 A separate receipt-delivery check reads and replays a real historical devnet
 confirmation; it is explicitly not evidence of a newly executed trade.
+
+## Firmware v2 end-to-end tests
+
+The CLI starts `PadSimulatorV2` by default. Pair through the desk using the
+simulator's displayed QR/public identity and code. Protocol details are in
+[FIRMWARE-PROTOCOL-V2.md](../../docs/v2/FIRMWARE-PROTOCOL-V2.md).
+
+```sh
+node --test --test-concurrency=1 desk/test/pad-v2*.test.mjs
+npm test --prefix desk
+firmware/test/run.sh
+```
+
+`pad-v2.e2e.test.mjs` runs real desk routes and cryptography over fragmented
+TCP and CRC-protected serial records. It checks encrypted wire envelopes,
+matching live-quote fingerprints, independent desk rejection of a wrong
+fingerprint/short hold, hold cancellation, receipt delivery, signed OTA,
+disk-backed kill across a new simulator instance, and replay rejection in both
+directions. The receipt is a separately verified historical devnet transaction;
+these tests do not claim that accepting their proposal produced a new fill.
+
+The OTA case requires the existing compiled, signed public release artifacts
+`firmware/build/artifacts/app.bin` and `manifest.json`, matching the pinned OTA
+public key. It never opens a signing key or runs key generation/signing.
+Missing artifacts fail the test; obtain them from an authorized release build.
+It checks a valid transfer, missing/bad signatures, and corrupted image bytes.
+Cryptographic protocol fixtures are test material, not market prices or fills.
+Live quote/receipt cases require public devnet RPC access and a liquid market;
+provider outages are reported as explicit skips, not simulated successes.
+
+Disk persistence models NVS semantics only. Physical hold timing, BLE security
+and throughput, flash writes, power-loss persistence and OTA boot/rollback need
+the board. Firmware remains **compiled, not yet flashed**.
+
+## Firmware v3 scenario runner
+
+Build the native adapters with `firmware/test/run.sh`, compile the current
+normal image to `firmware/build/v7-normal-out` (commands in firmware/README.md),
+then run `node tools/padsim/v3.mjs`. It runs clear-sign, pad-signer, attestation,
+abilities, offline-alert, crew and OTA test files sequentially to avoid port
+collisions. OTA uses the new compiled image; `XORR_OTA_TEST_IMAGE` can explicitly
+select another compiled image. The old public signed bootstrap artifacts are
+still required by the OTA tests; no signing key is read.
+
+The runner then pairs an encrypted native-backed pad on loopback 8725, verifies
+real devnet genesis and mint state, approves its stored policy, and clear-reviews
+and signs a live SDK `transferChecked` message. The transfer is one base unit of
+the real devnet collateral **to the signer's own associated token account**.
+It independently verifies Ed25519 and broadcasts those exact bytes only when
+the signer has at least 0.01 devnet SOL and one collateral base unit in its ATA.
+The funding instruction requests 1 mUSDC for convenience. It creates no token
+account, requests no airdrop, and submits nothing on mainnet.
+
+The exact public signer/ATA are printed before the balance check. To fund this
+ephemeral identity while it exists, run
+`node tools/padsim/v3.mjs --funding-wait=300` (0–3,600 seconds), or add
+`--broadcast-only` to run only the live path. Private material stays in native
+process RAM; only public policy/accounting reaches the temporary directory.
+The address cannot be reused after process exit. Simulated reboot retains the
+RAM identity and reloads accounting; it does not establish physical NVS recovery.
+
+`V3 TOTAL` reports regression tests/pass/fail/skip totals and explicit BLOCKED
+reasons. Missing funding/provider access is BLOCKED, never a passed broadcast;
+a failing regression, invalid signature or wrong genesis exits nonzero.
+Attestation tests missing from a committed checkout are also explicitly BLOCKED;
+an uncommitted working-tree test does not establish committed feature delivery.
+Do not run the runner alongside the desk suite because they share test ports.

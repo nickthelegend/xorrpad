@@ -23,8 +23,8 @@ export function routeView(r) {
 export function signalView(s) {
   const p = s.proposal || {},
     v = p.verdict || {},
-    a = p.signal || {};
-  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p><p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())} · <span data-countdown="${s.expiresAt}">${Math.max(0, Math.ceil((s.expiresAt - Date.now()) / 1000))}s left</span></p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
+    a = { ...p.signal, venue: s.trusted?.venue || p.routing?.best?.venue || p.signal?.venue };
+  return `<div class="row" data-signal="${esc(s.id)}"><div class="row-top"><h3>${esc(a.side)} ${esc(a.symbol || a.market)}</h3><span class="tag">${esc(s.state)}</span></div><p class="mono">${fmt(v.sizeUsd, a.kind === "predict" ? "mUSDC" : "USD")} · ${esc(a.venue || p.routing?.best?.venue || "route pending")}</p><p>${esc((v.why || []).join(" · "))}</p>${s.fingerprint ? `<p class="mono">Signal fingerprint <strong>${esc(s.fingerprint)}</strong> · Price ${esc(s.trusted.price)} · Fee ${esc(s.trusted.fee)}</p>` : ""}<p class="mono">Expires ${esc(new Date(s.expiresAt).toLocaleString())} · <span data-countdown="${s.expiresAt}">${Math.max(0, Math.ceil((s.expiresAt - Date.now()) / 1000))}s left</span></p>${s.state === "awaiting" ? `<div class="actions"><button class="primary" data-accept="${esc(s.id)}" data-fingerprint="${esc(s.fingerprint||'')}">Accept</button><button data-refuse="${esc(s.id)}">Refuse</button></div>` : ""}${s.receipt?.explorer ? safeLink(s.receipt.explorer, "View receipt ↗") : ""}</div>`;
 }
 export function bindSignals(root, api, refresh, handoff = root) {
   for (const b of root.querySelectorAll("[data-accept],[data-refuse]"))
@@ -33,7 +33,7 @@ export function bindSignals(root, api, refresh, handoff = root) {
         const id = b.dataset.accept || b.dataset.refuse;
         const result = await api(
           `/signals/${encodeURIComponent(id)}/${b.dataset.accept ? "accept" : "refuse"}`,
-          {},
+          b.dataset.accept&&b.dataset.fingerprint?{fingerprint:b.dataset.fingerprint}:{},
         );
         notice(
           result.execution?.error ||

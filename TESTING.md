@@ -482,3 +482,1045 @@ transaction was submitted. The old interactive `verify.mjs` and standalone
 stress/gas diagnostics are outside the package test glob and were not run;
 this document does not count them as passes. Historical milestone totals are
 superseded by this single full run; earlier evidence remains in git history.
+
+## Firmware v2 — S1 desk integration (2026-11-12)
+
+S1 covers the desk bridge, Connect/Trade renderer, simulator and protocol tests.
+The pre-existing device firmware edits remain separate work. Device status is
+**compiled, not yet flashed**; no physical BLE, audio, encoder, NVS power-cycle,
+factory test or rollback behavior is established by host tests.
+
+- `firmware/test/run.sh`: **80 cases, 109 assertions, all passed** using the
+  device Crypto implementation, ArduinoJson and native clang.
+- Both current working-tree ESP32 builds pass with ESP32 core **3.3.10**:
+  normal **1,754,018 bytes**; release **1,752,866 bytes**; both use **65,084 bytes**
+  of static RAM. The factory adapter needed its missing `link.h` include.
+  These compile checks did not open a signing key or replace signed artifacts.
+- Focused v2 crypto/signal tests: **21 passed**. Simulator integration:
+  **5 passed**, including real devnet quote/fingerprint/hold and signed OTA.
+- Isolated Playwright Connect check passed settings persistence, three-layer
+  profile saving, disconnected action guards, 375/1440 px overflow checks and
+  browser runtime-error checks. The broader `test:ui` matrix was interrupted;
+  it is not counted as a pass here.
+- `npm test` now runs files sequentially so the live suites share public API
+  capacity. Assertions and live-provider/setup skip conditions are unchanged.
+  Final full run: **139 tests, 129 passed, 10 explicit skips, 0 failed,
+  0 cancelled** in **377.33 s**. All five v2 integration cases passed in this
+  run. Skips reflect unavailable provider credentials, accounts/funding or
+  live-provider limits; they are not counted as successful integrations.
+
+The exact FQBN and both compile commands are recorded in
+[firmware/README.md](firmware/README.md#v2-working-tree-compile-evidence--s1-2026-11-12).
+
+`desk/test/pad-v2.e2e.test.mjs` uses real SQLite and desk HTTP routes, fragmented
+encrypted TCP and serial framing. It checks pairing, plaintext downgrade/replay
+rejection, authenticated management, settings, telemetry liveness, kill-latch
+reboot persistence and rearm validation. Its OTA test requires the existing
+public signed `firmware/build/artifacts/{manifest.json,app.bin}` from an authorized
+release build and checks both correct and incorrect signatures. The live signal
+test uses an actual devnet quote and independently verifies a historical receipt;
+it does **not** claim a new fill. Missing live dependencies remain explicit skips.
+
+
+## Firmware v2 — S2 pairing and protocol (2026-11-12)
+
+Status: **compiled, not yet flashed**. S2 changes are committed independently of
+pre-existing firmware work; no upload, private-key read, new signing operation,
+secure-boot enablement or push was performed.
+
+| Check | Result |
+| --- | --- |
+| Native S2 staged-source snapshot | 91 cases, 192 assertions, all passed |
+| Native complete working tree | 98 cases, 215 assertions, all passed |
+| Focused desk crypto/reliability | 26 passed, no skips |
+| Full desk `npm test` | 150 tests: 140 passed, 10 dependency skips, 0 failures |
+
+Full desk duration: **422.23 s**. Existing live-provider/setup skip conditions
+were retained. Real v2 simulator integration, signed public OTA artifact intake,
+live devnet quote/fingerprint/hold and historical-receipt verification passed;
+no new fill is claimed. Fault tests use real TCP endpoints and real cryptography,
+with dropped delivery/clock boundaries injected; they fabricate no quotes/fills.
+
+Native tests compile the production Crypto/ArduinoJson frame engine with clang.
+Coverage includes fresh handshake challenges, weak points, directional keys,
+Node/native byte-for-byte AEAD conformance, CRC/tag/sequence/ack tampering,
+replays, lost data overtaken by control frames, dropped acks, bounded retries,
+sequence exhaustion, timer wrap, watchdog and USB → BLE → Wi-Fi priority.
+Desk tests also cover reconnect with new keys, watchdog expiry during backend
+work, standby trade rejection, expired delivery queues and v1 framing.
+
+Final complete-working-tree builds passed in both modes with ESP32 core 3.3.10:
+normal **1,759,786 bytes flash**; release **1,758,658 bytes flash**; both
+**65,252 bytes static RAM**, against 3,145,728/327,680-byte limits. An earlier
+isolated staged S2 snapshot also compiled in both modes at **1,523,927 bytes
+flash, 63,012 bytes static RAM**. The final normal build used a separate build
+path and external-drive temp directory after a parallel normal/release attempt
+collided in Arduino's shared cache. The cache error and temporary disk-space
+failure were resolved; neither failed attempt is counted as a pass. Final
+normal-mode compiler syntax/type checking also passed. Signed OTA artifacts
+were retained and no signing key was opened.
+
+Exact FQBN, commands and dependency versions are in
+[firmware/README.md](firmware/README.md). TFT/QR scan quality, BLE SMP/passkey
+interoperability, physical failover and NVS behavior still require the board.
+
+
+## Firmware v2 — S3 kill latch (2026-11-12)
+
+Status: **compiled, not yet flashed**. The isolated S3 feature snapshot passes
+106 native cases / 235 assertions. Fifteen new cases exercise the production
+kill state machine: 2-second threshold, release/tap cancellation, timer wrap,
+NVS latch-byte reboot restoration, corrupt/unavailable storage, offline signal
+refusal, fresh 800 ms consent, delayed completion after release, failed NVS
+clear, expiry, disconnect, and a second kill during re-arm. Hardware NVS
+power-cycle and physical controls still require the board.
+
+KILL discards queued inputs/retries and recording before notifying the desk.
+The latch wins over remote armed/auto-accept status and signal messages, and
+the TFT kill screen wins over pairing, stale quotes, receipts, and keymaps.
+Re-arm is authenticated, bound to its transport, and clears memory only after
+its NVS write succeeds. No signing key, flash operation, or push was used.
+
+
+## Firmware v2 — S3 profiles and knob (2026-11-12)
+
+Status: **compiled, not yet flashed**. S3 commits are built from an isolated
+snapshot so the earlier uncommitted OTA/voice/factory/health work is not folded
+into these features. The full working tree is checked separately.
+
+| Check | Result |
+| --- | --- |
+| Native isolated S3 snapshot | 137 cases, 460 assertions, all passed |
+| Native complete working tree | 144 cases, 483 assertions, all passed |
+| New encrypted USB profile/knob integration | Passed, all 24 maps and desk permission cap |
+| Partition layout check | 16 MB, no overlap, original A/B app offsets and sizes retained |
+| Existing host TFT renderer | Built and emitted nine frames; no hardware claim |
+
+The 31 new profile/knob cases exercise the production ArduinoJson parser,
+complete eight-profile/three-layer round trips (including revisions and maximum
+binding lengths), invalid storage and immutable safety cells, incomplete and
+out-of-order sync, selection preservation by name, acceleration boundaries,
+mode bounds, timer wrap, quadrature decoding, switch debounce and PTT/click
+exclusion. Tests link no mocked hardware API. Existing native tests are retained.
+
+The added desk integration uses the real server, SQLite, encrypted fragmented
+USB framing and authenticated HTTP management routes. It sends all eight
+three-layer configurations, selects profile 7/Predict, checks device state
+intake and verifies that knob size remains permission-capped, with leverage and
+slippage stored for subsequent proposals. It creates no synthetic quote/fill.
+The existing kill-reboot/re-arm simulator and real devnet signal tests remain.
+
+A single NVS blob commits only after the complete desk sync. While busy, the
+old map stays active. Failed writes preserve the installed data and retries
+are throttled. Factory reset in the complete working tree also erases the new
+profile partition. On the board, verify power-loss behavior, switching all
+24 maps, physical encoder direction/bounce, TFT status strip, and PTT audio.
+The partition table must be installed before profiles can persist; app-only
+OTA cannot create a new NVS partition on an older layout.
+
+Final full desk `npm test`: **151 tests, 140 passed, 11 explicit skips,
+0 failures, 0 cancelled**, in **441.87 s**. Existing skip conditions were
+retained: unavailable credentials/services, unfunded test accounts, public RPC
+429 limits and a Phoenix HTTP 503. The new S3 USB case and existing v2
+kill-reboot/re-arm, OTA, replay and real devnet signal cases all passed.
+
+All four ESP32 builds passed (ESP32 core 3.3.10):
+
+| Source | Normal flash | Release flash | Static RAM (both) |
+| --- | ---: | ---: | ---: |
+| Isolated committed S3 snapshot | 1,542,703 bytes | 1,542,703 bytes | 63,252 bytes |
+| Complete working tree | 1,767,558 bytes | 1,766,342 bytes | 64,844 bytes |
+
+Limits: 3,145,728 bytes per app slot, 327,680 bytes static RAM. Runtime profile,
+JSON, audio and display allocations are additional. Exact commands/FQBN are in
+[firmware/README.md](firmware/README.md#v2-s3-kill-latch-profiles-and-rotary-controls-2026-11-12).
+No upload, signing-key read, new signing operation, eFuse action or push occurred.
+
+## Firmware v2 — S4 voice (2026-11-12)
+
+**Compiled, not yet flashed.** Nine new native cases exercise energy VAD,
+noise gate/hangover, waveform bounds, shared volume, distinct chimes, actual
+Opus encode/decode at exactly 24,000 bits per second, partial-frame padding,
+stream resets, malformed packets and ordered TTS/PCM fallback. At this step
+`firmware/test/run.sh`: **153 cases, 970 assertions, all passed** (including
+pre-existing working-tree tests). Three new encrypted simulator tests pass:
+BLE Opus TTS at 60 bytes/20 ms, exact USB PCM and invalid voice rejection.
+Complete normal working-tree build: **1,768,470 bytes flash; 64,900 bytes static
+RAM** before S4 health changes. Final normal/release evidence follows below.
+Mic, speaker, knob, TFT and radio behavior still require hardware verification.
+
+## Firmware v2 — S4 health and final builds (2026-11-12)
+
+**Compiled, not yet flashed.** S4 adds 14 native cases and seven encrypted
+simulator cases across voice and health. Native results:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S4 commit snapshot | 151 | 992 | all passed |
+| Complete working tree, preserving pre-existing work | 158 | 1,015 | all passed |
+
+The health cases cover exact 30-second cadence and timer wrap, bounded brownout
+and watchdog reset history, crash size/digest validation, ack binding, chunk
+progress, reconnect, failover, same-transport re-pair and lost-ack retries.
+The desk tests pair over real TCP with v2 encryption, exercise actual Opus,
+and test ordered binary crash transfer, private durable file storage, hash and
+offset failures, retry idempotence and storage failure without acknowledgment.
+Their generated transfer bytes are protocol fixtures, not a claim of a crash
+captured from hardware. Plaintext telemetry cannot update an encrypted peer.
+
+All four final Arduino builds passed with ESP32 core **3.3.10**:
+
+| Source | Normal flash | Release flash | Static RAM (both) |
+| --- | ---: | ---: | ---: |
+| Isolated S4 snapshot | 1,741,027 bytes | 1,741,027 bytes | 64,204 bytes |
+| Complete working tree | 1,770,706 bytes | 1,769,562 bytes | 64,940 bytes |
+
+App-slot limit: 3,145,728 bytes; static RAM limit: 327,680 bytes. Dynamic Opus,
+PSRAM audio/display and JSON allocations are additional. Exact working-tree
+commands and FQBN are in [firmware/README.md](firmware/README.md#v2-s4-voice-2026-11-12).
+The isolated snapshot uses those same flags/FQBN with a separate source and
+build path, keeping unrelated unfinished work out of the S4 commits.
+
+Hardware still needs mic/VAD calibration, BLE throughput and latency, actual
+PTT/knob/chimes/waveform, watchdog panic capture, brownout/reset history, flash
+dump retention across power loss, and reconnect/upload/erase verification.
+No upload/flash, secret-file read, signing, eFuse action or push was performed.
+
+Final full desk `npm test`: **158 tests, 148 passed, 10 explicit skips,
+0 failures, 0 cancelled**, in **386.30 s**. Skips retain the suite's existing
+setup conditions (missing optional credentials/services or unfunded devnet
+accounts). An initial full run timed out in the existing live book-strategy
+market-data test; that unchanged test passed in **68.14 s** on the final run.
+All seven S4 desk tests and existing v2 pairing, OTA, kill, replay, profile and
+live devnet signal/verified historical receipt cases passed.
+
+## Firmware v2 — S5 manufacturing (2026-11-12)
+
+**Compiled, not yet flashed.** Eight new native cases cover the actual factory
+state machine: fixed matrix numbering/unused cells, unique presses, ordered
+knob/mic/inspection steps, RGB observation time, explicit NO failure, scan plus
+advertising requirements, timeout wrap and uninterrupted/cancelled reset holds.
+The isolated factory snapshot passes **159 cases / 1,055 assertions**. Five
+new desk tests verify real Ed25519 signed reports, CRC, serial and public-key
+binding, incomplete/inconsistent reports, per-component FAIL, bounded fragmented serial framing and forged signatures
+with attacker-recomputed CRC. They pass without accessing hardware or secrets.
+The keys used by those tests are ephemeral cryptographic test material.
+
+Hardware is still required for chord wiring, all key switches, knob direction,
+mic calibration, sweep audibility, TFT pixels/colours, LED channels, Wi-Fi/BLE,
+CDC reconnect and default/profile NVS erasure across reboot. No physical flash,
+factory reset, production security provisioning or eFuse operation was run.
+
+The isolated manufacturing feature compiles normally at **1,748,267 bytes flash /
+64,340 bytes static RAM** (ESP32 core 3.3.10). Final normal/release evidence for
+S5 follows below.
+
+## Firmware v2 — S5 release and final builds (2026-11-12)
+
+**Compiled, not yet flashed.** Three additional native cases verify that USB
+debug defaults off, requires authenticated USB desk consent, and loses consent
+on disconnect, failover, re-pair or reboot. Native suites are green:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S5 commit snapshot | 162 | 1,074 | all passed |
+| Complete working tree, preserving pre-existing work | 169 | 1,097 | all passed |
+
+Final full desk `npm test`: **162 tests, 152 passed, 10 explicit skips,
+0 failures, 0 cancelled**, in **420.68 s**. Existing setup/service skip
+conditions remain unchanged. That run includes four factory cases; the final
+fifth case (forged Ed25519 with recomputed CRC) was subsequently added and all
+**five factory cases passed** in a targeted run. No tests were removed or
+weakened. Native tests run real logic; these results do not establish hardware
+behavior. `sh -n firmware/factory.sh` and diff whitespace checks also pass.
+
+All final Arduino CLI builds pass, with ESP32 core **3.3.10**:
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Isolated S5 snapshot | 1,749,347 bytes | 1,747,307 bytes | 64,356 bytes | 64,276 bytes |
+| Complete working tree | 1,774,886 bytes | 1,772,750 bytes | 65,004 bytes | 64,932 bytes |
+
+App-slot limit: **3,145,728 bytes**; static RAM limit: **327,680 bytes**.
+Runtime audio, PSRAM display buffers and JSON allocations are additional.
+Exact normal/release commands, FQBN, source/build paths and CLI version are in
+[firmware/README.md](firmware/README.md#v2-s5-release-validation-2026-11-12).
+
+Binary inspection confirms the telnet greeting and application startup banner
+exist in normal images and are absent in release images. Telnet networking
+and parsing are also excluded by preprocessing; USB diagnostics remain behind
+volatile, authenticated USB consent, checked again at every diagnostic write.
+Secure Boot v2 and flash/NVS encryption are documented in
+[firmware/PRODUCTION.md](firmware/PRODUCTION.md), with permanent eFuse/key/recovery
+warnings. They are not enabled. No flash/upload, hardware reset, signing-key
+read, release signing operation, security configuration/eFuse change or push occurred.
+
+## Firmware v2 — S6 P1 presentation (2026-11-12)
+
+**Compiled, not yet flashed.** Firmware remains **2.0.0** on local branch
+`fw-v2`. P1 is split into local screen/sprite, accessibility/idle, LED-language
+and integration-hardening commits. Unrelated unfinished firmware work is
+preserved outside those commits. No upload, signing-key read, release signing,
+eFuse/security operation or push was performed.
+
+Nine new native cases exercise the actual presentation logic: the exact
+RGB565 palette, lossless bounded reply pagination (including clock wrap),
+idle boundaries/night clamps/wake, every four-cell left-handed permutation,
+LED priority/pulse/off phases, and confirmation visibility under all overlay
+states. All native tests passed:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S6 commit snapshot | 171 | 1,512 | all passed |
+| Complete working tree | 178 | 1,535 | all passed |
+
+Final full desk `npm test`: **163 tests, 153 passed, 10 explicit setup/provider
+skips, zero failures, zero cancelled**, **445.10 s**. The existing encrypted
+USB management test now verifies all four accessibility/night flags, brightness,
+and rejection of out-of-range brightness without changing the saved value.
+Real quote/provider, simulator, crypto, OTA, factory, voice and health tests
+remain enabled; no tests were deleted or weakened.
+
+All final normal/release Arduino CLI builds passed:
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Isolated S6 snapshot | 1,775,658 bytes | 1,773,486 bytes | 65,196 bytes | 65,116 bytes |
+| Complete working tree | 1,781,430 bytes | 1,779,282 bytes | 65,236 bytes | 65,156 bytes |
+
+Limits are **3,145,728 bytes per app slot** and **327,680 bytes static RAM**.
+Two runtime PSRAM sprites add **307,200 bytes**; audio/JSON/other runtime memory
+is additional. Arduino CLI **1.5.1**, ESP32 core **3.3.10**; exact FQBN,
+flags, source and output paths are in
+[firmware/README.md](firmware/README.md#v2-s6-p1-presentation-2026-11-12).
+
+`make -C tools/uipreview` and the preview executable passed, rendering sixteen
+frames of the same Adafruit GFX drawing code to `firmware/build/s6-ui/`.
+Visual review covered chart/status separation, the canonical signal conformance
+vector (explicitly not a live quote), the historical receipt, empty positions,
+reply wrapping/high contrast, listening, OTA, coded fixes and kill. The preview
+also asserts that pending/listening/update state cannot replace the killed
+screen. Palette values and visibility rules are covered by native logic tests.
+Diff whitespace checks pass.
+
+**Nick still needs to verify on the assembled board:** PSRAM allocation and
+flicker/tearing over SPI, QR scanning/BLE passkey visibility, PWM brightness
+and physical wake, two-/ten-minute idle transitions, contrast in ambient light,
+left-handed cap/wiring correspondence, audible amount timing/provider setup,
+LED colors/brightness, waveform and OTA/reboot behavior. Compilation, native
+logic and laptop rendering do not establish those physical results.
+
+
+## Firmware v2 — S7 end-to-end validation (2026-11-12)
+
+Firmware **2.0.0** on local branch `fw-v2`: **compiled, not yet flashed**.
+S7 adds one end-to-end case and strengthens the existing cases without removing
+or weakening any test. The test, P2 research and protocol/release documentation
+are separate local commits. Pre-existing unfinished firmware changes remain
+outside those commits. No push, flash, release signing, signing-key read,
+security provisioning or eFuse action was performed.
+
+The focused simulator run passes **7/7 tests**, zero skips/failures/cancelled,
+in **22.40 s**. Actual desk routes, fragmented TCP and serial CRC records use
+real X25519/Ed25519/ChaCha20-Poly1305. Wire observations verify encryption.
+A live devnet quote produces the matching signal fingerprint; the desk also
+rejects authenticated wrong-fingerprint and 799 ms confirmations. Releasing
+YES cancels the simulated hold. A separately chain-verified historical receipt
+traverses the encrypted link; **no new funded fill is claimed**.
+
+Kill persistence is read by a new simulator instance before reconnection;
+clearing the desk's remembered latch makes it relearn disarm from encrypted
+ready. Rearm still needs the desk plus fresh physical-hold simulation. Exact
+wire replay is rejected in both directions without applying the key/config
+again. The OTA case verifies the existing compiled signed public artifact,
+rejects missing/bad signatures and corrupt bytes, and completes the valid
+transfer. This artifact is 1,752,144 bytes, SHA-256
+`202fd32f33a6c0e6f7674c8603d808797e4326a2cacf978a1e13d8d13d7ca26e`;
+it is distinct from the final builds below. No signing key was needed or read.
+
+Native tests run the actual portable C++ logic and installed Crypto/Opus code:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Committed firmware snapshot | 171 | 1,512 | all passed |
+| Complete working tree, preserving unfinished changes | 178 | 1,535 | all passed |
+
+All four Arduino CLI builds pass (CLI **1.5.1**, ESP32 core **3.3.10**):
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Committed firmware snapshot | 1,775,658 | 1,773,486 | 65,196 | 65,116 |
+| Complete working tree | 1,781,430 | 1,779,282 | 65,236 | 65,156 |
+
+All sizes are bytes. Limits: **3,145,728 bytes per app slot**, **327,680 bytes
+static RAM**. Runtime PSRAM sprites, audio and JSON allocations are additional.
+Exact FQBN, flags, paths and commands are in
+[firmware/README.md](firmware/README.md#v2-s7-end-to-end-validation-2026-11-12).
+S7 changes no firmware runtime source; the committed-source snapshot excludes
+the eight firmware files already modified when S7 began.
+
+Full automated package run (all desk, keeper and site test files, sequential):
+
+```sh
+node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs
+```
+
+Final serial run exits **0** in **411.29 s**: **187 tests, 175 passed,
+12 explicit setup/provider skips, zero failures and zero cancelled**.
+
+| Suite | Tests | Passed | Skipped | Failed/cancelled |
+| --- | ---: | ---: | ---: | ---: |
+| Desk (includes all seven S7 cases) | 164 | 154 | 10 | 0 |
+| Keeper | 9 | 7 | 2 | 0 |
+| Site | 14 | 14 | 0 | 0 |
+| Total | 187 | 175 | 12 | 0 |
+
+Desk skips disclose unreachable Ollama, missing Anthropic/Deepgram/Electron
+setup, a Meteora RPC HTTP 429, missing keeper public metadata, and unfunded
+devnet/Phoenix accounts. Keeper skips disclose missing Hermes authorization and
+missing local keeper-key setup; no key generation is run.
+All S7 end-to-end cases pass without skips in the final run. The previously
+timed-out live book-strategy test passes in **68.03 s**. Final log:
+`firmware/build/s7-final-all.log`.
+
+Other checks: `npm run test:ui --prefix desk` passes **15 integration groups /
+54 screenshots**, zero issues/runtime errors. `npm run test:ui --prefix site`
+passes **2 viewport checks** (1440/375 px), zero runtime errors. Site build and
+format checks, shell/JavaScript syntax checks and `git diff --check` pass.
+`make -C tools/uipreview` and `tools/uipreview/preview firmware/build/s7-ui 2`
+pass, rendering **16 frames** with the real GFX drawing code. Generated browser
+artifacts are preserved under ignored `firmware/build/s7-browser-evidence/`;
+tracked v1 screenshot baselines are restored. Logs are `firmware/build/s7-*.log`.
+
+The final standalone `node desk/test/history-ui.mjs` run exits **0** with
+**3 checks / 18 captures**, zero errors/issues. It verifies all timeframe chips,
+real candle drawing, perpetual spot-reference disclosure and backtest charts
+at desktop/mobile sizes across the three themes. Final log:
+`firmware/build/s7-final-history-ui.log`.
+
+The initial run overlapped live-history browser checks with package tests.
+It finished **187 tests: 175 passed, 11 setup/provider skips, 1 cancelled by
+the existing 120-second live book-strategy timeout, zero assertion failures**
+(exit 1, 628.99 s). The initial history browser check also timed out waiting
+for live candles. Both initial logs are retained (`s7-all.log` and
+`s7-history-ui.log`); the final runs are serialized, with no timeout or test
+assertion changes.
+
+[Protocol v2](docs/v2/FIRMWARE-PROTOCOL-V2.md) documents the tested flow and
+[firmware/RESEARCH.md](firmware/RESEARCH.md) records P2 findings, checked against
+Espressif and LVGL primary documentation. Neither WakeNet nor LVGL was built.
+Physical USB/BLE security/latency, TFT/LED/audio behavior, button timing,
+actual NVS power-loss persistence, OTA partition writes/boot/rollback and phone
+interoperability still require Nick's assembled-board verification. Native
+logic, simulator disk persistence and laptop screenshots do not establish
+those hardware results. Standalone interactive/funding/stress diagnostics
+outside the automated suites are not invoked.
+
+## Firmware v3 — V1 clear signing (2026-11-12)
+
+Status: **compiled, not yet flashed**. V3-SPEC item 1 is implemented; items 2–8
+are outside this step. [V3-NOTES.md](firmware/V3-NOTES.md) records the actual
+wire-format limitations, exact review API and remaining hardware work. No
+signing key was opened, no transaction broadcast, no image signed/flashed,
+no production security enabled and nothing pushed. Pre-existing unfinished
+firmware edits are preserved separately from the V1 commits.
+
+Final native verification:
+
+| Source / run | Cases | Assertions | Failed / skipped |
+|---|---:|---:|---:|
+| Full working tree, `firmware/test/run.sh` | 202 | 2,030 | 0 / 0 |
+| Same tree, AddressSanitizer + UndefinedBehaviorSanitizer | 202 | 2,030 | 0 / 0 |
+| Isolated staged V1 + committed v2 | 195 | 2,007 | 0 / 0 |
+
+The sanitizer run uses the same run.sh command with
+`-fsanitize=address,undefined -fno-omit-frame-pointer` added to clang++, writing
+`firmware/build/native-tests-asan`; no hardware adapters are mocked. The
+isolated command is `firmware/build/v3-snapshot/firmware/test/run.sh`.
+
+The twelve JSON fixtures are captured by
+`node firmware/test/generate-solana-fixtures.mjs` from actual v1 venue builders
+and official web3/SPL constructors, with live public chain reads/blockhashes.
+pm-AMM/System/SPL use devnet; Phoenix/Jupiter are unsigned read-only mainnet
+captures because the v1 adapters have no devnet deployment. No private key is
+loaded/generated by that script and no test submits those transactions.
+Jupiter route layouts are generated from its actual public on-chain Anchor
+IDL (211 variants; address, observed slot and hash are pinned in the header).
+
+Coverage includes legacy/v0 headers, exact SHA-256/base58 fingerprints, every
+truncation of a real message, canonical compact lengths, invalid account and
+program indices, duplicate accounts, lookup evidence ownership/layout/order
+and tampering, ATA mint proofs, integer precision, transfer variants,
+pm-AMM directions, actual Phoenix IOC options/flags, Jupiter route amounts,
+unknown-instruction redirection without invented amounts, chunk ordering,
+digest/size/time/epoch binding, all-page review and fresh hold requirements.
+Blind signing is off by default and needs 3,800 ms when enabled. Lookup-bearing
+messages remain blind because cross-checking two desk-supplied representations
+does not authenticate chain state. Phoenix native lots/ticks are displayed;
+account-wide leverage is not encoded in the order and is not invented.
+
+JavaScript suites, with zero failures or cancellations:
+
+| Command | Passed | Explicit setup/provider skips | Total |
+|---|---:|---:|---:|
+| `npm test --prefix desk` | 158 | 10 | 168 |
+| `npm test --prefix site` | 14 | 0 | 14 |
+| `npm test --prefix keeper` | 7 | 2 | 9 |
+| Final focused `node --test desk/test/clear-sign.test.mjs` | 4 | 0 | 4 |
+
+The full desk run took 416.60 s. Its skips report unavailable public-provider
+capacity or missing funded/public account setup, never fabricated successes.
+The final focused test additionally verifies full-message-hash mismatch
+rejection after the full suite began. It uses an actual paired encrypted TCP
+pad-simulator connection and captured devnet transaction bytes, with a real RPC
+genesis check; default-off blind policy, short holds, wrong fingerprints,
+wrong full digests and repeated approvals are refused. It does not simulate
+firmware parsing: the native C++ tests run the real parser/gate separately.
+
+Exact FQBN and compile-only commands are in
+[firmware/README.md](firmware/README.md#v3-v1-clear-signing-2026-11-12).
+Arduino CLI 1.5.1 / ESP32 core 3.3.10. Final build sizes:
+
+| Source | Mode | Flash bytes / 3,145,728 | Static RAM / 327,680 |
+|---|---|---:|---:|
+| Full working tree | normal | 1,818,070 | 65,612 |
+| Full working tree | release | 1,815,962 | 65,532 |
+| Isolated V1 + committed v2 | normal | 1,812,938 | 65,556 |
+| Isolated V1 + committed v2 | release | 1,810,722 | 65,476 |
+
+Runtime allocations and the two existing PSRAM sprites are additional.
+The isolated source was exported from the index with `git checkout-index`
+under ignored `firmware/build/v3-snapshot`; it excludes all earlier unfinished
+firmware changes. Final verification logs are `firmware/build/v3-*.log`.
+
+`make -C tools/uipreview` and
+`./tools/uipreview/preview firmware/build/v3-ui 2` pass with 19 actual GFX
+layout renders. Clear review wraps the captured public destination and shows
+its actual message fingerprint; blind-disabled and extra-hold states use a red
+screen. These are layout exercises, not executed trades. Full addresses are
+reviewed on separate knob pages; only pages actually drawn count toward YES.
+Button timing, physical knob/TFT/LED behavior, BLE upload throughput and board
+integration still require Nick's assembled hardware.
+
+## Firmware v3 — V2 session signing (2026-11-12)
+
+**Compiled, not yet flashed.** See [V3-NOTES.md](firmware/V3-NOTES.md#v2--session-signing-2026-11-12)
+for the precise item-2 implementation and refused/unproven cases. Session keys
+exist only in pad NVS or ephemeral native-simulator memory; no private material
+was opened, logged, saved by the simulator or committed. No transaction was
+broadcast and no image was signed/flashed. No eFuses/security settings changed.
+The original eight unfinished firmware files remain uncommitted and preserved.
+
+| Native source | Cases | Assertions | Failures / skips |
+|---|---:|---:|---:|
+| Full working tree | 212 | 2,169 | 0 / 0 |
+| Isolated index: V2 + committed V1/v2 | 205 | 2,146 | 0 / 0 |
+
+Commands: `firmware/test/run.sh` and
+`firmware/build/v2-snapshot/firmware/test/run.sh`. Both also compile the native
+`session-driver` used by the desk simulator tests. Ten new native cases cover
+real captured instruction amounts, per-trade/program/mint/signer refusals,
+unmeasurable Phoenix leverage, pad auto-policy matching, full-review/fresh-hold
+authorization, policy serialization, rolling expiry, reboot restoration,
+failed durable writes, overflow and journal capacity. Existing tests remain.
+
+`node firmware/test/generate-session-fixture.mjs` generated the new public
+`session-usdc-transfer.json` using the actual SPL transferChecked builder,
+verified live devnet collateral mint/decimals, and a live blockhash. The source
+and destination are derived token accounts; this unsigned parser fixture does
+not assert they are funded. No handwritten serialized message was added.
+
+The final focused `node --test desk/test/pad-signer.test.mjs` passes all **5**
+tests. It executes production C++ parsing/approval/caps/counter and Ed25519 in
+a native child, verifies its signatures independently with Node crypto, checks
+bad hash/signature, incomplete/short hold, one-time consumption, reboot debit,
+zero-hold exact-policy auto signing, persisted pad mode, mainnet refusal,
+physical policy hold, encrypted v2 management/upload/signature, stale response
+refusal and disconnect cancellation. No RPC or signature is mocked. It uses
+real SDK constructors and the captured chain blockhash/mint. Simulated reboot
+reloads public accounting/policy but retains the process-RAM signing identity;
+it is not proof of physical NVS power-loss behavior.
+
+Full JavaScript suites, zero failures or cancellations:
+
+| Command | Passed | Explicit setup/provider skips | Total |
+|---|---:|---:|---:|
+| `npm test --prefix desk` | 163 | 10 | 173 |
+| `npm test --prefix site` | 14 | 0 | 14 |
+| `npm test --prefix keeper` | 7 | 2 | 9 |
+
+All final commands set `TMPDIR="$PWD/firmware/build/session-tmp"`; the desk
+run took 423.70 seconds. The five focused signer cases are a subset of the full
+desk suite and are not added again. Missing providers/funded account setup are
+explicit skips, not claimed executions. The keeper key-permission check was
+skipped because no keeper key was opened or provisioned.
+
+Exact FQBN and all compile commands are in [firmware/README.md](firmware/README.md#v3-v2-session-signing-2026-11-12).
+Arduino CLI 1.5.1, ESP32 core 3.3.10:
+
+| Source | Mode | Flash / 3,145,728 bytes | Static RAM / 327,680 bytes |
+|---|---|---:|---:|
+| Full working tree | normal | 1,833,902 | 65,996 |
+| Full working tree | release | 1,831,770 | 65,916 |
+| Isolated V2 + committed V1/v2 | normal | 1,828,810 | 65,940 |
+| Isolated V2 + committed V1/v2 | release | 1,826,602 | 65,860 |
+
+These are image/static sizes; runtime heap/PSRAM allocations are additional.
+The staged-source builds exclude all original unfinished edits. Logs and
+artifacts are under ignored `firmware/build/v2-*` and `session-*` paths. The
+initial full-suite attempt encountered a full internal temporary filesystem
+and is superseded by the final run with `TMPDIR` on the workspace drive.
+
+Funding/broadcast is **BLOCKED** pending a flashed paired pad and funded session
+public key/token accounts. `/pad/session` supplies the exact device public key
+to fund. There is no persistent simulator key to fund. Real Phoenix orders have
+no instruction leverage field and are refused; unpriced/rent-bearing messages
+are refused. Caps measure the approved nominal dollar-token input, excluding
+SOL network fees. Counter age uses conservative powered uptime because no
+trusted wall clock survives power loss. These boundaries are explicit; this is
+not a completed all-venues/funded full-v3 end-to-end claim. Hardware NVS power
+cuts, encrypted NVS provisioning, TFT readability and physical holds remain
+unverified.
+
+## Firmware v3 — V4 Abilities SDK (2026-11-12)
+
+**Compiled, not yet flashed.** No image was signed/flashed, no production fuse
+changed, no signing secret opened, and nothing pushed. V4 implements item 4;
+full v3 completion and hardware qualification remain separate work.
+
+| Verification | Result |
+|---|---|
+| `firmware/test/run.sh` (full working tree) | 250 cases, 2,379 assertions, all pass |
+| Isolated staged-source native suite | 236 cases, 2,326 assertions, all pass |
+| `npm test --prefix desk` | 192 total: 182 pass, 10 explicit setup/provider skips, zero failures/cancellations |
+| Focused `desk/test/abilities.test.mjs` | 5 pass, including real encrypted developer approval/install and native sandbox refusal |
+| SDK external-signing bundle tools | Public signing-request/finalize round trip and native verification pass |
+| `firmware/test/abilities-sanitize.sh` | Same 5 cases pass under AddressSanitizer + UBSan; halt on first UB; no diagnostic |
+| `node desk/test/abilities-ui.mjs` | Real isolated HTTP auth/method/schema checks and Chromium 1440×1100 / 390×844; no page errors/overflow |
+| `npm test --prefix site` | 14/14 pass |
+| `npm test --prefix keeper` | 7 pass, 2 explicit setup skips, zero failures |
+
+The native total includes 31 new ability cases. The 14-case difference between
+source trees is pre-existing unfinished attestation work, excluded from the V4
+index. Tests run the actual vendored firmware interpreter and Ed25519 verifier.
+Fresh test developer keys remain in process memory; only public manifests,
+code and detached signatures are sent to the native process. Sample market
+formatting uses explicitly constructed unit-test inputs; the encrypted transport
+test uses price unavailable rather than invented market data. No new market
+read, quote, transaction signature or broadcast is claimed for V4.
+
+Adversarial coverage includes unknown signing/trade imports (also delivered
+past the desktop validator over encrypted padsim), undeclared capabilities,
+manifest/bytecode/signature tampering, untrusted developers, linear memory and
+host-pointer bounds, memory growth, recursion, infinite-loop fuel exhaustion,
+independent watchdog deadline logic, host-call floods, trade-like macro IDs,
+malformed/duplicate/forbidden sections, upload offsets/expiry/connection changes,
+heap caps/reclamation and isolation of the two runtimes. Both C/AssemblyScript
+templates and Market Pulse/Pomodoro execute on the embedded engine. Sanitizers
+found a misaligned upstream constant access; the final source uses `memcpy` and
+passes. macOS lacks LeakSanitizer support, so leak detection is disabled;
+explicit engine-allocation accounting is checked instead.
+
+UI captures are ignored artifacts at `firmware/build/v4-ui/{desktop,mobile}.png`.
+The reviewer found stale file-preview and pending-error feedback; both fixes
+were scored resolved after a repeat real-browser smoke. Captures prove the
+unpaired setup layout, not physical pad display or pairing. See
+[sdk/abilities](sdk/abilities/README.md) for install/external-signing instructions.
+
+Arduino CLI 1.5.1, ESP32 core 3.3.10; exact FQBN/commands in
+[firmware/README.md](firmware/README.md#v3-v4-abilities-sdk-2026-11-12):
+
+| Source | Mode | Flash / 3,145,728 bytes | Static RAM / 327,680 bytes |
+|---|---|---:|---:|
+| Full working tree | normal | 1,929,210 | 67,740 |
+| Full working tree | release | 1,927,078 | 67,668 |
+| Isolated V4 + committed V1/V2/v2 | normal | 1,918,422 | 67,484 |
+| Isolated V4 + committed V1/V2/v2 | release | 1,916,226 | 67,404 |
+
+Runtime heap/PSRAM allocations are additional to static RAM. The isolated
+snapshot was exported from the index into `firmware/build/v4-snapshot`; no
+unfinished attestation/key-tool/other changes are part of that snapshot. Native
+and focused abilities tests run there too. Logs are ignored `firmware/build/v4-*`.
+Actual hardware NVS power loss, PSRAM pressure, physical hold/TFT visibility,
+watchdog timing and chime latency remain unverified. The documented pinned
+interpreter needs a production security review; adversarial regressions are
+not a formal proof of resistance to every possible engine vulnerability.
+
+## Firmware v3 V5 — offline price alerts (2026-11-12)
+
+Compiled, not yet flashed. Staged-source native checks passed **248 cases / 2,375
+assertions**; working tree including pre-existing attestation changes passed
+**262 / 2,428**. Twelve new cases exercise bounded config, captured live Jupiter
+prices, one-shot persistence encoding, replay suppression, polling cadence,
+reconnect/failure cooldown and millis rollover. `node --test
+desk/test/price-alerts.test.mjs`: **2 passed**. Live keyless HTTPS with exactly the
+firmware Amazon root passed via `node tools/padsim/price-alerts.mjs`.
+
+Both configurations compile with FQBN
+`esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc`
+and the SC-only C/C++ flags documented in firmware/README.md. Isolated index
+snapshot `firmware/build/v5-snapshot`: normal **1,931,178 B flash / 67,572 B RAM**;
+release **1,928,982 / 67,492**. Working tree before the network-clock addition:
+normal **1,937,730 / 67,804**, release **1,935,622 / 67,732**. Final V5 combined
+validation is recorded below with the crew feature. No board flash or trade
+broadcast was performed by the new tests. Physical Wi-Fi, SNTP, NVS persistence,
+worker timing, TFT, LED and chime behavior require hardware verification.
+
+## Firmware v3 V5 — final offline alerts + crew co-sign (2026-11-12)
+
+**Compiled, not yet flashed.** Item 5 and item 6 are implemented; these results
+are not evidence of a physical board test or a new funded trade. Existing
+unfinished attestation changes remain outside both feature commits.
+
+- Final working-tree `firmware/test/run.sh`: **267 cases, 2,462 assertions,
+  zero failures**. The five crew cases cover consumed exact hashes, full review,
+  hold/session requirements, unconditional blind refusal, real Ed25519 hashes
+  and incompatible/malformed request modes. The twelve price-alert cases use a
+  live Jupiter response captured by the public smoke tool.
+- Final isolated staged source `firmware/build/v5-final-snapshot/firmware/test/run.sh`:
+  **253 cases, 2,409 assertions, zero failures**. It excludes the pre-existing
+  attestation tests; the working tree includes those tests too.
+- Final working-tree `cd desk && npm test`: **204 tests, 194 passed, 10 setup
+  skips, zero failures/cancellations**. The skips explicitly require provider
+  credentials, Electron, keeper public metadata or funded devnet accounts.
+  No `.env` or user key file was loaded for this work. The new crew tests
+  generate ephemeral identities in memory and send no transaction.
+- Final isolated `node --test desk/test/{crew,pad-signer,clear-sign,price-alerts,executor}.test.mjs`:
+  **27 passed, zero failures/skips**. Actual encrypted pairs plus the native
+  firmware review gate prove two distinct approvals, one-pad blocking, refusal,
+  disconnect, expiry, replay rejection, wrong signature/hash/identity/hold,
+  exact-message binding and policy/permission changes.
+- `node desk/test/crew-ui.mjs` passed for both the final working tree and isolated
+  source. The real HTTP server checks authentication/method/policy validation;
+  two actual encrypted padsim peers complete 2-of-2; desktop (1440×1100) and
+  mobile (390×844) render approver names without overflow or browser errors.
+  Screenshots are in `firmware/build/v5-ui/` and the isolated snapshot's matching
+  build directory. Impeccable's detector reported no findings for changed UI.
+  An initial browser run exposed the missing static module allowlist entry;
+  it was fixed. A concurrent regression attempt encountered test-port collisions
+  and was stopped by PID; the complete final suite and UI checks ran sequentially.
+- `node tools/padsim/price-alerts.mjs`: **PASS**, actual keyless Jupiter Price v3
+  with the firmware's pinned Amazon Root CA 1. This verifies endpoint/root
+  compatibility on the host; ESP32 Wi-Fi/SNTP/TLS still needs hardware.
+
+Final `arduino-cli compile` commands/FQBN/flags are recorded in firmware/README.md.
+Both normal and release builds pass, including the isolated commit source:
+
+| Source | Normal flash / static RAM | Release flash / static RAM |
+|---|---:|---:|
+| Working tree | 1,942,322 B / 67,844 B | 1,940,210 B / 67,772 B |
+| Isolated staged source | 1,932,630 B / 67,588 B | 1,930,470 B / 67,508 B |
+
+App slot maximum is 3,145,728 B; static RAM maximum is 327,680 B. Isolated
+build directories are `firmware/build/v5-isolated-{normal,release}` with
+`v5-final-isolated-{normal,release}.log` logs. Native, desk, UI and live-root
+logs also live under the ignored `firmware/build/` directory. Only dependency
+and virtualenv directories were symlinked into the snapshot; tested source
+came from the index. Real Wi-Fi behavior, worker/watchdog latency, NVS power-loss
+persistence, TFT review readability, physical holds, LED and chimes still need
+the board. The crew threshold is enforced by the coordinating desk; this is not
+an on-chain multisig or protection from a desk that disables its own policy.
+
+
+## Firmware v3 — V6 OTA channels and delta updates (2026-11-12)
+
+**Compiled, not yet flashed.** One local feature commit on `fw-v3`; no push,
+release signing, private-key-file access, flashing or eFuse operations.
+Pre-existing unfinished attestation changes remain outside the V6 commit.
+
+| Verification | Result |
+| --- | --- |
+| Working tree: `firmware/test/run.sh` | 273/273 cases, 2,676 assertions, no failures |
+| Isolated candidate native runner | 259/259 cases, 2,623 assertions, no failures |
+| `node --test desk/test/ota.test.mjs` | 14/14 passed, no skips |
+| Isolated OTA tests, split into pure/native and encrypted link groups | 10 + 4 passed, no failures |
+| `npm test --prefix desk` | 218 total: 208 passed, 10 setup skips, zero failures |
+| `node desk/test/ota-ui.mjs` (working tree and isolated candidate) | HTTP auth/method/invalid-channel checks, encrypted channel read/save, persistence, manifest verification, 1440px/390px layouts, no page errors/overflow |
+| Impeccable detector on Connect module | No findings |
+| `git diff --cached --check` | Passed |
+
+The full desk suite's existing setup skips were unreachable local Ollama,
+unset Anthropic/Deepgram environment credentials, absent Electron safeStorage
+binary, a Meteora RPC rate limit, missing keeper metadata, and unfunded or
+unregistered devnet/Phoenix test owners. No test was deleted or weakened. The
+live reads that were available ran against real providers. The OTA regressions
+use real compiled ESP32 binaries and transient in-memory Ed25519 signers; no
+private signing-key file is loaded and no new transaction is broadcast by them.
+
+Six added native cases cover deterministic rollout hashing/channel boundaries,
+all streaming chunk splits, truncation/trailing/opcode/bounds failures, base-read
+and target-write failure, and malformed manifest fields. Shared C++/JavaScript
+cases independently reject either signature, altered signed metadata, wrong base
+hash/version, corrupted patches, validly signed malformed patches, and wrong
+reconstructed-image hashes. Encrypted padsim covers per-pad beta opt-in across
+reboot, rollout/beta/base refusals at the pad, final patch/image checks, reduced
+transfer bytes and full-image fallback. Legacy v2-envelope bootstrap is tested.
+
+| ESP32-S3 build | Program bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Working normal | 1,950,590 | 68,188 |
+| Working release | 1,948,426 | 68,116 |
+| Isolated normal | 1,940,918 | 67,932 |
+| Isolated release | 1,938,802 | 67,852 |
+
+Against the pre-existing 1,752,144-byte signed app artifact, the new working
+app.bin is 1,950,736 bytes and its patch is 1,319,963 bytes (32% smaller).
+The isolated app.bin is 1,941,072 bytes and its patch is 1,299,788 bytes
+(33% smaller). These are actual file/transfer lengths; Arduino's program-storage
+counts above measure occupied sketch bytes and differ slightly from bin length.
+
+Exact FQBN and working compile commands are in [firmware/README.md](firmware/README.md#v6--ota-channels-and-signed-delta-patches).
+The isolated candidate in ignored `firmware/build/v6-snapshot` contains HEAD
+plus only the V6 changes, preserving the prior OpenSSL-native compatibility path.
+The same FQBN/flags use source `firmware/build/v6-snapshot/firmware/xorrpad`,
+build paths `firmware/build/v6-isolated-{normal,release}` and output directories
+`firmware/build/v6-isolated-{normal,release}-out`. Public compile headers,
+installed node dependencies and compiled app artifacts were reused. Its native
+command is `firmware/build/v6-snapshot/firmware/test/run.sh`. Its OTA command is
+`node --test firmware/build/v6-snapshot/desk/test/ota.test.mjs`, run in two
+nonoverlapping name groups to avoid shared test-port contention. The isolated
+browser command sets `SIBYL_BRIDGE` to the existing `desk/memory/sibyl_bridge.py`
+and `SIBYL_PY` to the installed `.venv/bin/python`, then runs
+`node firmware/build/v6-snapshot/desk/test/ota-ui.mjs`.
+
+Logs are ignored `firmware/build/v6-{native,desk,ota-final,ui}.log` and
+`v6-isolated-{native,normal,release,ota,ota-link,ui}.log`; browser captures are
+`firmware/build/v6-ui/{desktop,mobile}.png`. The browser tested the actual HTTP
+application and paired encrypted padsim, without replacing protocol endpoints.
+Physical BLE throughput, NVS power-loss behavior, inactive-slot flash failure,
+TFT progress and pending-verify rollback still require the board. Deterministic
+rollout is staging rather than version-freshness/anti-rollback enforcement.
+
+## Firmware v3 — V7 3.0.0 validation and hardware research (2026-11-12)
+
+**Compiled, not yet flashed.** V7 adds item-8 research, a repeatable v3 scenario
+runner, the firmware version bump and these release notes. Existing unfinished
+attestation and other working-tree edits remain outside V7's commits. The
+combined working tree and isolated staged source are reported separately.
+The version label does not imply that all full-v3 acceptance criteria are met.
+
+| Final verification | Total | Passed | Skipped / blocked | Failed |
+| --- | ---: | ---: | --- | ---: |
+| Working native `firmware/test/run.sh` | 273 cases / 2,676 assertions | all | 0 | 0 |
+| Isolated native `firmware/build/v7-snapshot/firmware/test/run.sh` | 259 cases / 2,623 assertions | all | 0 | 0 |
+| Working desk suite, command below | 217 | 208 | 9 setup/provider skips; one additional legacy key-file test excluded | 0 |
+| `npm test --prefix site` | 14 | 14 | 0 | 0 |
+| `npm test --prefix keeper` | 9 | 7 | 2 setup skips | 0 |
+| Live `node tools/padsim/price-alerts.mjs` | 1 HTTPS smoke check | 1 | 0 | 0 |
+| Working v3 padsim runner (desk subset) | 54 | 54 | broadcast BLOCKED: unfunded | 0 |
+| Isolated v3 padsim runner (desk subset) | 40 | 40 | attestation absent; broadcast BLOCKED: unfunded | 0 |
+
+The native source difference is the original unfinished attestation work. The
+nine desk skips are: unavailable localhost Ollama; absent environment-only
+Anthropic/Deepgram credentials; missing Electron binary; a real Meteora RPC 429;
+missing public keeper metadata; two unfunded/unregistered Phoenix-owner cases;
+and missing funded pm-AMM devnet test-owner setup (the RPC faucet returned 410).
+Keeper skips are a real Hermes HTTP 401 requiring PYTH_API_KEY and absent keeper
+key-permission setup. Skips are not successful live executions.
+
+The separately excluded legacy test is named `key → live devnet signal → accept
+→ actual confirmed receipt (funded test wallet required)`. It would open the
+persistent `desk/.t4-devnet` wallet; the explicit no-existing-key-access rule
+therefore takes priority. No test source was deleted or weakened to exclude it.
+The new v3 live path uses the native pad's RAM-only identity instead, with an
+exact public funding address. Other unit tests use their own disposable test
+identities; no existing wallet, production signing key or `.env` is loaded.
+
+Final desk command (217 tests are the runner's reported total; the CLI-excluded
+case is not included in that number):
+
+```sh
+TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' XORR_OTA_TEST_IMAGE="$PWD/firmware/build/v7-normal-out/xorrpad.ino.bin" node --test --test-concurrency=1 --test-skip-pattern='funded test wallet required' desk/test/*.test.mjs
+```
+
+The temporary directory was created with
+`mktemp -d '/Volumes/Extreme SSD/xorrpad-v7.XXXXXX'`, outside the repository.
+The initial desk attempt used `firmware/build/v7-tmp` and reported 217 total,
+207 pass, 9 skips and one failure: the existing factory-keygen destination test
+correctly refused its purported external destination because TMPDIR was inside
+the repo. The complete corrected run above supersedes it: 208 pass, no failures,
+475,037.849 ms. The protection and test were unchanged.
+
+| ESP32-S3 source / mode | Program bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Working normal | 1,950,594 | 68,188 |
+| Working `XORR_RELEASE=1` | 1,948,430 | 68,116 |
+| Isolated normal | 1,940,938 | 67,932 |
+| Isolated `XORR_RELEASE=1` | 1,938,806 | 67,852 |
+
+Arduino CLI 1.5.1, ESP32 core 3.3.10. Exact FQBN and commands are in
+[firmware/README.md](firmware/README.md#v7--firmware-300-validation-and-hardware-research).
+The isolated index export is `firmware/build/v7-snapshot`; it contains only
+committed source plus the staged V7 changes. Dependencies and public compiled
+OTA fixtures are symlinked, without copying user wallets or secret files.
+Runtime heap/PSRAM is additional to static RAM. Outputs/logs are ignored
+`firmware/build/v7-*`; no release signing or flash command is run.
+
+The [hardware research](firmware/HARDWARE-REV2.md) records actual orderable
+parts, distributor price links and tier/multiple-aware extensions for 1,000
+units. The subtotal explicitly excludes unresolved custom/retained parts and
+manufacturing costs; there is no fabricated complete COGS. Physical TFT review,
+holds/knob mapping, BLE/Wi-Fi/audio, NVS power loss/key recovery, offline TLS,
+watchdog/PSRAM behavior, OTA flash/boot rollback and production factory trust
+provisioning remain unproven. Secure boot/flash encryption are not enabled.
+
+### V7 padsim v3 scenarios
+
+| Working-tree scenario file | Total | Pass | Skip | Fail |
+| --- | ---: | ---: | ---: | ---: |
+| `clear-sign.test.mjs` | 4 | 4 | 0 | 0 |
+| `pad-signer.test.mjs` | 5 | 5 | 0 | 0 |
+| `attestation.test.mjs` | 14 | 14 | 0 | 0 |
+| `abilities.test.mjs` | 5 | 5 | 0 | 0 |
+| `price-alerts.test.mjs` | 2 | 2 | 0 | 0 |
+| `crew.test.mjs` | 10 | 10 | 0 | 0 |
+| `ota.test.mjs` | 14 | 14 | 0 | 0 |
+| **Aggregate** | **54** | **54** | **0** | **0** |
+
+These 54 regressions are a subset of the full desk suite; do not add them
+again to the desk total. They cover blind-sign refusal, incomplete/short review,
+exact-message signing and real Ed25519, rolling-cap refusal after reboot,
+attestation pass/fail/replay, signed sandbox escape refusal, 2-of-2 approval,
+offline alert rules and signed OTA channel/rollout/delta/fallback checks.
+
+Working command: `TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' node tools/padsim/v3.mjs`.
+The separate live path passes real-devnet genesis/mint/blockhash reads, native
+clear review and exact-message pad signing, with fingerprint **57Yd6Z**.
+New devnet broadcast: **BLOCKED**, unfunded session identity:
+
+```text
+public key: 4gVz8qoE4gZi2tJWTBY6LbszvFUNocaAZxum47zQepmS
+token ATA:  F16j1hGdwvmdZSQDXg9rF1JNBX6JDmcysPAfYJYkrWHz
+```
+
+That was the exact public identity observed in this run; its private material
+was never saved and was lost when the process exited. To fund a new run, use
+`node tools/padsim/v3.mjs --funding-wait=300` and the newly printed public key
+and ATA while that process is alive. Supply 0.01 devnet SOL and collateral in
+its existing ATA (the instruction asks for 1 mUSDC). The only broadcast path is
+a one-base-unit self-transfer; no real trade/fill or token-account creation is
+claimed. The pinned-root live Jupiter smoke is a separate 1/1 check above.
+
+Isolated command:
+`TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' node firmware/build/v7-snapshot/tools/padsim/v3.mjs`.
+It passes **40/40**, zero test skips/failures: clear-sign 4, signer 5, abilities 5,
+alerts 2, crew 10 and OTA 14. The fourteen attestation tests are absent from
+that committed-source candidate and reported **BLOCKED**, not passed or silently
+counted as skips. Live devnet reads, clear review and pad signing pass here too,
+with fingerprint **HWCwog**; broadcast remains **BLOCKED** for the exact signer:
+
+```text
+public key: BkQb1zKjoB612KYe2uCvKteJPN69m3vbAqUXB9PeBYuV
+token ATA:  BFdEvF5RYUEMUQk8fFKn5jZFAThWJRvzk6UdKXEn3VwB
+```
+
+This second RAM-only identity also ceased to exist at process exit. No new
+transaction was broadcast by either V7 live path, and no historical receipt is
+presented as a new fill. Working-tree attestation is validated but still needs
+its own reviewed feature commit and real factory/phone provisioning. The
+isolated scenario totals reuse the same tests, so they are not additional
+independent coverage to sum into a grand total.
+
+Final logs: `firmware/build/v7-{native,desk-final,site,keeper,live-alerts,padsim}.log`,
+`v7-isolated-{native,padsim}.log` and `v7-{normal,release,isolated-normal,isolated-release}.log`.
+`node --check tools/padsim/v3.mjs`, `git diff --check` and staged whitespace
+checks also pass. The only new OTA-test change permits an explicit compiled
+image path; the complete final desk and both scenario runs use the corresponding
+new 3.0.0 image. Existing assertions are retained. No production image is signed,
+no flash/eFuse operation is performed, and nothing is pushed.
+
+## Firmware v3 — final factory and XOR phone attestation delivery (2026-11-12)
+
+Attestation is now committed on `fw-v3` as `94111b3`. The actual Expo app is on
+`xorrpad-v3-attest` in `/Volumes/Extreme SSD/Projects/xorr-solana`: `86984ed`
+implements verification in the existing Pad screen; `747277d` records evidence.
+The prior V7 references to missing committed attestation and phone integration
+are superseded by this section. Earlier unrelated working-tree edits were
+preserved and excluded from the attestation commit.
+
+| Verification | Result |
+| --- | --- |
+| Combined working native suite | 275 cases / 2,681 assertions, all pass |
+| Isolated committed-source native suite (`94111b3`) | 268 cases / 2,658 assertions, all pass |
+| Targeted desk attestation + factory | 19/19 pass |
+| Complete desk suite | 217 reported: 208 pass, 9 setup/provider skips, 0 failures/cancellations |
+| V3 padsim scenario runner | 54/54 pass, 0 test skips/failures |
+| Actual phone Pad suite | 53/53 pass, including 4 native-verifier cross-checks |
+| Phone TypeScript check | Pass |
+| Phone Android/Hermes export | Pass, `/tmp/xorr-pad-v3-attest-android` |
+| Phone real component screenshots | Updated unverified/BLE setup screens; existing design preserved |
+
+The phone suite's 53 tests include the existing Pad tests. Targeted desk/V3
+scenario tests overlap the full suite and are not added to a coverage total.
+The native difference comes from seven pre-existing uncommitted logic tests;
+the clean committed source meets the V3 minimum independently.
+
+Both unsigned build configurations compile. No release key was opened and no
+image was flashed. Flash maximum is 3,145,728 bytes; static RAM maximum is
+327,680 bytes (runtime PSRAM allocations are additional):
+
+| Source | Normal flash / static RAM | Release flash / static RAM |
+| --- | --- | --- |
+| Combined working tree | 1,952,106 B / 68,196 B | 1,949,962 B / 68,124 B |
+| Isolated commit `94111b3` | 1,947,646 B / 68,140 B | 1,945,410 B / 68,060 B |
+
+Native command: `firmware/test/run.sh`. The isolated verification used a detached
+worktree at `/tmp/xorrpad-v3-attest-source.D9Vzfu` with dependency symlinks; only
+committed source was built. Both builds used Arduino CLI/core/FQBN and the
+normal/release compiler properties recorded in the preceding V7 section, with
+`--jobs 3`, explicit `--build-path` and `--output-dir`. Final working artifacts
+are in `firmware/build/attestation-final-{normal,release}-out`; copied clean
+app images are in `firmware/build/attestation-isolated-{normal,release}-out`.
+
+Desk/firmware attestations verify real Ed25519 certificates and fresh proofs,
+foreign/absent authorities, changed fields, replayed challenges, identity
+substitution and strict schema. Encrypted padsims exercise firmware label 3.0.0
+over TCP and USB CRC. Phone tests use real process-memory Ed25519 signers and
+strict RFC8032 verification; four also invoke the production native driver with
+public inputs. Phone challenges are generated locally, expire in 10 seconds,
+are consumed once, are BLE-only and reset on disconnect. Desk verdict flags
+cannot promote phone trust. Production public root stores intentionally remain
+empty; no fake authority was installed to make the UI genuine.
+
+The phone commands used `EXPO_NO_DOTENV=1`; the dedicated Vitest config avoids
+loading `.env` and unrelated executor live warmup:
+
+```sh
+EXPO_NO_DOTENV=1 npm run test:pad -- --exclude '**/*.live.test.ts'
+EXPO_NO_DOTENV=1 npm run typecheck
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_XORR_CHAIN=solana-devnet node node_modules/expo/bin/cli export --platform android --output-dir /tmp/xorr-pad-v3-attest-android
+EXPO_NO_DOTENV=1 node tools/pad-screenshots.mjs
+```
+
+`node tools/padsim/v3.mjs` passes clear-sign 4, pad-signer 5, attestation 14,
+abilities 5, offline alerts 2, crew 10 and OTA 14. The live path verifies devnet
+state and the native pad's real Ed25519 signature over exact SDK message bytes
+(fingerprint `JDbw2s`). New broadcast is **BLOCKED**, unfunded session signer
+`Gkc1f2997WpgKDQFPiYz5WRKvfT3VijRMVyEX8mg32G2`, ATA
+`2Yfg9wZUqGKsjEB8Pv7Pq1Y2Hy91LACr5kwEkahgoKDw`. That RAM-only key was discarded
+at process exit: do not fund that old address. Re-run with `--funding-wait=300`
+and fund the newly printed signer while it is alive. No new fill is claimed.
+
+**Compiled, not yet flashed.** Physical BLE/OS passkey flow, a genuinely
+provisioned certificate/phone connection, factory NVS persistence, TFT/holds,
+PSRAM/timing, power-loss behavior and actual OTA rollback still require the
+board. Factory public trust anchors and irreversible secure boot/flash
+provisioning remain operator work; no eFuse or existing private key was accessed.
+Final logs use `firmware/build/attestation-{final,isolated}-*.log`.
+
+
+Final complete desk run: **217 tests, 208 passed, 9 setup/provider skips, zero
+failures/cancellations**, 482,059.611334 ms. Command:
+
+```sh
+TASK_ATTEST_TMP=$(mktemp -d /tmp/xorrpad-v3-attest-tests.XXXXXX)
+TMPDIR="$TASK_ATTEST_TMP" XORR_OTA_TEST_IMAGE="$PWD/firmware/build/attestation-final-normal-out/xorrpad.ino.bin" node --test --test-concurrency=1 --test-skip-pattern='funded test wallet required' desk/test/*.test.mjs
+```
+
+The one CLI-excluded legacy funded-wallet scenario opens a pre-existing private
+key file and therefore remains excluded under the no-existing-key-access rule;
+it is not included in the runner's 217 reported tests. No test was removed or
+weakened. The V3 RAM-only signing/broadcast path supplies the explicit unfunded
+BLOCKED evidence above. Full output: `firmware/build/attestation-final-full-desk.log`.
+The signed firmware-3.0.0 factory-report regression also passes in the focused
+five-test factory rerun. All executed final checks have zero failures.

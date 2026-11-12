@@ -1,4 +1,5 @@
 /** Signal state machine. Snapshots are copies; callers cannot edit queue state. */
+import {trustedSignal,fingerprint} from './pad-v2.mjs';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -16,8 +17,8 @@ export class SignalQueue extends EventEmitter {
     Object.assign(this, {ttlSeconds, gate, journal, announce, onAccepted});
   }
   serial(fn) { const p = this.#tail.then(fn); this.#tail = p.catch(() => {}); return p; }
-  get(id) { const e = this.#entries.get(id); return e ? structuredClone(e) : null; }
-  list() { return [...this.#entries.values()].map(e => structuredClone(e)); }
+  get(id) { const e = this.#entries.get(id); if(!e)return null;const copy=structuredClone(e);try{copy.trusted=trustedSignal(copy);copy.fingerprint=fingerprint(copy.trusted);}catch{copy.trustedUnavailable='Refresh executable price and fee quote';}return copy; }
+  list() { return [...this.#entries.values()].map(e => this.get(e.id)); }
   publish(event) { this.emit('event', {at:new Date().toISOString(), ...event}); }
   async #move(e, state, extra = {}) {
     if (!NEXT[e.state]?.includes(state)) throw new Error(`invalid signal transition ${e.state} → ${state}`);
@@ -51,10 +52,13 @@ export class SignalQueue extends EventEmitter {
       return this.#move(e,'awaiting');
     });
   }
-  async #accept(e, automatic = false) {
+  async #accept(e, automatic = false, expectedFingerprint) {
     if (Date.now() >= e.expiresAt) return this.#move(e,'expired',{ruleId:'signals.expiry'});
     const fresh = this.gate ? await this.gate(this.get(e.id)) : e.proposal;
     if (Date.now() >= e.expiresAt) return this.#move(e,'expired',{ruleId:'signals.expiry'});
+    let original;try{original=fingerprint(trustedSignal(e));}catch{}
+    if(expectedFingerprint&&original!==expectedFingerprint)throw Error('displayed signal fingerprint changed');
+    if(expectedFingerprint){let updated;try{updated=fingerprint(trustedSignal({...e,proposal:fresh}));}catch{}if(updated!==original)return this.#move(e,'refused',{ruleId:'signals.quote_changed'});}
     e.proposal = structuredClone(fresh);
     if (fresh.verdict.action !== 'EXECUTE' || (automatic && !fresh.verdict.autoAccept))
       return this.#move(e,'refused',{ruleId:fresh.verdict.ruleId});
@@ -63,7 +67,7 @@ export class SignalQueue extends EventEmitter {
     if (this.onAccepted) queueMicrotask(() => Promise.resolve(this.onAccepted(result)).catch(error => this.publish({type:'execution_error',id:e.id,error:error.message})));
     return result;
   }
-  accept(id) { return this.serial(async () => { const e = this.#require(id); if (e.state !== 'awaiting') throw new Error(`signal is ${e.state}`); return this.#accept(e); }); }
+  accept(id, expectedFingerprint) { return this.serial(async () => { const e = this.#require(id); if (e.state !== 'awaiting') throw new Error(`signal is ${e.state}`); return this.#accept(e,false,expectedFingerprint); }); }
   refuse(id, ruleId = 'signals.operator_refused') { return this.serial(async () => {
     const e = this.#require(id);
     if (!['awaiting','auto_accepted','accepted'].includes(e.state)) throw new Error(`signal is ${e.state}`);
