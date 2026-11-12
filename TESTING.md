@@ -379,3 +379,41 @@ transaction was submitted. The old interactive `verify.mjs` and standalone
 stress/gas diagnostics are outside the package test glob and were not run;
 this document does not count them as passes. Historical milestone totals are
 superseded by this single full run; earlier evidence remains in git history.
+
+## Firmware v2 — S1 desk integration (2026-11-12)
+
+S1 covers the desk bridge, Connect/Trade renderer, simulator and protocol tests.
+The pre-existing device firmware edits remain separate work. Device status is
+**compiled, not yet flashed**; no physical BLE, audio, encoder, NVS power-cycle,
+factory test or rollback behavior is established by host tests.
+
+- `firmware/test/run.sh`: **80 cases, 109 assertions, all passed** using the
+  device Crypto implementation, ArduinoJson and native clang.
+- Both current working-tree ESP32 builds pass with ESP32 core **3.3.10**:
+  normal **1,754,018 bytes**; release **1,752,866 bytes**; both use **65,084 bytes**
+  of static RAM. The factory adapter needed its missing `link.h` include.
+  These compile checks did not open a signing key or replace signed artifacts.
+- Focused v2 crypto/signal tests: **21 passed**. Simulator integration:
+  **5 passed**, including real devnet quote/fingerprint/hold and signed OTA.
+- Isolated Playwright Connect check passed settings persistence, three-layer
+  profile saving, disconnected action guards, 375/1440 px overflow checks and
+  browser runtime-error checks. The broader `test:ui` matrix was interrupted;
+  it is not counted as a pass here.
+- `npm test` now runs files sequentially so the live suites share public API
+  capacity. Assertions and live-provider/setup skip conditions are unchanged.
+  Final full run: **139 tests, 129 passed, 10 explicit skips, 0 failed,
+  0 cancelled** in **377.33 s**. All five v2 integration cases passed in this
+  run. Skips reflect unavailable provider credentials, accounts/funding or
+  live-provider limits; they are not counted as successful integrations.
+
+The exact FQBN and both compile commands are recorded in
+[firmware/README.md](firmware/README.md#v2-working-tree-compile-evidence--s1-2026-11-12).
+
+`desk/test/pad-v2.e2e.test.mjs` uses real SQLite and desk HTTP routes, fragmented
+encrypted TCP and serial framing. It checks pairing, plaintext downgrade/replay
+rejection, authenticated management, settings, telemetry liveness, kill-latch
+reboot persistence and rearm validation. Its OTA test requires the existing
+public signed `firmware/build/artifacts/{manifest.json,app.bin}` from an authorized
+release build and checks both correct and incorrect signatures. The live signal
+test uses an actual devnet quote and independently verifies a historical receipt;
+it does **not** claim a new fill. Missing live dependencies remain explicit skips.

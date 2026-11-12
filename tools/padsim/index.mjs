@@ -51,7 +51,9 @@ export class PadSimulator extends EventEmitter {
   async close() {if(this.stream?.isOpen && !this.stream.closing)await new Promise(r=>this.stream.close(r));this.stream?.destroy();if(this.server)await new Promise(resolve => this.server.close(resolve));}
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  const pad=new PadSimulator({fragmentBytes:20});
+  const {PadSimulatorV2}=await import('./v2.mjs');
+  const pad=new PadSimulatorV2({fragmentBytes:20,serial:process.argv[2]==='--pty'});
+  process.stderr.write(`Pairing URL: ${pad.qr}\nSimulator code: ${pad.code}\n`);
   pad.on('message',m => process.stdout.write(JSON.stringify(m)+'\n'));
   pad.on('protocol_error',e => process.stderr.write(e.message+'\n'));
   if(process.argv[2]==='--pty') {

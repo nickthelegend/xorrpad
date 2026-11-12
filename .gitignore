@@ -41,3 +41,4 @@ session-wallet.encrypted
 firmware/keys/
 firmware/*.bin
 firmware/*.sig
+.impeccable/review/

@@ -328,3 +328,19 @@ NimBLE callbacks use the [2.x API](https://h2zero.github.io/NimBLE-Arduino/).
 `make -C tools/uipreview shots` also compiles the real `ui.h` against Adafruit
 GFX on the host and renders nine screen states, including v1 keymap and historical-receipt layouts. That is display
 layout evidence, not hardware or trade-execution evidence.
+
+## v2 working-tree compile evidence — S1 (2026-11-12)
+
+Status: **compiled, not yet flashed**. These checks use the existing v2 device
+work alongside the S1 desk changes; they do not complete hardware verification.
+ESP32 core: **3.3.10**. From the repository root:
+
+```sh
+arduino-cli compile --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --output-dir firmware/build/normal firmware/xorrpad
+arduino-cli compile --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --output-dir firmware/build/release firmware/xorrpad
+```
+
+Normal: **1,754,018 / 3,145,728 bytes** flash. Release:
+**1,752,866 / 3,145,728 bytes** flash. Both use **65,084 / 327,680 bytes** static
+RAM; runtime PSRAM allocations are additional. No flash, signing-key read,
+secure-boot enablement or eFuse operation was performed during these checks.

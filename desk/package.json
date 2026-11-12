@@ -12,7 +12,7 @@
     "test:agent": "node --test test/agent.test.mjs test/agent.http.test.mjs",
     "test:memory": "node test/memory.test.mjs",
     "test:loadbearing": "node test/loadbearing.test.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "start": "electron .",
     "backend": "node --env-file-if-exists=../.env main/server.mjs",
     "shots": "electron shots.mjs",

@@ -4,6 +4,25 @@ All notable changes to xorrpad are documented here. This file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added — firmware 2.0.0, S1 desk integration
+
+- Encrypted v2 pad pairing and transport, serial CRC, acknowledgments/retries,
+  telemetry/crash intake, signed OTA upload, profiles and BLE Opus bridging.
+- Canonical trusted-signal fingerprints in queue events and trade confirmation;
+  changed executable quotes require a fresh review.
+- Connect controls for QR/code pairing, pad settings, signed firmware updates,
+  profile selection and the desk/physical-hold kill-latch rearm flow.
+- Stateful v2 pad simulator and real encrypted desk integration coverage.
+
+### Fixed
+
+- Reject incomplete or expired rearm confirmations, refresh the watchdog on
+  authenticated control traffic, and bound crash uploads before saving them.
+- Preserve the operator-refusal rule when accepting fingerprint-aware requests
+  and isolate the v2 simulator's port from the existing signals tests.
+
 ## [1.0.1] - 2026-11-12
 
 ### Fixed
