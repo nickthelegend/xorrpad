@@ -44,6 +44,7 @@ public:
   void status(JsonDocument &d){
     d["type"]="session_state";d["ok"]=begin();d["publicKey"]=healthy?publicKey():"";
     d["configured"]=healthy && policy.valid();
+    if(healthy)d["spentToday"]=counter.spent(uint32_t(millis()-checkpoint));
     if(policy.valid())xorr::session::policyJson(d["policy"].to<JsonObject>(),policy);
   }
   xorr::session::Exposure check(const xorr::solana::Review &v){

@@ -3,6 +3,7 @@ import { useDesk, useRead, State, Empty, Field, money } from "../core";
 import { Card } from "../brand/Card";
 import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
+import { PadSession } from "../components/PadSession";
 const providers = [
   {
     id: "ollama",
@@ -31,9 +32,10 @@ const providers = [
 ];
 export function Agent() {
   const d = useDesk(),
-    settings = useRead("/agent/settings"),
+    settings = useRead("/agent/settings", 15000, true),
     chats = useRead("/chats"),
     status = useRead("/desk/status");
+  const walletMode = useRead("/wallet/mode");
   const [edit, setEdit] = useState(null),
     [models, setModels] = useState(null),
     [modelError, setModelError] = useState(""),
@@ -350,8 +352,12 @@ export function Agent() {
                   Phone signing is the default. Session signing is opt-in,
                   capped, and still requires the mainnet acknowledgement.
                 </p>
+                <State state={walletMode} />
+                <p>Signing mode: {walletMode.data?.mode || "Unavailable"}</p>
                 <p>
-                  {status.data?.wallet?.publicKey ||
+                  {walletMode.data?.mode === "pad"
+                    ? "Pad signer uses the public key and policy reported below."
+                    : status.data?.wallet?.publicKey ||
                     status.data?.wallet?.setupRequired ||
                     "Reading wallet status…"}
                 </p>
@@ -394,6 +400,8 @@ export function Agent() {
                     Use session
                   </button>
                 </div>
+                <h3>Pad signer</h3>
+                <PadSession />
               </details>
             </div>
           </div>

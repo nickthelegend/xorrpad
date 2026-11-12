@@ -18,7 +18,11 @@ int main(int argc,char **argv){
   JsonDocument in,out;out["ok"]=false;
   if(deserializeJson(in,text))return 3;
   std::string command=in["command"] | "";
-  if(command=="status"){out["ok"]=healthy;out["publicKey"]=solana::address(owner);}
+  if(command=="status"){
+   out["ok"]=healthy;out["publicKey"]=solana::address(owner);out["configured"]=healthy && policy.valid();
+   if(healthy)out["spentToday"]=counter.spent();
+   if(policy.valid())session::policyJson(out["policy"].to<JsonObject>(),policy);
+  }
   else if(command=="policy"){
    session::Policy next;bool ok=healthy && in["heldMs"].as<unsigned>()>=3800 && session::parsePolicy(in["policy"],next);
    if(ok){policy=next;ok=save(counter);}out["ok"]=ok;

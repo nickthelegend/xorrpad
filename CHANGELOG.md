@@ -6,6 +6,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D4, Agent
+
+- Added Pad signer as the third wallet mode, bound to the selected paired pad.
+  The existing session sheet edits dollar caps, 1× leverage, exact venue program
+  allowlist and a capped market/destination auto-accept rule. Physical policy
+  approval remains mandatory. Blind signing is off by default with a red warning
+  and an explicit save. Selection/disconnect clears pad-specific editor state.
+- Added public rolling-spend telemetry to firmware status and the native simulator;
+  older firmware honestly reports unavailable accounting. No signing material is
+  returned. Native accounting coverage and real encrypted padsim browser coverage
+  include policy refusal, approval, spend readback and explicit blind opt-in.
+
 ### Added — Desktop v3 D3, Abilities
 
 - Added an On-pad abilities section below the unchanged desktop catalog, using

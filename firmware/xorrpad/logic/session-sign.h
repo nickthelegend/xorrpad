@@ -75,6 +75,11 @@ struct Debit {uint64_t age=0,amount=0;};
 class Counter {
 public:
   std::vector<Debit> debits;
+  uint64_t spent(uint64_t elapsed=0)const{
+    uint64_t total=0;
+    for(const auto &d:debits)if(d.age+std::min(elapsed,dayMs)<dayMs)total+=d.amount;
+    return total;
+  }
   bool restore(JsonVariantConst a){
     debits.clear();if(!a.is<JsonArrayConst>() || a.size()>64)return false;
     uint64_t total=0;

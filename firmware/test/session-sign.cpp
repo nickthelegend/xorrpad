@@ -51,7 +51,9 @@ TEST_CASE("session policy roundtrip validates exact integers allowlist and defau
 TEST_CASE("session rolling daily cap survives serialized reboot and failed signature delivery"){
  Counter c;std::string disk;auto save=[&](const Counter &v){JsonDocument d;v.json(d.to<JsonArray>());serializeJson(d,disk=std::string());return true;};
  REQUIRE(c.reserve(60,100,0,save));JsonDocument d;REQUIRE_FALSE(deserializeJson(d,disk));Counter reboot;
+ CHECK(c.spent()==60);CHECK(c.spent(dayMs-1)==60);CHECK(c.spent(dayMs)==0);
  REQUIRE(reboot.restore(d.as<JsonVariantConst>()));CHECK_FALSE(reboot.reserve(41,100,0,save));
+ CHECK(reboot.spent()==60);
  REQUIRE(reboot.reserve(40,100,dayMs-1,save));CHECK_FALSE(reboot.reserve(1,100,0,save));
  REQUIRE(reboot.reserve(60,100,1,save));CHECK_FALSE(reboot.reserve(1,100,0,save));
 }

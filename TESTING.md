@@ -1667,3 +1667,23 @@ failures or cancellations**, 539,553.626167 ms. The disposable copy has its own
 Git metadata for the existing ignore-rule regression and all five public native
 drivers (abilities, attestation, crew, OTA and session). Changed application and
 test sources match the working tree byte for byte. Nothing was flashed or pushed.
+
+### D4 — Agent
+
+The unchanged Agent wallet section now offers phone, session and Pad signer.
+`/wallet/mode` selects the explicit device; `/pad/session` reads the public key,
+approved policy and public rolling daily spend. The editor sends six-decimal USD
+caps as micro-USD, supports the firmware's 1× leverage, exact venue program keys,
+and a zero-default auto-accept cap with an exact market/destination rule. Policy
+approval still requires 3.8 seconds on the pad. `/pad/options` saves blind signing
+only after explicit opt-in; the warning uses the existing red token.
+
+Firmware status now exposes public spentToday accounting; older firmware reports
+unavailable instead of inventing a zero. Native accounting expiry/reboot assertions
+pass in **268/268 native cases, 2,662 assertions**. The Agent browser regression
+passes **1/1**, verifying encrypted native-backed session policy refusal/approval,
+cap conversion, actual charged spend readback, blind opt-in, device selection and
+disconnect without write redirection. No trade is broadcast. Six inspected
+screenshots (`agent-{empty,policy,approved}-{1440,375}.png`) check no overflow and
+44 px controls with reduced motion. Build passes. Final full-suite evidence follows
+with the remaining D4 screens.
