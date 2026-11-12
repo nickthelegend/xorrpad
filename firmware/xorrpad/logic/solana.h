@@ -57,7 +57,7 @@ struct Message {
   uint8_t required=0, readonlySigned=0, readonlyUnsigned=0;
   size_t staticCount=0; Key blockhash{};
   std::vector<Key> keys; std::vector<Instruction> instructions;std::vector<Lookup> lookups;
-  std::string fingerprint,error;
+  std::string fingerprint,hash,error;
   bool signer(size_t i)const{return i<required;}
   bool writable(size_t i)const {
     if(i<required)return i<size_t(required-readonlySigned);
@@ -117,7 +117,7 @@ inline Message parse(const std::vector<uint8_t> &bytes,const std::vector<TableDa
   if(m.keys.size()>256)return fail("account count");
   for(size_t i=0;i<m.keys.size();i++)for(size_t j=0;j<i;j++)if(m.keys[i]==m.keys[j])return fail("duplicate account");
   for(const auto &ix:m.instructions)for(auto a:ix.accounts)if(a>=m.keys.size())return fail("account index");
-  auto digest=sha(bytes.data(),bytes.size());m.fingerprint=base58(digest.data(),32).substr(0,6);m.valid=true;return m;
+  auto digest=sha(bytes.data(),bytes.size());m.hash=xorr::hex(digest.data(),32);m.fingerprint=base58(digest.data(),32).substr(0,6);m.valid=true;return m;
 }
 inline bool discriminator(const std::vector<uint8_t> &data,const char *name) {
   auto h=sha(name,std::strlen(name));return data.size()>=8 && !std::memcmp(data.data(),h.data(),8);
@@ -250,6 +250,10 @@ inline Review review(const std::vector<uint8_t> &bytes,const std::vector<TableDa
     auto d=decode(v.message,ix,proofs);v.blind|=!d.known;
     v.rows.push_back(d.known?d.name:"UNKNOWN / "+(d.name.empty()?std::string("instruction"):d.name));
     v.rows.push_back("program "+address(v.message.keys[ix.program]));
+    if(!d.known){
+      v.rows.push_back("unparsed instruction: arbitrary effects");
+      v.decoded.push_back(std::move(d));continue;
+    }
     if(!d.side.empty())v.rows.push_back(d.side);
     if(!d.source.empty())v.rows.push_back("from "+d.source);
     if(!d.destination.empty())v.rows.push_back("to "+d.destination);

@@ -1,3 +1,4 @@
+import {prepareClearSign} from "./clear-sign.mjs";
 /** v1/v2 NDJSON bridge. All trade inputs use the authenticated/gated API. */
 import OpusScript from "opusscript";
 import { EventEmitter } from "node:events";
@@ -147,6 +148,7 @@ export class PadLink extends EventEmitter {
   killed = new Set();
   options = {
     legacyV1: false,
+    allowBlindSigning: false,
     holdThreshold: 100,
     brightness: 220,
     night: false,
@@ -479,6 +481,7 @@ export class PadLink extends EventEmitter {
       throw Error("invalid pad settings");
     for (const k of [
       "legacyV1",
+      "allowBlindSigning",
       "night",
       "highContrast",
       "speakAmounts",
@@ -589,6 +592,17 @@ export class PadLink extends EventEmitter {
         autoAccept: !!e.automatic,
       });
     }
+  }
+  async clearSign(device, input) {
+    const p=[...this.peers].find(p=>p.device===device && p.secure && p.verified && this.preferred(device)===p);
+    if(!p || this.killed.has(device))throw Error("Setup required: paired, online, rearmed pad");
+    const secure=p.secure, prepared=await prepareClearSign(input);
+    if(!this.peers.has(p) || p.secure!==secure || this.killed.has(device))throw Error("pad connection changed during review preparation");
+    if(prepared.frames.length+(p.sendQueue?.length||0)>128)throw Error("pad busy; retry clear signing");
+    p.clearReviewSession=secure;
+    p.clearReview={id:input.signalId,fingerprint:prepared.fingerprint,messageHash:prepared.messageHash,expiresAt:Date.now()+prepared.request.remainingMs};
+    for(const frame of prepared.frames)this.send(p,frame);
+    return {ok:true,fingerprint:prepared.fingerprint,messageHash:prepared.messageHash};
   }
   rearm(device) {
     const peers = [...this.peers].filter(
@@ -998,7 +1012,7 @@ export class PadLink extends EventEmitter {
   }
   async receive(p, m) {
     if (!this.peers.has(p)) return;
-    if (["key", "knob", "voice", "signal_state"].includes(m.type) &&
+    if (["key", "knob", "voice", "signal_state", "clear_approval"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
     if (p.secure && this.killed.has(p.device)) throw Error("pad kill latch active");
@@ -1032,6 +1046,16 @@ export class PadLink extends EventEmitter {
     if (m.type === "keymap_state") {
       this.signals?.publish({ type: "pad", device: p.device, message: m });
       return;
+    }
+    if(m.type==="clear_approval"){
+      const review=p.clearReview;
+      if(!p.secure || p.clearReviewSession!==p.secure || !p.verified || !review || Date.now()>=review.expiresAt ||
+        m.signalId!==review.id || m.fingerprint!==review.fingerprint || m.messageHash!==review.messageHash ||
+        typeof m.accepted!=="boolean" || typeof m.blind!=="boolean" ||
+        (m.accepted && (!Number.isInteger(m.heldMs) || m.heldMs<(m.blind?3800:800) || (m.blind && !this.options.allowBlindSigning))))throw Error("clear-sign approval refused");
+      p.clearReview=null;
+      const approval={type:"clear_approval",device:p.device,...review,accepted:m.accepted,blind:m.blind};
+      this.emit("clear_approval",approval);this.signals?.publish(approval);return;
     }
     if (!["key", "knob", "signal_state", "voice"].includes(m.type))
       throw new Error("unsupported pad message");

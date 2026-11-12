@@ -22,7 +22,7 @@ TEST_CASE("Solana real legacy and v0 SDK messages decode amount and destination"
     CHECK(v.message.v0==(std::string(name)=="system-v0"));REQUIRE(v.decoded.size()==3);
     CHECK(v.decoded[2].amount==123456789);CHECK(v.decoded[2].decimals==9);
     CHECK(v.decoded[2].destination=="So11111111111111111111111111111111111111112");
-    auto h=xorr::sha(f.bytes.data(),f.bytes.size());CHECK(xorr::hex(h.data(),32)==f.hash);
+    auto h=xorr::sha(f.bytes.data(),f.bytes.size());CHECK(xorr::hex(h.data(),32)==f.hash);CHECK(v.message.hash==f.hash);
     CHECK(v.message.fingerprint==xorr::base58(h.data(),32).substr(0,6));
   }
 }
@@ -155,4 +155,10 @@ TEST_CASE("Solana malformed Phoenix options and flags require blind signing") {
  ix=original;ix.data.back()=2;CHECK_FALSE(decode(m,ix).known);
  ix=original;ix.data[ix.data.size()-2]=128;CHECK(decode(m,ix).known);
  ix=original;ix.data[ix.data.size()-2]=64;CHECK_FALSE(decode(m,ix).known);
+}
+
+TEST_CASE("Solana unknown instruction review never invents a zero amount") {
+ auto f=fixture("system-legacy");f.bytes[f.bytes.size()-12]=99;
+ auto v=review(f.bytes);REQUIRE(v.valid());CHECK(v.blind);
+ for(const auto &row:v.rows)CHECK(row.find("amount raw ")==std::string::npos);
 }

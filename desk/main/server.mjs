@@ -377,6 +377,7 @@ export function createServer(mem) {
     try {
       if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
       if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
+      if (url.pathname === '/pad/clear-sign') return send(202,await srv.padlink.clearSign(body.device,body));
       if (url.pathname === '/pad/rearm') return send(200,srv.padlink.rearm(body.device));
       if (url.pathname === '/pad/profiles') return send(200,req.method==='GET'?srv.padlink.profiles:srv.padlink.setProfiles(body.profiles));
       if (url.pathname === '/pad/profile') return send(200,srv.padlink.selectProfile(body));
@@ -1261,7 +1262,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],

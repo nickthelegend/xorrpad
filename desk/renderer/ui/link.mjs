@@ -28,6 +28,7 @@ export async function mount({ el, api, subscribe, signal }) {
         ["speakAmounts", "Speak the amount when confirming"],
         ["leftHanded", "Flip action keys for left-handed use"],
         ["legacyV1", "Enable legacy v1 link"],
+        ["allowBlindSigning", "Allow blind signing (extra 3-second hold)"],
         ["usbDebug", "Enable USB debug console"],
       ]
         .map(
@@ -36,7 +37,7 @@ export async function mount({ el, api, subscribe, signal }) {
         )
         .join(
           "",
-        )}<p class="hint">Above the threshold, hold YES for 800 ms. Legacy links use the v1 pad token and do not provide v2 encryption. USB debug is off by default.</p><button>Save pad settings</button></form>`,
+        )}<p class="hint">Above the threshold, hold YES for 800 ms. Legacy links use the v1 pad token and do not provide v2 encryption. USB debug and blind signing are off by default. Blind signing requires reviewing every page and a 3.8-second hold.</p><button>Save pad settings</button></form>`,
     )}
     </div><div class="stack">${panel("Signed firmware update", `<form id="firmware-update" class="panel-body"><p>Select the release manifest and matching app image. The desk and pad both verify the signature.</p><label>Paired pad<select name="device" id="update-device" required></select></label><label>manifest.json<input name="manifest" type="file" accept=".json,application/json" required></label><div id="manifest-detail" role="status"></div><label>app.bin<input name="image" type="file" accept=".bin,application/octet-stream" required></label><button id="install-update" class="primary" disabled>Verify & install update</button><p class="hint">Keep USB power connected. Progress appears on the TFT and in device status. A failed boot health check rolls back within 60 seconds.</p><div id="update-feedback" role="status"></div></form>`)}
     ${panel("Profiles & layers", `<form id="profiles" class="panel-body"><p>Save up to eight profiles. Each keeps separate Spot, Perps and Predict keymaps.</p><label>Target pad<select name="device" id="profile-device"></select></label><p class="hint device-hint">Connect and pair a v2 pad to install updates or use a profile. Profiles can be saved while disconnected.</p><label>Profile<select name="profile" id="profile-select"></select></label><label>Layer<select name="layer"><option value="0">Spot</option><option value="1">Perps</option><option value="2">Predict</option></select></label><label>Profile name<input name="name" maxlength="20" placeholder="Scalper, Swing, Predictor…"></label><div class="actions"><button name="save" value="save">Save current keys to layer</button><button id="activate-profile" name="activate" value="activate" disabled>Use on pad</button></div><p class="hint">Program keys on the Pad screen, then save them into a profile layer. Bind profile:next or layer:next to cycle on the pad.</p></form>`)}
@@ -140,6 +141,7 @@ export async function mount({ el, api, subscribe, signal }) {
         "speakAmounts",
         "leftHanded",
         "legacyV1",
+        "allowBlindSigning",
         "usbDebug",
       ])
         body[k] = f.has(k);

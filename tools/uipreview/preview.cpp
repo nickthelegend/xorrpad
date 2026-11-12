@@ -238,6 +238,18 @@ int main(int argc, char **argv) {
     if(!std::equal(killed.begin(),killed.end(),c.getBuffer())) return 2;
   }
 
+  // V3 layout exercise: public destination from system-v0.json; no trade execution.
+  {
+    PadState p;ChartState ch;p.ok=p.pending=p.clearSigning=p.blindAllowed=true;p.signalDeadline=120000;
+    p.fingerprint="4Sf2XH"; // SHA-256/base58 of the captured system-v0 message.
+    p.clearRows={"to So11111111111111111111111111111111111111112"};
+    ui::drawFrame(c,p,ch);shot("18-clear-review","full transaction address review");
+    p.blindSigning=true;p.blindAllowed=false;
+    ui::drawFrame(c,p,ch);shot("19-blind-disabled","red blind-sign refusal");
+    p.blindAllowed=p.clearReviewed=true;p.holdProgress=0.5;
+    ui::drawFrame(c,p,ch);shot("20-blind-hold","extra three-second physical hold");
+  }
+
   printf("\n%d frames -> %s/ (at %dx)\n", made, dir, scale);
   return made ? 0 : 1;
 }

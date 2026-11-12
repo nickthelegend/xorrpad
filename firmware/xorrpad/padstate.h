@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+#include <string>
+#include <vector>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // What the pad knows, as plain data.
@@ -19,6 +21,9 @@ struct PadPosition {
 };
 
 struct PadState {
+  bool clearSigning=false,blindSigning=false,blindAllowed=false,clearReviewed=false;
+  size_t clearPage=0;uint32_t confirmDuration=800;
+  std::vector<std::string> clearRows;
   PadPosition positions[8]; uint8_t positionN=0; int positionCount=-1;
   uint32_t replyAt=0;
   bool factory=false; int factoryStage=0, factoryMic=0;

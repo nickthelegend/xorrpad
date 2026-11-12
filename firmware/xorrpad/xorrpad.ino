@@ -24,6 +24,7 @@
 
 #include "config.h"
 #include "settings.h"
+#include "clear-sign.h"
 #include "agents.h"
 #include "keymap.h"
 #include "link.h"
@@ -89,6 +90,8 @@ uint32_t   recAutoStopAt = 0;          // 0 = manual (hold); else a ms deadline
 PadState   pad;
 xorr::KillSwitch killSwitch;
 PadLink::Transport rearmTransport = PadLink::NONE;
+ClearSigning clearSigning;
+
 bool persistKill(bool killed) {
   Preferences p;
   if (!p.begin("xorrsafety", false)) return false;
@@ -143,6 +146,9 @@ bool usbDebugAllowed() {
 }
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  if(clearSigning.message(d,padlink.connectionEpoch(),padlink.secureReady(),killSwitch.killed || ota.busy,pad)) {
+    screenDirty=true;screenHoldUntil=0;return;
+  }
   String debugType = d["type"] | "";
   if (debugType == "config" || debugType == "ready") {
     usbDebugGate.configure(d["usbDebug"] | false, padlink.secureReady(),
@@ -238,6 +244,7 @@ void onPadMessage(JsonVariantConst d) {
 }
 
 bool sendLinkedKey(const String &action) {
+  if(clearSigning.active && (action=="yes" || action=="no"))return true;
   if(action=="yes" && !presentationConfirmationVisible(pad))return true;
   if (action == "yes" && padlink.blePairing)
     return true;
@@ -347,6 +354,12 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   screenDirty=true;screenHoldUntil=0;
   if(consumed)return;
   const KeyBind &kb=accessibility.key(r,c);
+  if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
+    bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
+    if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && presentationConfirmationVisible(pad));
+    else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result))padlink.send(result);}
+    return;
+  }
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
     telnet.logf("  [KEY] row=%u col=%u  = %s\n", r, c, kb.label ? kb.label : "unbound");
 
@@ -634,6 +647,7 @@ void loop() {
   bool wakeKnob=event!=Knob::None && accessibility.idle.blank(millis());
   if(event!=Knob::None){accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));screenDirty=true;}
   if(wakeKnob && event!=Knob::TalkEnd)event=Knob::None;
+  if(clearSigning.active && pad.pending && event==Knob::Turn){clearSigning.page(knob.delta,pad);event=Knob::None;}
   if(event==Knob::TalkStart)startRecording();
   else if(event==Knob::TalkEnd)stopAndSend();
   else if(event==Knob::Click) {
@@ -656,6 +670,10 @@ void loop() {
   if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}
   if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
   if(!padlink.ready() && !padlink.legacy)pad.ok=false;
+  {JsonDocument result;
+    bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
+    if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
+  }
   matrix.scan(onKey);
   health.keysScanned=true;
   telnet.poll();
@@ -690,6 +708,7 @@ void loop() {
   if (screenDirty && millis() >= screenHoldUntil) {
     screenDirty = false;
     screen.draw(pad, chartNow);
+    if(health.displayUp && presentationConfirmationVisible(pad))clearSigning.shown(pad);
   }
 
   if (recording && recBuf) {
