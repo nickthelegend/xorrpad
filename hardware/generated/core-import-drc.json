@@ -1,0 +1,552 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-11-12T14:10:22",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+    ],
+    "kicad_version": "10.0.6",
+    "schematic_parity": [],
+    "source": "core.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 7 [BUCK_SW] of U3 on F.Cu",
+                    "pos": {
+                        "x": 146.95,
+                        "y": 139.75
+                    },
+                    "uuid": "fde0485b-c78a-4841-b541-dcb6a68fd7c2"
+                },
+                {
+                    "description": "Pad 1 [BUCK_SW] of L1 on F.Cu",
+                    "pos": {
+                        "x": 148.5,
+                        "y": 141.5
+                    },
+                    "uuid": "1abe8dc4-5f72-4371-85f6-e679c7a529e5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.4705 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 106.215485
+                    },
+                    "uuid": "8ff989b3-88b2-439f-a1fd-66a0a5e8799b"
+                },
+                {
+                    "description": "Track [ROW2] on F.Cu, length 2.6227 mm",
+                    "pos": {
+                        "x": 183.4295,
+                        "y": 134.4795
+                    },
+                    "uuid": "3a9fceaa-1f86-47b0-8841-6fe047361717"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.4705 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 106.215485
+                    },
+                    "uuid": "8ff989b3-88b2-439f-a1fd-66a0a5e8799b"
+                },
+                {
+                    "description": "Track [ROW2] on F.Cu, length 13.4325 mm",
+                    "pos": {
+                        "x": 183.4295,
+                        "y": 147.912
+                    },
+                    "uuid": "3c443894-e5af-4e43-9ee3-53e3ab7a03e3"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.3328 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 106.215485
+                    },
+                    "uuid": "8ff989b3-88b2-439f-a1fd-66a0a5e8799b"
+                },
+                {
+                    "description": "Track [ROW2] on F.Cu, length 0.3473 mm",
+                    "pos": {
+                        "x": 183.3216,
+                        "y": 148.5431
+                    },
+                    "uuid": "bc8fc7a4-f9fd-4fb4-b09b-4cf898247d0b"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.3578 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 106.215485
+                    },
+                    "uuid": "8ff989b3-88b2-439f-a1fd-66a0a5e8799b"
+                },
+                {
+                    "description": "Track [ROW2] on F.Cu, length 0.2478 mm",
+                    "pos": {
+                        "x": 183.5672,
+                        "y": 148.2975
+                    },
+                    "uuid": "ce81d3f1-8be6-4dc9-959c-2ca6f433c682"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.3578 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 184.0,
+                        "y": 106.215485
+                    },
+                    "uuid": "8ff989b3-88b2-439f-a1fd-66a0a5e8799b"
+                },
+                {
+                    "description": "Track [ROW2] on F.Cu, length 0.1947 mm",
+                    "pos": {
+                        "x": 183.5672,
+                        "y": 148.0497
+                    },
+                    "uuid": "e0785ff5-7d7a-497a-932c-92f334d828e6"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [ENC_SW] on F.Cu, length 0.2989 mm",
+                    "pos": {
+                        "x": 145.0019,
+                        "y": 122.3117
+                    },
+                    "uuid": "34f730a6-32cb-4267-a0b7-34cfa8cadbff"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [ENC_SW] on F.Cu, length 0.1143 mm",
+                    "pos": {
+                        "x": 144.9211,
+                        "y": 122.2309
+                    },
+                    "uuid": "37173824-1ffe-4527-b332-ba273a34d1b5"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [VBUS] on F.Cu, length 0.1543 mm",
+                    "pos": {
+                        "x": 177.1308,
+                        "y": 136.9586
+                    },
+                    "uuid": "a4084522-d9aa-45c6-b647-88ac193a5c90"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [VBUS] on F.Cu, length 0.0492 mm",
+                    "pos": {
+                        "x": 177.0217,
+                        "y": 136.8495
+                    },
+                    "uuid": "e64b9ef3-f6ee-4d58-9030-e6693ae83d3b"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [RGB_LINK6] on F.Cu, length 0.3783 mm",
+                    "pos": {
+                        "x": 151.741,
+                        "y": 136.774
+                    },
+                    "uuid": "1571bfb3-0849-4598-980a-8c99535b5037"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [RGB_LINK6] on F.Cu, length 0.0368 mm",
+                    "pos": {
+                        "x": 151.715,
+                        "y": 136.8
+                    },
+                    "uuid": "cb479982-19df-48a3-8404-dadce94f725a"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [ENC_A] on B.Cu, length 0.1536 mm",
+                    "pos": {
+                        "x": 154.1245,
+                        "y": 152.5192
+                    },
+                    "uuid": "363385fe-0cff-4db6-9523-76506dcaecb7"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [ENC_A] on B.Cu, length 0.0483 mm",
+                    "pos": {
+                        "x": 154.0159,
+                        "y": 152.6278
+                    },
+                    "uuid": "e38fa68a-d597-4032-94e7-3d29747dd3f4"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [FB] on F.Cu, length 0.6098 mm",
+                    "pos": {
+                        "x": 148.6898,
+                        "y": 136.3648
+                    },
+                    "uuid": "1fccf371-07fc-4448-9ce5-02beb17581c8"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [FB] on F.Cu, length 0.3948 mm",
+                    "pos": {
+                        "x": 148.08,
+                        "y": 136.3648
+                    },
+                    "uuid": "a51bbf83-09eb-4deb-87b3-709b44635736"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_LINK1] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 103.853,
+                        "y": 143.5403
+                    },
+                    "uuid": "933faae1-98f8-4bc2-8202-76ff0839a8e5"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_IN] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 107.0652,
+                        "y": 145.0779
+                    },
+                    "uuid": "583e3e7a-cfd1-4c81-9756-68aa602869e7"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_IN] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 164.825,
+                        "y": 133.9334
+                    },
+                    "uuid": "e27d67df-f043-4946-b737-18652999a8be"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_5V] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 110.2197,
+                        "y": 143.8625
+                    },
+                    "uuid": "409cb63b-44fb-4bb3-a3b0-34c7fddcd5ef"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_LINK13] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 142.6143,
+                        "y": 176.98
+                    },
+                    "uuid": "5cbd6142-1c39-43ea-9c0d-d3ecf4c25c3c"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [RGB_LINK9] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 111.7045,
+                        "y": 155.975
+                    },
+                    "uuid": "f6595c2d-f1dd-4869-9002-bc242a045ea4"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL1] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 125.7266,
+                        "y": 131.6484
+                    },
+                    "uuid": "f9923264-25d3-4c80-80c2-055cd9e6fc6c"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL1] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 144.165,
+                        "y": 112.6219
+                    },
+                    "uuid": "fd310667-b104-47d8-b802-204bb539d752"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL0] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 144.165,
+                        "y": 128.2258
+                    },
+                    "uuid": "583a00f8-97c1-4f54-8bc0-9f90e647d9d9"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL0] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 163.0127,
+                        "y": 112.589
+                    },
+                    "uuid": "db4d5a16-62e5-45ce-9187-3b793f0ff190"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL2] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 161.5581,
+                        "y": 162.54
+                    },
+                    "uuid": "15cad63a-40c1-4914-b536-609347be44cf"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL2] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 125.115,
+                        "y": 112.6093
+                    },
+                    "uuid": "9a935fc5-80d7-40fc-89ec-96b60048e6c4"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL2] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 104.8339,
+                        "y": 128.2113
+                    },
+                    "uuid": "a3787d35-90ac-416f-a97e-fd4ee6ce8bb7"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL2] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 104.4855,
+                        "y": 154.6136
+                    },
+                    "uuid": "bff63ef7-4850-44cf-8782-6c9ce971d877"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [COL3] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 106.065,
+                        "y": 165.8346
+                    },
+                    "uuid": "71afc7e2-fc4f-4068-8e07-dfe4475e6b08"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        }
+    ]
+}

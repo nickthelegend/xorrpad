@@ -1,0 +1,64 @@
+2026-11-12 14:08:30.789 INFO   Freerouting v2.5.0 (build-date: 2026-10-05)
+2026-11-12 14:08:31.054 INFO   Hardware: 10 CPU cores, 481 CPU score, 2048 MB RAM
+2026-11-12 14:08:31.055 WARN   Deprecated settings path '-mp / --router.max_passes'; use '--router.autorouter.max_passes' instead. The old path will be removed in a future release.
+2026-11-12 14:08:31.058 WARN   GUI is disabled and you don't have a console available, so the only feedback from Freerouting is in the log.
+2026-11-12 14:08:32.213 WARN   Deprecated settings path 'router.max_passes'; use 'router.autorouter.max_passes' instead. The old path will be removed in a future release.
+2026-11-12 14:08:32.484 INFO   [DD89FA\0BD2CF] Loading board file 'core.dsn'...
+2026-11-12 14:08:32.605 INFO   [DD89FA\0BD2CF] Job 'DD89FA\0BD2CF' started at 2026-11-12T08:38:32.605230Z.
+2026-11-12 14:08:32.813 WARN   Design Warning: Board has 65 pre-existing clearance violation(s) in the loaded design (before routing):
+  - 65 unfixable violation(s) (cannot be resolved by Freerouting):
+      * 65 fixed trace/via clearance violations (first 5 shown):
+          - FixedVia#1301 [net 3V3] <-> ObstacleArea#1181
+          - FixedVia#1301 [net 3V3] <-> ObstacleArea#1180
+          - FixedVia#1301 [net 3V3] <-> ObstacleArea#1179
+          - FixedVia#1301 [net 3V3] <-> ObstacleArea#1178
+          - FixedVia#1292 [net 3V3] <-> ObstacleArea#1181
+          ... and 60 more
+  - 0 potentially fixable violations
+Notice: Freerouting does not modify component placement, board outlines, or fixed items.
+Resolving these 65 unfixable violation(s) is the responsibility of the board author in their EDA tool (e.g. KiCad).
+2026-11-12 14:08:32.841 INFO   [DD89FA\0BD2CF] Pipeline thread limits: autorouter pass is single-threaded, optimizer.max_threads=9.
+2026-11-12 14:08:33.051 INFO   [DD89FA\0BD2CF] Fanout stage started on board 'd37c23fb4187a9fff74804c9db04ea11' with 236 of 274 SMD pins needing fanout (14 already connected, 24 netless).
+2026-11-12 14:08:35.017 INFO   [DD89FA\0BD2CF] Fanout pass #1 on board '37793ebba3245f1ca241e690b57466fa' completed in 1.86 seconds with 88 SMD pins fanouted, 92 not routed, 0 insert errors, +30 extra vias (0 SMD pins still to check in pass, ripup costs=100).
+2026-11-12 14:08:36.126 INFO   [DD89FA\0BD2CF] Fanout pass #2 on board 'd54c9caff4fcf336cb7d2cb86df32c33' completed in 1.10 seconds with 6 SMD pins fanouted, 95 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=200).
+2026-11-12 14:08:36.522 INFO   [DD89FA\0BD2CF] Fanout pass #3 on board 'd54c9caff4fcf336cb7d2cb86df32c33' completed in 0.39 seconds with 4 SMD pins fanouted, 5 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=300).
+2026-11-12 14:08:36.602 INFO   [DD89FA\0BD2CF] Fanout stage completed: started with 250 total SMD pins, completed in 3.46 seconds, escaped pins: 168/250 (67.2%), using 3.44 total CPU seconds, 2.92 GB total allocated, and 142.6 MB peak heap usage.
+2026-11-12 14:08:36.910 INFO   [DD89FA\0BD2CF] Auto-routing stage started on board 'd54c9caff4fcf336cb7d2cb86df32c33' with baseline score 542.47 for 74 unrouted items.
+2026-11-12 14:08:45.946 INFO   [DD89FA\0BD2CF] Auto-routing pass #1 on board 'd54c9caff4fcf336cb7d2cb86df32c33' was completed in 8.92 seconds with score 756.54 (39 unrouted and 65 violations), using 12.45 CPU seconds and the job allocated 14.68 GB of memory so far.
+2026-11-12 14:08:51.067 INFO   [DD89FA\0BD2CF] Auto-routing pass #2 on board '67bfa2007c98f9fee633de4c2606c9e6' was completed in 4.98 seconds with score 823.82 (28 unrouted and 65 violations), using 17.30 CPU seconds and the job allocated 20.58 GB of memory so far.
+2026-11-12 14:08:56.634 INFO   [DD89FA\0BD2CF] Auto-routing pass #3 on board 'ff02eca6b545b0b8766511f610d6a027' was completed in 5.42 seconds with score 878.86 (19 unrouted and 65 violations), using 22.23 CPU seconds and the job allocated 27.43 GB of memory so far.
+2026-11-12 14:09:01.964 INFO   [DD89FA\0BD2CF] Auto-routing pass #4 on board '92a6f8bd0b5efdd8c86738bc5c585ea5' was completed in 5.19 seconds with score 927.79 (11 unrouted and 65 violations), using 28.11 CPU seconds and the job allocated 35.88 GB of memory so far.
+2026-11-12 14:09:07.557 INFO   [DD89FA\0BD2CF] Auto-routing pass #5 on board '77db768ac4bd44d0de03fbbbd212e92d' was completed in 5.44 seconds with score 933.91 (10 unrouted and 65 violations), using 33.03 CPU seconds and the job allocated 43.11 GB of memory so far.
+2026-11-12 14:09:11.777 INFO   [DD89FA\0BD2CF] Auto-routing pass #6 on board '2e7e81dc1fa5cdde6e9b73bf192f2941' was completed in 4.07 seconds with score 958.37 (6 unrouted and 65 violations), using 36.97 CPU seconds and the job allocated 48.62 GB of memory so far.
+2026-11-12 14:09:14.383 INFO   [DD89FA\0BD2CF] Auto-routing pass #7 on board '0a452bb1e10cecdbb0a496fcbd6c6aac' was completed in 2.46 seconds with score 952.26 (7 unrouted and 65 violations), using 39.94 CPU seconds and the job allocated 52.92 GB of memory so far.
+2026-11-12 14:09:17.356 INFO   [DD89FA\0BD2CF] Auto-routing pass #8 on board '78b309f73dfb7f8dbf023dfdb9d5a484' was completed in 2.83 seconds with score 964.49 (5 unrouted and 65 violations), using 42.89 CPU seconds and the job allocated 56.94 GB of memory so far.
+2026-11-12 14:09:20.065 INFO   [DD89FA\0BD2CF] Auto-routing pass #9 on board 'bab336df5aa81bd9dca415f31e1122d6' was completed in 2.33 seconds with score 964.49 (5 unrouted and 65 violations), using 45.68 CPU seconds and the job allocated 60.64 GB of memory so far.
+2026-11-12 14:09:22.567 INFO   [DD89FA\0BD2CF] Auto-routing pass #10 on board '99b866cc4c64e305ccf3c95bce744949' was completed in 2.35 seconds with score 976.72 (3 unrouted and 65 violations), using 47.64 CPU seconds and the job allocated 63.38 GB of memory so far.
+2026-11-12 14:09:24.527 INFO   [DD89FA\0BD2CF] Auto-routing pass #11 on board '395f7924d4ec247eae9b5ba7b14369bd' was completed in 1.81 seconds with score 976.72 (3 unrouted and 65 violations), using 49.62 CPU seconds and the job allocated 66.11 GB of memory so far.
+2026-11-12 14:09:26.347 INFO   [DD89FA\0BD2CF] Auto-routing pass #12 on board '395f7924d4ec247eae9b5ba7b14369bd' was completed in 1.81 seconds with score 976.72 (3 unrouted and 65 violations), using 51.58 CPU seconds and the job allocated 69.02 GB of memory so far.
+2026-11-12 14:09:28.211 INFO   [DD89FA\0BD2CF] Auto-routing pass #13 on board '395f7924d4ec247eae9b5ba7b14369bd' was completed in 1.85 seconds with score 976.72 (3 unrouted and 65 violations), using 53.55 CPU seconds and the job allocated 71.88 GB of memory so far.
+2026-11-12 14:09:30.525 INFO   [DD89FA\0BD2CF] Auto-routing pass #14 on board '3e4107ddf21f1580ba8b79d624103c2b' was completed in 2.02 seconds with score 976.72 (3 unrouted and 65 violations), using 55.47 CPU seconds and the job allocated 74.15 GB of memory so far.
+2026-11-12 14:09:32.297 INFO   [DD89FA\0BD2CF] Auto-routing pass #15 on board '3e4107ddf21f1580ba8b79d624103c2b' was completed in 1.76 seconds with score 976.72 (3 unrouted and 65 violations), using 57.43 CPU seconds and the job allocated 77.02 GB of memory so far.
+2026-11-12 14:09:34.082 INFO   [DD89FA\0BD2CF] Auto-routing pass #16 on board '3e4107ddf21f1580ba8b79d624103c2b' was completed in 1.77 seconds with score 976.72 (3 unrouted and 65 violations), using 59.40 CPU seconds and the job allocated 79.82 GB of memory so far.
+2026-11-12 14:09:34.246 INFO   [DD89FA\0BD2CF] Last-mile rip-up removed 2 blocking trace(s) or via(s) around 3 remaining connection(s).
+2026-11-12 14:09:36.210 INFO   [DD89FA\0BD2CF] Auto-routing pass #17 on board 'e54c87156d416a1dc07ef6e6f74aa1cb' was completed in 1.82 seconds with score 976.72 (3 unrouted and 65 violations), using 61.37 CPU seconds and the job allocated 82.52 GB of memory so far.
+2026-11-12 14:09:38.181 INFO   [DD89FA\0BD2CF] Auto-routing pass #18 on board '0075ca57c28feaf3132a540cca084482' was completed in 1.82 seconds with score 976.72 (3 unrouted and 65 violations), using 63.32 CPU seconds and the job allocated 85.17 GB of memory so far.
+2026-11-12 14:09:39.943 INFO   [DD89FA\0BD2CF] Auto-routing pass #19 on board '0075ca57c28feaf3132a540cca084482' was completed in 1.75 seconds with score 976.72 (3 unrouted and 65 violations), using 64.32 CPU seconds and the job allocated 86.46 GB of memory so far.
+2026-11-12 14:09:41.688 INFO   [DD89FA\0BD2CF] Auto-routing pass #20 on board '0075ca57c28feaf3132a540cca084482' was completed in 1.73 seconds with score 976.72 (3 unrouted and 65 violations), using 66.29 CPU seconds and the job allocated 89.42 GB of memory so far.
+2026-11-12 14:09:41.836 INFO   [DD89FA\0BD2CF] Last-mile rip-up removed 2 blocking trace(s) or via(s) around 3 remaining connection(s).
+2026-11-12 14:09:41.845 INFO   [DD89FA\0BD2CF] The router's best score (976.72) has not improved by more than 0.5 points since pass #10. Stopping the auto-router after 20 passes (3 items still unconnected).
+The following connections could not be routed -- please review your design (e.g. check pad clearances, trace width rules, and available routing space):
+  Net 'GND' (2 unrouted connections):
+    - via  ->  U4-1
+    - via  ->  U4-3
+  Net 'ENC_A' (1 unrouted connection):
+    - via  ->  R8-2
+  Net 'FB' (1 unrouted connection):
+    - U3-5  ->  R7-1
+  Net 'BUCK_SW' (1 unrouted connection):
+    - U3-7  ->  L1-1
+2026-11-12 14:09:42.552 INFO   [DD89FA\0BD2CF] Auto-routing stage completed: started with 130 unrouted nets, completed in 69.59 seconds, final score: 976.72 (3 unrouted and 65 violations), using 67.29 total CPU seconds, 90.59 GB total allocated, and 348.1 MB peak heap usage.
+2026-11-12 14:09:42.691 INFO   [DD89FA\0BD2CF] Skipping optimization stage: the board has 3 unrouted connection(s) (optimizer only runs on completely routed boards).
+2026-11-12 14:09:42.703 INFO   [DD89FA\0BD2CF] Job 'DD89FA\0BD2CF' finished with state: COMPLETED (elapsed: 1 minute 10.10 seconds, finished at UTC: 2026-11-12T08:39:42.702795Z).
+2026-11-12 14:09:42.718 INFO   Saving output file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.ses' (SES)...
+2026-11-12 14:09:42.722 INFO   Successfully saved output file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.ses' (83886 bytes).
