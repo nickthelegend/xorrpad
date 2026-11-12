@@ -611,3 +611,43 @@ factory reset, production security provisioning or eFuse operation was run.
 The isolated manufacturing feature compiles normally at **1,748,267 bytes flash /
 64,340 bytes static RAM** (ESP32 core 3.3.10). Final normal/release evidence for
 S5 follows below.
+
+## Firmware v2 — S5 release and final builds (2026-11-12)
+
+**Compiled, not yet flashed.** Three additional native cases verify that USB
+debug defaults off, requires authenticated USB desk consent, and loses consent
+on disconnect, failover, re-pair or reboot. Native suites are green:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S5 commit snapshot | 162 | 1,074 | all passed |
+| Complete working tree, preserving pre-existing work | 169 | 1,097 | all passed |
+
+Final full desk `npm test`: **162 tests, 152 passed, 10 explicit skips,
+0 failures, 0 cancelled**, in **420.68 s**. Existing setup/service skip
+conditions remain unchanged. That run includes four factory cases; the final
+fifth case (forged Ed25519 with recomputed CRC) was subsequently added and all
+**five factory cases passed** in a targeted run. No tests were removed or
+weakened. Native tests run real logic; these results do not establish hardware
+behavior. `sh -n firmware/factory.sh` and diff whitespace checks also pass.
+
+All final Arduino CLI builds pass, with ESP32 core **3.3.10**:
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Isolated S5 snapshot | 1,749,347 bytes | 1,747,307 bytes | 64,356 bytes | 64,276 bytes |
+| Complete working tree | 1,774,886 bytes | 1,772,750 bytes | 65,004 bytes | 64,932 bytes |
+
+App-slot limit: **3,145,728 bytes**; static RAM limit: **327,680 bytes**.
+Runtime audio, PSRAM display buffers and JSON allocations are additional.
+Exact normal/release commands, FQBN, source/build paths and CLI version are in
+[firmware/README.md](firmware/README.md#v2-s5-release-validation-2026-11-12).
+
+Binary inspection confirms the telnet greeting and application startup banner
+exist in normal images and are absent in release images. Telnet networking
+and parsing are also excluded by preprocessing; USB diagnostics remain behind
+volatile, authenticated USB consent, checked again at every diagnostic write.
+Secure Boot v2 and flash/NVS encryption are documented in
+[firmware/PRODUCTION.md](firmware/PRODUCTION.md), with permanent eFuse/key/recovery
+warnings. They are not enabled. No flash/upload, hardware reset, signing-key
+read, release signing operation, security configuration/eFuse change or push occurred.

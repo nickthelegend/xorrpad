@@ -1,4 +1,10 @@
 #pragma once
+#ifndef XORR_RELEASE
+#define XORR_RELEASE 0
+#endif
+#if XORR_RELEASE != 0 && XORR_RELEASE != 1
+#error "XORR_RELEASE must be 0 or 1"
+#endif
 #define XORR_FW_VERSION "2.0.0"
 // ─────────────────────────────────────────────────────────────────────────────
 // Board + wiring for the ESP32-S3 macropad. Only fixed hardware facts live here;

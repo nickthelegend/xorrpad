@@ -31,6 +31,8 @@
 #include "factory.h"
 #include "audio.h"
 #include "telnet.h"
+#include "logic/release.h"
+#include <esp_log.h>
 #include "net.h"
 #include "provision.h"
 #include "display.h"
@@ -59,6 +61,8 @@ Profiles profiles;
 Knob knob;
 xorr::KnobControl knobControl;
 
+void onTelnetCommand(const String &line);
+xorr::UsbDebugGate usbDebugGate;
 bool telnetStarted=false, keymapShown=false;
 PadLink::Transport recTransport=PadLink::NONE;
 bool recStreaming=false;
@@ -133,8 +137,22 @@ void ledFromState() {
 }
 
 // Messages are applied on loop(), including BLE callbacks queued by link.h.
+bool usbDebugAllowed() {
+  return usbDebugGate.check(padlink.secureReady(), padlink.active() == PadLink::USB,
+                            padlink.connectionEpoch());
+}
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  String debugType = d["type"] | "";
+  if (debugType == "config" || debugType == "ready") {
+    usbDebugGate.configure(d["usbDebug"] | false, padlink.secureReady(),
+                           padlink.active() == PadLink::USB, padlink.connectionEpoch());
+    telnet.usbDebug = usbDebugAllowed();
+  }
+  if (debugType == "debug") {
+    if (usbDebugAllowed()) onTelnetCommand(d["command"] | "");
+    return;
+  }
   String type=d["type"] | "";
   if(type=="crash_saved") health.crashSaved(d);
   else if (type == "kill_sync") { latchKill(); }
@@ -337,6 +355,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
 
 // ── telnet commands ──────────────────────────────────────────────────────────
 void onTelnetCommand(const String &line) {
+  if (XORR_RELEASE && !usbDebugAllowed()) return;
   String cmd = line; cmd.toLowerCase();
   if (cmd == "help") {
     telnet.println("help · status · pad · map · ip · heap · key <id> · say <t> · talk · url <u> · token <t> · screen · testcard · rot <1|3> · reset-wifi · reboot");
@@ -442,6 +461,8 @@ bool talkKeyHeldAtBoot() {
 
 // ── lifecycle ────────────────────────────────────────────────────────────────
 void setup() {
+  telnet.debugAllowed = usbDebugAllowed;
+  if (XORR_RELEASE) esp_log_level_set("*", ESP_LOG_NONE);
   Serial.begin(115200);
   uint32_t s = millis(); while (!Serial && millis() - s < 1200) {}
   led(0, 0, 60);                        // blue = booting
@@ -461,57 +482,57 @@ void setup() {
   screenHoldUntil = millis() + 3000;
   bool audioOK = audio.begin();
   factory.hardware(health.displayUp, audioOK);
-  if (!audioOK) Serial.println("!! audio init failed");
+  if (!audioOK) if (!XORR_RELEASE) Serial.println("!! audio init failed");
   recBuf = (int16_t *)ps_malloc(REC_CAP * sizeof(int16_t));
-  if (!recBuf) Serial.println("!! PSRAM alloc failed — enable Tools → PSRAM: OPI PSRAM");
+  if (!recBuf) if (!XORR_RELEASE) Serial.println("!! PSRAM alloc failed — enable Tools → PSRAM: OPI PSRAM");
 
   settings.load();
   net.begin(&settings, &padlink.legacy);
   padlink.begin(&settings,onPadMessage);
   if (factory.active) { WiFi.mode(WIFI_STA); return; }
-  Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
+  if (!XORR_RELEASE) Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();
   if (forcePortal) {
-    Serial.println("K1 held → re-provisioning");
+    if (!XORR_RELEASE) Serial.println("K1 held → re-provisioning");
     provision.resetWifi();
     led(60, 0, 60);                     // magenta = portal
   } else {
     led(0, 40, 40);                     // cyan = connecting / portal
   }
 
-  Serial.printf("provisioning… (join \"%s\" if the portal opens)\n", PORTAL_AP_NAME);
+  if (!XORR_RELEASE) Serial.printf("provisioning… (join \"%s\" if the portal opens)\n", PORTAL_AP_NAME);
   bool up = provision.run(settings);    // portal stays available while USB/BLE work
 
   if (!up) {
-    Serial.println("!! WiFi not connected");
+    if (!XORR_RELEASE) Serial.println("!! WiFi not connected");
     led(80, 0, 0);
     return;                             // loop() will still scan keys / poll
   }
 
-  Serial.printf("WiFi up: %s\n", WiFi.localIP().toString().c_str());
-  telnet.begin(TELNET_PORT);telnetStarted=true;
+  if (!XORR_RELEASE) Serial.printf("WiFi up: %s\n", WiFi.localIP().toString().c_str());
+  if (!XORR_RELEASE) { telnet.begin(TELNET_PORT);telnetStarted=true; }
   telnet.onCommand(onTelnetCommand);
-  Serial.printf("telnet:  telnet %s %u\n", WiFi.localIP().toString().c_str(), TELNET_PORT);
-  Serial.printf("backend: %s  (token %s)\n", settings.backendUrl, settings.padToken[0] ? "set" : "none");
+  if (!XORR_RELEASE) Serial.printf("telnet:  telnet %s %u\n", WiFi.localIP().toString().c_str(), TELNET_PORT);
+  if (!XORR_RELEASE) Serial.printf("backend: %s  (token %s)\n", settings.backendUrl, settings.padToken[0] ? "set" : "none");
 
   // Announce we're up — through the amp, from the backend's own TTS, and say
   // something true rather than a generic chime: whether it is armed, and what
   // it still remembers. A pad that says "connected" while the store is wiped
   // has told the operator nothing they needed.
   if (!killSwitch.killed && net.pad(pad)) {
-    Serial.printf("backend ok (%s, %s)\n", pad.mode.c_str(), pad.armed ? "armed" : "stopped");
+    if (!XORR_RELEASE) Serial.printf("backend ok (%s, %s)\n", pad.mode.c_str(), pad.armed ? "armed" : "stopped");
     String hello = String("xorr pad connected. ") +
                    (pad.armed ? "Armed, " : "Trading is stopped, ") +
                    pad.market + " in hand." +
                    (pad.remembers ? "" : " Memory is wiped — it will refuse anything but the smallest trade.");
     if (!net.speak(hello, audio)) audio.beep(1320, 120);
   } else {
-    Serial.println("!! backend not reachable — check the URL in the portal (reset-wifi to change)");
+    if (!XORR_RELEASE) Serial.println("!! backend not reachable — check the URL in the portal (reset-wifi to change)");
     audio.beep(880, 60); audio.beep(660, 120);   // fell-back chime
   }
   ledFromState();
-  Serial.println("Ready. An agent or market key sets the hand; BUY/SELL propose; ✓ executes.");
+  if (!XORR_RELEASE) Serial.println("Ready. An agent or market key sets the hand; BUY/SELL propose; ✓ executes.");
 }
 
 // Reset is physical only. Suspend input/network work throughout the countdown.
@@ -546,6 +567,7 @@ bool serviceFactoryReset() {
 }
 
 void loop() {
+  telnet.usbDebug = usbDebugAllowed();
   if (!factory.active && serviceFactoryReset()) { delay(1); return; }
   if (factory.active) {
     matrix.scan(onKey);
@@ -590,7 +612,7 @@ void loop() {
   pad.knobMode=knobControl.name();pad.knobValue=knobControl.values[knobControl.mode];
   pad.pairCode = padlink.secureReady() && !padlink.blePairing ? "" : padlink.identity.code;
   pad.pairQr = padlink.identity.qr();
-  if(WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
+  if(!XORR_RELEASE && WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
   static uint32_t tickScreen=0;
   if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}
   if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}

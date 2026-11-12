@@ -36,7 +36,7 @@ public:
     _ok = _canvas && _canvas->getBuffer();
     if (_ok) testCard(); else _tft->fillScreen(ILI9341_RED);
     if (TFT_BLK >= 0) digitalWrite(TFT_BLK, HIGH);
-    Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
+    if (!XORR_RELEASE) Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
                   W, H, (unsigned)(TFT_SPI_HZ / 1000000), _rotation, _ok ? "ok" : "FAILED");
     return _ok;
   }

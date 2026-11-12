@@ -509,3 +509,32 @@ legacy consent, Wi-Fi, settings, keymaps, profiles, safety and reset history),
 then reboots. Erase failure leaves the unit offline with an error, never a
 success/reboot claim. Flash firmware, eFuses and the separate crash partition
 are untouched. Re-pair and provision after reset; identity keys regenerate.
+
+
+## v2 S5 release validation (2026-11-12)
+
+**Compiled, not yet flashed.** Release uses `XORR_RELEASE=1` and
+`CORE_DEBUG_LEVEL=0`. Telnet networking/parser is absent; application debug
+output requires volatile, encrypted USB desk consent (`usbDebug` in `config`
+or `ready`, then `debug` with a `command`). Consent expires on disconnect,
+failover, re-pair or reboot; v1/BLE/Wi-Fi cannot enable or use it. Normal builds
+retain the development telnet console. See [PRODUCTION.md](PRODUCTION.md) for
+planning and irreversible-step warnings; no production security is enabled.
+
+Arduino CLI **1.5.1**, ESP32 core **3.3.10**. Exact compile-only commands from the
+repository root (no signing key, flash, fuse or upload operation):
+
+```sh
+mkdir -p firmware/build/s5-tmp
+env TMPDIR="$PWD/firmware/build/s5-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s5-working-normal" --output-dir firmware/build/s5-working-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/s5-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s5-working-release" --output-dir firmware/build/s5-working-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The isolated S5 snapshot uses the same FQBN/flags with source
+`firmware/build/s5-snapshot/firmware/xorrpad`, normal build path
+`firmware/build/s5-factory-normal`, release build path
+`firmware/build/s5-isolated-release`, and output paths
+`firmware/build/s5-isolated-{normal,release}-out`. It contains only committed
+S1–S5 features; unrelated unfinished working-tree changes remain outside the
+S5 commits. Sizes, native/desk results and hardware limitations are recorded
+in [TESTING.md](../TESTING.md#firmware-v2--s5-release-and-final-builds-2026-11-12).

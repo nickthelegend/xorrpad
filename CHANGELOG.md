@@ -6,6 +6,14 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S5 release hardening
+
+- Compile out telnet in `XORR_RELEASE=1`, suppress application/SDK/portal logs,
+  and gate USB diagnostics on volatile authenticated USB desk consent that is
+  revoked on disconnect, transport failover, re-pair or reboot.
+- Production Secure Boot v2, flash/NVS encryption and key-lifecycle planning
+  with irreversible-step warnings. No security fuses or encryption enabled.
+
 ### Added — firmware 2.0.0, S5 manufacturing
 
 - Physical 01+14 boot self-test: all fourteen keys, knob, mic meter, speaker
