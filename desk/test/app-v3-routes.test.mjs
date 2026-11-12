@@ -480,6 +480,7 @@ test(
           if (bounds)
             assert.ok(bounds.height >= 44, `${state}: tap target below 44px`);
         }
+        await assertReadableLayout(page, page.locator(".device-controls"), `Device ${state} ${width}`);
         await page.screenshot({
           path: path.join(
             fileURLToPath(output),
