@@ -2562,3 +2562,11 @@ summary {
 }
 
 .notice button { color: inherit; border-color: #12121633; padding: 6px 10px; flex-shrink: 0; }
+
+.model-signal { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.model-wave { display: flex; align-items: center; gap: 3px; height: 32px; }
+.model-wave i { width: 3px; border-radius: 999px; background: var(--lavender, #b7a6ff); animation: model-wave 2.4s ease-in-out infinite alternate; }
+.model-chip { color: #d9d0ff; border: 1px solid #b7a6ff33; background: #b7a6ff0c; border-radius: 10px; padding: 8px 10px; font-size: 10px; }
+@keyframes model-wave { from { transform: scaleY(.5); opacity: .6; } to { transform: scaleY(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .model-wave i { animation: none; } }
+@media (max-width: 700px) { .agent-layout .surface > .section-title { flex-wrap: wrap; } }
