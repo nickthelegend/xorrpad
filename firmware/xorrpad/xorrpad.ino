@@ -122,6 +122,8 @@ void onPadMessage(JsonVariantConst d) {
 }
 
 bool sendLinkedKey(const String &action) {
+  if (action == "yes" && padlink.blePairing)
+    return true;
   if(!padlink.ready())return false;
   JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]=action;d["edge"]="down";
   if(action=="yes" || action=="no") {
@@ -133,7 +135,7 @@ bool sendLinkedKey(const String &action) {
 
 // ── recording ────────────────────────────────────────────────────────────────
 void startRecording(uint32_t autoStopMs = 0) {
-  if (recording) return;
+  if (recording || (!padlink.ready() && !padlink.legacy)) return;
   // No "select an agent first" gate: the backend always has one holding the
   // baton, so a spoken order is never homeless. Refusing here would invent a
   // rule the backend does not have.
@@ -183,6 +185,7 @@ void sendKey(const KeyBind &kb) {
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
   pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
   if(sendLinkedKey(kb.id))return;
+  if(!padlink.legacy){pad.lastKeyLabel="offline: nothing will execute";pad.labelUntil=millis()+4000;return;}
   if((kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE) && pad.signalId.length()){
     pad.lastKeyLabel="Signal link offline";pad.labelUntil=millis()+4000;return;
   }
@@ -348,7 +351,7 @@ void setup() {
   if (!recBuf) Serial.println("!! PSRAM alloc failed — enable Tools → PSRAM: OPI PSRAM");
 
   settings.load();
-  net.begin(&settings);
+  net.begin(&settings, &padlink.legacy);
   padlink.begin(&settings,onPadMessage);
   Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
@@ -403,7 +406,7 @@ void loop() {
   static uint32_t tickScreen=0;
   if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}
   if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
-  if(!padlink.ready() && !WiFi.isConnected())pad.ok=false;
+  if(!padlink.ready() && !padlink.legacy)pad.ok=false;
   matrix.scan(onKey);
   telnet.poll();
 

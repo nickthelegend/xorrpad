@@ -6,6 +6,23 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S2 secure pairing and link reliability
+
+- TFT code/QR pairing with persistent device identities, fresh one-use device
+  challenges, X25519 directional keys and ChaCha20-Poly1305 replay protection.
+- BLE Secure Connections passkey enforcement and authenticated subscriptions;
+  a BLE pairing prompt blocks trade confirmation until the signal is visible.
+- Native frame/CRC/AEAD conformance tests and real TCP delivery-fault tests.
+
+### Fixed — firmware 2.0.0, S2
+
+- Keep control-frame replay tracking separate from reliable acknowledgments so
+  heartbeats cannot discard lost data; recover dropped acknowledgments safely.
+- Expire links during backend work, back off reconnects, prefer USB/BLE/Wi-Fi,
+  reject standby trade inputs, and discard expired outbound signals.
+- Gate every legacy HTTP request on the desk-enabled legacy setting and discard
+  old Wi-Fi output on failover. Keep v1 desk compatibility.
+
 ### Added — firmware 2.0.0, S1 desk integration
 
 - Encrypted v2 pad pairing and transport, serial CRC, acknowledgments/retries,

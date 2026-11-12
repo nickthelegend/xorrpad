@@ -51,14 +51,21 @@ record using its original property order. Newline terminates a frame.
 One reliable data record is in flight per direction. Authenticated cumulative
 acks clear it; retry the exact bytes after 250, 500, 1000, 2000, 4000, 8000 ms.
 Repeated authenticated frames are rejected for execution and acknowledged again.
-Ack-only frames are encrypted but do not themselves request ack. Control traffic
+Ack-only frames and heartbeat pings are encrypted but do not request ack.
+`ack` advances only for reliable data; a 64-frame replay window separately tracks
+all authenticated sequences. Thus an ack or heartbeat overtaking lost data
+cannot acknowledge or discard that data. Control traffic
 precedes bounded TTS queues. Heartbeats run every 5 s; the watchdog expires links
 at 15 s. Authenticated heartbeat/ack intake continues while backend work awaits
-network I/O. Reconnect uses backoff capped at 30 s.
+network I/O. USB discovery, BLE reconnect and Wi-Fi request failures use exponential backoff
+capped at 30 s. Watchdog expiry is independent of outstanding backend work.
 
 USB wins over BLE, then Wi-Fi. Device signal/expiry state is independent of the
 transport. On a switch, old outgoing inputs are discarded. Offline key presses
-never become deferred trades. The screen says **offline: nothing will execute**;
+never become deferred trades. The desk rejects trade inputs from standby links,
+rechecks the active transport before queued backend work starts, and drops
+expired signals from its delivery queue. The legacy HTTP adapter is disabled
+unless the paired desk explicitly enables legacy mode. The screen says **offline: nothing will execute**;
 the desk is authoritative for expiry and execution.
 
 HTTP v2 clients use `X-Xorr-Protocol: 2`; every body record must be v2. WebSocket

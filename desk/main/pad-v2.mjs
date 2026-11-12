@@ -140,12 +140,15 @@ const nonce = (seq) => {
 export class SecureSession {
   sent = 0;
   received = 0;
+  highest = 0;
+  replay = new Set();
   pending = new Map();
   queue = [];
   constructor(tx, rx, { serial = false, now = Date.now } = {}) {
     Object.assign(this, { tx, rx, serial, now });
   }
-  seal(message, { reliable = message.type !== "ack" } = {}) {
+  seal(message, { reliable = !["ack", "ping"].includes(message.type) } = {}) {
+    if (reliable && this.pending.size) throw Error("reliable frame already pending");
     if (this.sent >= 0xffffffff) throw Error("rekey required");
     const seq = ++this.sent,
       ack = this.received,
@@ -167,6 +170,7 @@ export class SecureSession {
       tag: c.getAuthTag().toString("hex"),
     };
     const line = wire(m, this.serial);
+    if (Buffer.byteLength(line) > 4096) throw Error("outbound pad record too large");
     if (reliable) this.pending.set(seq, { line, at: this.now(), tries: 0 });
     return line;
   }
@@ -183,7 +187,9 @@ export class SecureSession {
       m.ack > this.sent ||
       !/^([0-9a-f]{32})$/.test(m.tag) ||
       typeof m.body !== "string" ||
-      m.body.length > 6000
+      m.body.length > 5464 ||
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(m.body) ||
+      Buffer.from(m.body, "base64").toString("base64") !== m.body
     )
       throw Error("invalid encrypted frame");
     const c = createDecipheriv("chacha20-poly1305", this.rx, nonce(m.seq), {
@@ -195,11 +201,18 @@ export class SecureSession {
       c.update(Buffer.from(m.body, "base64")),
       c.final(),
     ]);
-    if (m.seq <= this.received) throw Error("replayed frame");
     const result = JSON.parse(plain);
-    if (typeof result.type !== "string") throw Error("missing type");
-    this.received = m.seq;
+    if (!result || Array.isArray(result) || typeof result.type !== "string") throw Error("missing type");
     for (const s of this.pending.keys()) if (s <= m.ack) this.pending.delete(s);
+    if (this.replay.has(m.seq) || this.highest - m.seq >= 64)
+      throw Error("replayed frame");
+    this.highest = Math.max(this.highest, m.seq);
+    this.replay.add(m.seq);
+    for (const s of this.replay) if (this.highest - s >= 64) this.replay.delete(s);
+    if (!["ack", "ping"].includes(result.type)) {
+      if (m.seq <= this.received) throw Error("replayed frame");
+      this.received = m.seq;
+    }
     return result;
   }
   retry() {
@@ -249,6 +262,17 @@ export function verifyManifest(m, image, pk) {
   return true;
 }
 export const challenge = () => randomBytes(32).toString("hex");
+export class ReconnectBackoff {
+  attempts = 0;
+  next = 0;
+  ready(now = Date.now()) { return now >= this.next; }
+  fail(now = Date.now()) {
+    const delay = Math.min(30000, 250 * 2 ** Math.min(this.attempts++, 7));
+    this.next = now + delay;
+    return delay;
+  }
+  reset() { this.attempts = 0; this.next = 0; }
+}
 export const signHandshake = (text, k) =>
   sign(null, Buffer.from(text), k).toString("hex");
 export const verifyHandshake = (text, sig, pk) =>

@@ -417,3 +417,46 @@ public signed `firmware/build/artifacts/{manifest.json,app.bin}` from an authori
 release build and checks both correct and incorrect signatures. The live signal
 test uses an actual devnet quote and independently verifies a historical receipt;
 it does **not** claim a new fill. Missing live dependencies remain explicit skips.
+
+
+## Firmware v2 — S2 pairing and protocol (2026-11-12)
+
+Status: **compiled, not yet flashed**. S2 changes are committed independently of
+pre-existing firmware work; no upload, private-key read, new signing operation,
+secure-boot enablement or push was performed.
+
+| Check | Result |
+| --- | --- |
+| Native S2 staged-source snapshot | 91 cases, 192 assertions, all passed |
+| Native complete working tree | 98 cases, 215 assertions, all passed |
+| Focused desk crypto/reliability | 26 passed, no skips |
+| Full desk `npm test` | 150 tests: 140 passed, 10 dependency skips, 0 failures |
+
+Full desk duration: **422.23 s**. Existing live-provider/setup skip conditions
+were retained. Real v2 simulator integration, signed public OTA artifact intake,
+live devnet quote/fingerprint/hold and historical-receipt verification passed;
+no new fill is claimed. Fault tests use real TCP endpoints and real cryptography,
+with dropped delivery/clock boundaries injected; they fabricate no quotes/fills.
+
+Native tests compile the production Crypto/ArduinoJson frame engine with clang.
+Coverage includes fresh handshake challenges, weak points, directional keys,
+Node/native byte-for-byte AEAD conformance, CRC/tag/sequence/ack tampering,
+replays, lost data overtaken by control frames, dropped acks, bounded retries,
+sequence exhaustion, timer wrap, watchdog and USB → BLE → Wi-Fi priority.
+Desk tests also cover reconnect with new keys, watchdog expiry during backend
+work, standby trade rejection, expired delivery queues and v1 framing.
+
+Final complete-working-tree builds passed in both modes with ESP32 core 3.3.10:
+normal **1,759,786 bytes flash**; release **1,758,658 bytes flash**; both
+**65,252 bytes static RAM**, against 3,145,728/327,680-byte limits. An earlier
+isolated staged S2 snapshot also compiled in both modes at **1,523,927 bytes
+flash, 63,012 bytes static RAM**. The final normal build used a separate build
+path and external-drive temp directory after a parallel normal/release attempt
+collided in Arduino's shared cache. The cache error and temporary disk-space
+failure were resolved; neither failed attempt is counted as a pass. Final
+normal-mode compiler syntax/type checking also passed. Signed OTA artifacts
+were retained and no signing key was opened.
+
+Exact FQBN, commands and dependency versions are in
+[firmware/README.md](firmware/README.md). TFT/QR scan quality, BLE SMP/passkey
+interoperability, physical failover and NVS behavior still require the board.

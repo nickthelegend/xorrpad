@@ -344,3 +344,36 @@ Normal: **1,754,018 / 3,145,728 bytes** flash. Release:
 **1,752,866 / 3,145,728 bytes** flash. Both use **65,084 / 327,680 bytes** static
 RAM; runtime PSRAM allocations are additional. No flash, signing-key read,
 secure-boot enablement or eFuse operation was performed during these checks.
+
+
+## v2 S2 pairing and protocol verification (2026-11-12)
+
+Status: **compiled, not yet flashed**. Use the exact FQBN and normal/release
+commands in the S1 evidence section above, sequentially. Parallel normal/release
+builds must use different `--build-path` directories; Arduino otherwise shares
+the sketch cache and can mix compiler options. Crypto **0.4.0** is also required:
+`arduino-cli lib install "Crypto@0.4.0"`. The ESP32 core supplies the QR generator.
+Native tests use the same Crypto and ArduinoJson implementations via
+`firmware/test/run.sh`; no hardware mocks are linked.
+
+S2 pairs through the TFT QR/code, binds each handshake to a fresh consumed device
+challenge, and uses directional X25519/ChaCha20-Poly1305 session keys. BLE requires
+Secure Connections, authenticated encryption and the TFT passkey; notifications
+start only after authentication. USB → BLE → Wi-Fi selection leaves signal state
+in the sketch, discards prior transport output and rejects offline trade keys.
+The legacy HTTP adapter remains available only after the paired desk enables it.
+
+Final complete working-tree builds passed: normal **1,759,786 bytes flash**;
+release **1,758,658 bytes flash**; both **65,252 bytes static RAM**. An isolated
+staged S2 snapshot also compiled normally and in release mode at **1,523,927
+bytes flash**, **63,012 bytes static RAM**. The final normal command avoided
+shared-cache interference and kept temporary compiler files on the external SSD:
+
+```sh
+mkdir -p firmware/build/s2-tmp
+env TMPDIR="$PWD/firmware/build/s2-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s2-normal" --output-dir firmware/build/normal --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The final release used the exact release command in the S1 section above after
+other builds finished. See [TESTING.md](../TESTING.md#firmware-v2--s2-pairing-and-protocol-2026-11-12)
+for tested states, native/desk counts and remaining hardware verification.

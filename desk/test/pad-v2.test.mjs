@@ -199,3 +199,43 @@ test("pairing transcript requires and binds fresh device challenge", () => {
   const second = sessionKeys(a.privateKey, rawPublic(b.publicKey), "123456", transcript(...fields, "55".repeat(32)));
   assert.notDeepEqual(first, second);
 });
+test("lost reliable data survives overtaking ack and heartbeat without premature acknowledgment", () => {
+  const [a,b] = sessions();
+  let now=0; a.now=()=>now;
+  const data=a.seal({type:"key",id:"once"});
+  b.open(JSON.parse(a.seal({type:"ack"})));
+  b.open(JSON.parse(a.seal({type:"ping"})));
+  assert.equal(b.received,0);
+  a.open(JSON.parse(b.seal({type:"ack"})));
+  assert.equal(a.pending.size,1);
+  now=250; assert.deepEqual(a.retry(),[data]);
+  assert.equal(b.open(JSON.parse(data)).id,"once");
+  assert.throws(()=>b.open(JSON.parse(data)),/replayed/);
+  a.open(JSON.parse(b.seal({type:"ack"})));
+  assert.equal(a.pending.size,0);
+});
+test("lost acknowledgment recovers on duplicate data without replay execution", () => {
+  const [a,b]=sessions(); const line=a.seal({type:"key"});
+  b.open(JSON.parse(line)); b.seal({type:"ack"}); // lost ack
+  assert.throws(()=>b.open(JSON.parse(line)),/replayed/);
+  a.open(JSON.parse(b.seal({type:"ack"})));
+  assert.equal(a.pending.size,0);
+});
+test("reliable window, canonical base64, and nonce exhaustion fail closed", () => {
+  const [a,b]=sessions(); const line=a.seal({type:"key"});
+  assert.throws(()=>a.seal({type:"key"}),/pending/);
+  const bad=JSON.parse(line); bad.body+=" ";
+  assert.throws(()=>b.open(bad),/invalid/); assert.equal(b.received,0);
+  a.sent=0xffffffff; assert.throws(()=>a.seal({type:"ack"}),/rekey/);
+});
+import { ReconnectBackoff } from '../main/pad-v2.mjs';
+test('reconnect backoff grows to 30 seconds and resets after a healthy connection',()=>{
+  const retry=new ReconnectBackoff();
+  assert(retry.ready(0));
+  let now=0;
+  for(const delay of [250,500,1000,2000,4000,8000,16000,30000,30000]) {
+    assert.equal(retry.fail(now),delay);
+    assert(!retry.ready(now+delay-1)); now+=delay; assert(retry.ready(now));
+  }
+  retry.reset(); assert.equal(retry.fail(0),250);
+});

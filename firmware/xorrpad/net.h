@@ -20,7 +20,10 @@
 // When a pad token is set it rides on every request as a Bearer header.
 class Net {
 public:
-  void begin(Settings *s) { _s = s; }
+  void begin(Settings *s, const bool *legacyEnabled) {
+    _s = s;
+    _legacyEnabled = legacyEnabled;
+  }
   bool wifiUp() { return WiFi.status() == WL_CONNECTED; }
 
   // GET /pad — one cheap poll carrying everything the LED and the caps need.
@@ -150,6 +153,7 @@ public:
 
 private:
   Settings *_s = nullptr;
+  const bool *_legacyEnabled = nullptr;
 
   // backendUrl + path, tolerating a trailing slash on the base.
   String url(const char *path) {
@@ -162,6 +166,7 @@ private:
   // Both clients are stack-local in the caller so they outlive the request; the
   // unused one is never connected, so it costs nothing.
   bool beginReq(HTTPClient &http, WiFiClient &plain, WiFiClientSecure &tls, const String &fullUrl) {
+    if (!_legacyEnabled || !*_legacyEnabled) return false;
     http.setConnectTimeout(10000);
     http.setReuse(false);
     if (_s->secure()) {

@@ -18,6 +18,7 @@ import {
   trustedSignal,
   fingerprint,
   verifyManifest,
+  ReconnectBackoff,
 } from "./pad-v2.mjs";
 import { WebSocketServer, WebSocket } from "ws";
 import { appDataDir } from "./permissions.mjs";
@@ -193,21 +194,7 @@ export class PadLink extends EventEmitter {
     }
     this.onEvent = (e) => this.forward(e);
     signals?.on("event", this.onEvent);
-    this.heartbeat = setInterval(() => {
-      for (const peer of this.peers) {
-        for (const [id, s] of peer.streams)
-          if (Date.now() - (s.at || peer.last) > 15000 && !s.answering) {
-            s.live?.abort();
-            peer.streams.delete(id);
-          }
-        if (!peer.streams.size && Date.now() - peer.last > 15000)
-          this.remove(peer);
-        else if (peer.device) {
-          this.send(peer, this.getStatus(peer));
-          if (peer.secure && peer.verified) this.marketPulse(peer);
-        }
-      }
-    }, 5000);
+    this.heartbeat = setInterval(() => this.maintain(), 5000);
     this.heartbeat.unref();
     this.retryTimer = setInterval(() => {
       for (const p of this.peers)
@@ -220,6 +207,28 @@ export class PadLink extends EventEmitter {
         }
     }, 100);
     this.retryTimer.unref();
+  }
+  maintain(now = Date.now()) {
+      for (const peer of this.peers) {
+        for (const [id, s] of peer.streams)
+          if (Date.now() - (s.at || peer.last) > 15000 && !s.answering) {
+            s.live?.abort();
+            peer.streams.delete(id);
+          }
+        if (now - peer.last >= 15000)
+          this.remove(peer);
+        else if (peer.device) {
+          if (peer.secure && peer.verified) this.send(peer, { type: "ping" });
+          this.send(peer, this.getStatus(peer));
+          if (peer.secure && peer.verified) this.marketPulse(peer);
+        }
+      }
+  }
+  preferred(device) {
+    const rank = (p) => ({ usb: 3, ble: 2, wifi: 1 }[p.name] || 1);
+    return [...this.peers].filter(p => p.device === device &&
+      (!p.secure || p.verified) && Date.now() - p.last < 15000)
+      .sort((a,b) => rank(b) - rank(a))[0];
   }
   snapshot() {
     return {
@@ -322,14 +331,18 @@ export class PadLink extends EventEmitter {
         this.flush(p);
         return;
       }
-      if (m.type === "ack")
-        return p.write(p.secure.seal(m, { reliable: false }));
+      if (m.type === "ack" || m.type === "ping") {
+        try { p.write(p.secure.seal(m, { reliable: false })); }
+        catch { this.remove(p); }
+        return;
+      }
       p.sendQueue ||= [];
       if (p.sendQueue.length >= 128) {
         this.remove(p);
         return;
       }
-      p.sendQueue.push(m);
+      p.sendQueue.push(m.type === "signal" ?
+        { ...m, expiresAt: Date.now() + m.remainingMs } : m);
       this.flush(p);
       return;
     }
@@ -387,7 +400,17 @@ export class PadLink extends EventEmitter {
   }
   flush(p) {
     if (!p.secure || p.secure.pending.size) return;
-    const next = p.sendQueue?.shift() || p.audioQueue?.shift();
+    let next = p.sendQueue?.shift() || p.audioQueue?.shift();
+    if (next?.type === "signal") {
+      const { expiresAt, ...message } = next;
+      const remainingMs = expiresAt - Date.now();
+      if (remainingMs <= 0) {
+        if (p.displayed?.id === next.signalId) p.displayed = null;
+        this.flush(p);
+        return;
+      }
+      next = { ...message, remainingMs };
+    }
     if (!next) return;
     try {
       p.write(p.secure.seal(next));
@@ -788,7 +811,8 @@ export class PadLink extends EventEmitter {
     if (!this.peers.has(p)) return;
     if (p.secure && m.v !== 2) throw Error("encrypted frame required");
     if (m.v === 2) {
-      if (m.type === "hello" && !p.secure) {
+      if (m.type === "hello" && (!p.secure ||
+          (!p.verified && Date.now() - p.handshake?.at >= 10000))) {
         const hello = p.name === "usb" ? checkCRC(m) : m;
         if (
           hello.fw !== "2.0.0" ||
@@ -799,6 +823,11 @@ export class PadLink extends EventEmitter {
         )
           throw Error("invalid v2 identity");
         p.candidate = hello;
+        if (p.secure) {
+          p.secure = null;
+          p.handshake = null;
+          p.sendQueue = [];
+        }
         this.pendingPairings.set(hello.device, hello);
         this.startPair(p, hello);
         return;
@@ -953,6 +982,9 @@ export class PadLink extends EventEmitter {
   }
   async receive(p, m) {
     if (!this.peers.has(p)) return;
+    if (["key", "knob", "voice", "signal_state"].includes(m.type) &&
+        (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
+      throw Error("inactive transport: nothing will execute");
     if (p.secure && this.killed.has(p.device)) throw Error("pad kill latch active");
     if (m.type === "hello") {
       if (
@@ -1313,8 +1345,20 @@ export class PadLink extends EventEmitter {
   async discoverBle() {
     const noble = (await import("@abandonware/noble")).default;
     this.noble = noble;
+    const backoff = new ReconnectBackoff();
+    const scan = () => {
+      clearTimeout(this.bleScanTimer);
+      this.bleScanTimer = setTimeout(() => {
+        if (!this.stopped && noble.state === "poweredOn")
+          noble.startScanningAsync([UART], false).catch(() => {
+            backoff.fail();
+            scan();
+          });
+      }, Math.max(0, backoff.next - Date.now()));
+      this.bleScanTimer.unref();
+    };
     this.bleDiscover = async (peripheral) => {
-      if (this.bleConnecting || this.stopped) return;
+      if (this.bleConnecting || this.stopped || !backoff.ready()) return;
       this.bleConnecting = true;
       try {
         await noble.stopScanningAsync();
@@ -1347,23 +1391,25 @@ export class PadLink extends EventEmitter {
         });
         tx.on("data", (data) => stream.push(data));
         await tx.subscribeAsync();
+        let peer;
         peripheral.once("disconnect", () => {
           stream.destroy();
           this.bleConnecting = false;
-          if (!this.stopped)
-            noble.startScanningAsync([UART], false).catch(() => {});
+          if (peer?.verified) backoff.reset();
+          backoff.fail();
+          scan();
         });
-        this.attach(stream, "ble");
+        peer = this.attach(stream, "ble");
       } catch {
         this.bleConnecting = false;
         await peripheral.disconnectAsync().catch(() => {});
-        if (!this.stopped)
-          noble.startScanningAsync([UART], false).catch(() => {});
+        backoff.fail();
+        scan();
       }
     };
     this.bleState = (state) => {
       if (state === "poweredOn" && !this.stopped)
-        noble.startScanningAsync([UART], false).catch(() => {});
+        scan();
     };
     noble.on("discover", this.bleDiscover);
     noble.on("stateChange", this.bleState);
@@ -1374,6 +1420,7 @@ export class PadLink extends EventEmitter {
     clearInterval(this.heartbeat);
     clearInterval(this.scanTimer);
     clearInterval(this.retryTimer);
+    clearTimeout(this.bleScanTimer);
     this.signals?.off("event", this.onEvent);
     this.noble?.off("discover", this.bleDiscover);
     this.noble?.off("stateChange", this.bleState);

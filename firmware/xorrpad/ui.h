@@ -212,7 +212,7 @@ void drawOffline(GFXcanvas16 &c) {
   wrap(c, 14, 72, W - 28, 1, MUTE,
        "The pad is not making anything up while it cannot reach the backend. "
        "Check the desk app is running and the URL in settings.", 4);
-  banner(c, DOWN, "OFFLINE", "no price here is current");
+  banner(c, DOWN, "OFFLINE", "offline: nothing will execute");
 }
 
 /**
@@ -386,7 +386,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   c.fillScreen(BG);
   c.setTextWrap(false);
   if(pad.pairCode.length()){
-    text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");return;
+    text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
   if (!pad.ok)          drawOffline(c);
   else if(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0) {

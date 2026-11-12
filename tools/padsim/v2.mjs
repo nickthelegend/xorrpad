@@ -52,6 +52,7 @@ export class PadSimulatorV2 extends PadSimulator {
     this.stream = stream;
     this.session = null;
     this.nonce = challenge();
+    this.verified = false;
     this.out = [];
     const lines = new Lines((frame) => {
       try {
@@ -78,13 +79,22 @@ export class PadSimulatorV2 extends PadSimulator {
     }, 100);
     this.retryTimer.unref();
     this.heartbeatTimer = setInterval(() => {
-      if (this.session) this.send({ type: "ping" });
+      if (this.verified) this.send({ type: "ping" });
+      else {
+        if (this.session && Date.now() - this.offerAt >= 10000) {
+          this.session = null;
+          this.nonce = challenge();
+          this.out = [];
+        }
+        if (!this.session) this.hello();
+      }
     }, 5000);
     this.heartbeatTimer.unref();
     stream.once("close", () => {
       clearInterval(this.retryTimer);
       clearInterval(this.heartbeatTimer);
       this.session = null;
+      this.verified = false;
       this.out = [];
     });
     this.hello();
@@ -113,10 +123,12 @@ export class PadSimulatorV2 extends PadSimulator {
   }
   send(message) {
     if (!this.session) throw Error("offline: nothing will execute");
-    if (message.type === "ack") {
+    if (message.type === "ack" || message.type === "ping") {
       this.write(this.session.seal(message, { reliable: false }));
       return;
     }
+    if (!this.verified && message.type !== "ready") throw Error("encrypted ready required");
+    if (this.out.length >= 32) throw Error("pad input backlog");
     this.out.push(message);
     this.flush();
   }
@@ -149,6 +161,7 @@ export class PadSimulatorV2 extends PadSimulator {
       this.session = new SecureSession(keys.pad, keys.desk, {
         serial: this.serial,
       });
+      this.offerAt = Date.now();
       this.write(
         wire(
           {
@@ -179,10 +192,10 @@ export class PadSimulatorV2 extends PadSimulator {
     this.history.push(m);
     this.emit("message", m);
     if (m.type === "ready") {
+      this.verified = true;
       this.threshold = m.holdThreshold;
       this.send({ type: "ready", killed: this.killed });
     }
-    if (m.type === "ping") this.send({ type: "ping" });
     if (m.type === "config") this.threshold = m.holdThreshold;
     if (m.type === "signal") {
       if (this.killed) return;
@@ -223,7 +236,7 @@ export class PadSimulatorV2 extends PadSimulator {
       heldMs = 0,
     } = {},
   ) {
-    if (this.killed || !this.session)
+    if (this.killed || !this.session || !this.verified)
       throw Error("offline or killed: nothing will execute");
     if (["yes", "no"].includes(action)) {
       if (

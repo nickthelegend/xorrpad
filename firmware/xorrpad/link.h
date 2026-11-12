@@ -153,6 +153,7 @@ public:
       return;
     Transport chosen = active();
     if (chosen != _previous) {
+      _out = "";
       for (int i = 1; i < 4; i++)
         if (i != chosen) {
           _sessions[i].queue.clear();
