@@ -6,6 +6,17 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V2 on-pad session signing
+
+- On-pad Ed25519 session generation, NVS policy/rolling debit journal, program
+  allowlist, reviewed policy changes and exact-message hold/auto authorization.
+- Conservative collateral-input caps refuse unpriced instructions and Phoenix
+  packets without leverage. Counter reservations survive reboot and precede signing.
+- Desk `pad` executor mode, public signer/policy API, signature verification and
+  a native-firmware-backed encrypted simulator with real cryptographic tests.
+- V2 remains compiled, not yet flashed; funded broadcast and unsupported exposure
+  require further work documented in `firmware/V3-NOTES.md`.
+
 ### Added — firmware 3.0.0, V1 clear signing
 
 - Bounded Solana legacy/v0 message parsing and the specified transfer, compute,

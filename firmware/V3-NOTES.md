@@ -1,11 +1,10 @@
-# Firmware v3 — V1 clear signing
+# Firmware v3 — V1 clear signing and V2 session signing
 
-V3-SPEC item 1 only. **Compiled, not yet flashed.** This is an incremental
+V1 implements V3-SPEC item 1; V2 adds the conservative item-2 implementation described below. **Compiled, not yet flashed.** This is an incremental
 implementation, not the completed eight-item v3 release. The existing 2.0.0
 firmware label and v2/legacy paths remain until the full v3 release is ready.
-There is no new wallet key, signing, submission, attestation or cap enforcement
-in this step. An approval records the exact message digest; it does not execute
-a trade. Item 2 must consume that same message without rebuilding it.
+V1 review-only approvals remain available. V2 signs the same uploaded message
+without rebuilding it and adds a desk executor mode. Attestation remains future work.
 
 ## Proven behavior
 
@@ -105,3 +104,108 @@ The final counts, exact build commands and sizes are in [TESTING.md](../TESTING.
 and [README.md](README.md). Physical knob/TFT readability, actual button timing,
 BLE throughput, power-loss, and board integration still require Nick's hardware.
 No image was signed/flashed, no eFuses were changed, and nothing was pushed.
+
+
+## V2 — session signing (2026-11-12)
+
+**Compiled, not yet flashed.** This is fail-closed signing support, not a claim
+that every venue can currently execute under independently verified USD/leverage
+caps. The actual Phoenix packet has no leverage field; both captured long/short
+orders must be refused. Fabricating a decoder field or accepting the desk's
+leverage assertion would violate the item-2 trust boundary.
+
+### Firmware trust boundary
+
+- A separate Ed25519 session seed is generated on-pad with ESP32 entropy, stored
+  once in the `xorrsession` NVS namespace, and never exported. Only its base58
+  public key and detached message signature cross the encrypted v2 link. No
+  import path is needed because the spec permits generation **or** import.
+- `Preferences` uses the default NVS partition. When flash encryption is enabled,
+  signing initialization refuses a build without `CONFIG_NVS_ENCRYPTION` before
+  opening or generating session material. With that configuration enabled, IDF
+  initializes encrypted default NVS. Production must provision its key partition;
+  this work enables no encryption, secure boot, eFuses, or flashing. See
+  [Espressif's NVS encryption contract](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/storage/nvs_encryption.html).
+- Policy updates require every policy page to be drawn plus a fresh 3.8-second
+  physical hold. Disconnect, KILL, OTA, expiry, hidden screen or release cancels
+  confirmation through the existing clear-sign safety gates. There is no desk
+  configuration message that silently raises a stored cap or enables auto signing.
+- Policy contains integer micro-dollar `trade`/`day` caps, an explicit collateral
+  `mint`, `maxLeverage:1`, the complete top-level `programs` allowlist, and
+  default-off `autoTrade:0`/`market:""`. Maximum 16 programs. Auto signing requires
+  the exact stored program/mint and swap market or transfer destination plus its
+  amount ceiling. Policy replacement does **not** clear the debit journal.
+- Only mainnet USDC and the v1 pm-AMM devnet six-decimal collateral mint are
+  accepted denominations. Caps measure nominal dollar-token **input**, with no
+  host prices or symbols. They are not a depeg oracle or a cap on SOL network
+  fees. The policy review discloses the denomination and network-fee exclusion.
+- Each instruction is checked against the allowlist and decoded exposure is
+  summed with overflow checks. Supported exposure is SPL/Token-2022
+  `transferChecked` and pm-AMM collateral-input swaps; a zero-price ComputeBudget
+  may accompany them. Unchecked transfers, arbitrary tokens, unbounded priority
+  fees, native SOL, rent-bearing ATA creation, unknown instructions, blind/table
+  exposure, Jupiter routes without independent valuation, and Phoenix without
+  verifiable leverage are refused even when blind review is enabled. The shipped
+  pm-AMM builder currently includes ATA setup, so those full builder messages are
+  deliberately refused. Clear review remains available for all V1 decoders.
+- Manual signing requires every decoded page and an 800 ms hold; a matching
+  pad-stored auto policy can authorize with zero hold. Firmware authorization
+  rechecks this independently of the desk. It requires exactly one signer, the
+  session public key as payer, and the same SHA-256 over the exact signed bytes.
+- The rolling counter keeps up to 64 timestamped debits. A full journal refuses
+  further signatures. Each successful signing authorization durably writes the
+  entire updated NVS journal **before** Ed25519 signs; a refused transaction,
+  missing receipt, crash after reservation, or network timeout never refunds it.
+  NVS errors, malformed state and missing usage beside a policy fail closed.
+- There is no independently trusted wall clock across power loss on this board.
+  Age therefore advances by powered uptime, conservatively excluding all time
+  powered off and all unsaved time before reboot. Each debit expires only after
+  a full 24 hours counted this way. It is rolling rather than calendar-day reset,
+  and reboot/time assertions from the desk cannot restore budget. A trusted RTC
+  would be needed to reclaim exact wall-clock downtime safely.
+
+### Desk API and simulator
+
+`POST /wallet/mode {"mode":"pad"}` selects the persisted executor mode next to
+`phone` and `session`. `GET /pad/session?device=...` returns the encrypted online
+pad's public key and stored policy. `POST /pad/session {device,policy}` waits for
+physical policy approval. Exactly one paired preferred live transport is required;
+multiple pads require an explicit device for the management API. The executor
+currently requires one connected pad. The link snapshot exposes `sessionSigner`.
+
+Policy example (public parameters; use integer micro-dollar units):
+
+```json
+{"trade":10000000,"day":50000000,"autoTrade":0,"maxLeverage":1,
+ "mint":"3WQ8hCqTNwjrh8WzE2XyoZoUrd1miPcwWfMkmFPUMEWZ","market":"",
+ "programs":["TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"]}
+```
+
+The executor still refreshes the quote, applies permissions/arming/expiry,
+reserves its ledger, verifies RPC genesis and enforces the existing mainnet
+acknowledgment. It sends `sign:true` in the authenticated clear upload, then
+checks signer identity, exact hash and real Ed25519 before submitting that same
+transaction. It re-gates after the pad response and again before submission.
+A refused or disconnected pad never falls back to another wallet. Responses are
+single-use, request/message-bound and connection-bound, with a timeout. The
+review-only `/pad/clear-sign` path always forces `sign:false`. Auto signing is
+published/logged and spoken through the desk voice path; voice failure emits a
+`pad_signer_speech_error` event.
+
+`firmware/test/run.sh` also builds `firmware/build/session-driver`.
+`tools/padsim/session.mjs` connects the existing encrypted simulator to that
+native process: it uses the production parser, approval, caps, rolling journal
+and real Ed25519. Its ephemeral key exists only in process RAM. Simulated reboot
+reconstructs accounting/policy from a public-only file while retaining that
+in-memory identity; this does not prove physical NVS or hardware key recovery.
+The tests build unsigned messages using the actual SPL SDK and a captured real
+devnet mint/blockhash. No RPC responses or signatures are fabricated and no
+transaction is broadcast. Run firmware tests before the desk suite.
+
+Devnet broadcast is **BLOCKED** until a real pad is flashed/paired and its returned
+session public key is funded with SOL and collateral in pre-existing token
+accounts. `GET /pad/session` supplies the exact public key to fund; there is no
+stable test identity to fund because simulator private material is never saved.
+The full v3 funded-padsim broadcast criterion is consequently not claimed here.
+Physical NVS power-cut atomicity, encrypted NVS provisioning, real hold timing,
+TFT policy readability, and funded end-to-end execution still need hardware.

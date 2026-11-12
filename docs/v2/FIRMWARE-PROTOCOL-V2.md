@@ -237,3 +237,22 @@ Live-provider failures retain explicit dependency skips; see
 [TESTING.md](../../TESTING.md) for totals. The phone relay, physical BLE/USB,
 actual NVS power-loss persistence, flashed OTA and bootloader rollback still
 require hardware verification. P2 remains [research only](../../firmware/RESEARCH.md).
+
+
+## Firmware v3 V2 session signer extension
+
+Only authenticated preferred v2 transport may carry these; no legacy signing.
+`session_status {requestId}` returns `session_state {requestId,ok,publicKey,
+configured,policy?}`. `session_policy {requestId,policy}` starts full on-pad
+policy review and a 3.8s hold, then returns the same state response. Policy is
+pad-stored and default-off for auto signing. No private material is exported.
+
+An existing clear upload can include `sign:true` in its SHA-bound request JSON.
+The firmware then emits `session_signature {signalId,messageHash,ok,signature?,
+publicKey?,chargedMicroUsd?,automatic,error?}` instead of a review approval.
+`signature` is a 64-byte hex Ed25519 signature over the uploaded serialized
+message, not its hash. The desk binds it to the request and encrypted connection,
+verifies every signature, and submits only after the executor's fresh gates.
+Review-only `/pad/clear-sign` forces signing off. Disconnect cancels pending work;
+failed sends never refund a pad debit. Full policy fields, limits and conservative
+powered-time rolling accounting are in [V3-NOTES](../../firmware/V3-NOTES.md).

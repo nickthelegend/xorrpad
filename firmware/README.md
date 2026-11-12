@@ -640,3 +640,29 @@ The isolated staged-source builds use identical flags/FQBN, source
 directories. That snapshot contains V1 plus committed v2, excluding the earlier
 unfinished firmware changes. Native results and image/static RAM sizes for
 both source trees are recorded in [TESTING.md](../TESTING.md).
+
+## v3 V2 session signing (2026-11-12)
+
+**Compiled, not yet flashed.** See [V3-NOTES.md](V3-NOTES.md#v2--session-signing-2026-11-12)
+for the stored caps, physical policy approval, supported collateral-input
+instructions, conservative rolling counter, Phoenix refusal and funding limits.
+The desk supports `POST /wallet/mode {"mode":"pad"}`; `/pad/session` returns
+the actual device public key and starts physically reviewed policy changes.
+
+Compile-only reproduction, with temporary files on the workspace drive:
+
+```sh
+mkdir -p firmware/build/session-tmp
+TMPDIR="$PWD/firmware/build/session-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/session-normal-work" --output-dir firmware/build/v2-session-normal --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/session-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/session-release-work" --output-dir firmware/build/v2-session-release --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+firmware/test/run.sh
+TMPDIR="$PWD/firmware/build/session-tmp" npm test --prefix desk
+```
+
+The index-only snapshot in `firmware/build/v2-snapshot` excludes the eight
+pre-existing unfinished firmware edits. Its identical FQBN/flags use source
+`firmware/build/v2-snapshot/firmware/xorrpad`, build directories
+`session-isolated-{normal,release}` and matching `-out` output directories;
+both isolated commands use `--jobs 2`. Native verification is
+`firmware/build/v2-snapshot/firmware/test/run.sh`. Exact sizes/counts are in
+[TESTING.md](../TESTING.md). No image is signed, flashed or pushed by these steps.

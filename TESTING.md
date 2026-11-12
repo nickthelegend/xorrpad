@@ -898,3 +898,83 @@ screen. These are layout exercises, not executed trades. Full addresses are
 reviewed on separate knob pages; only pages actually drawn count toward YES.
 Button timing, physical knob/TFT/LED behavior, BLE upload throughput and board
 integration still require Nick's assembled hardware.
+
+## Firmware v3 — V2 session signing (2026-11-12)
+
+**Compiled, not yet flashed.** See [V3-NOTES.md](firmware/V3-NOTES.md#v2--session-signing-2026-11-12)
+for the precise item-2 implementation and refused/unproven cases. Session keys
+exist only in pad NVS or ephemeral native-simulator memory; no private material
+was opened, logged, saved by the simulator or committed. No transaction was
+broadcast and no image was signed/flashed. No eFuses/security settings changed.
+The original eight unfinished firmware files remain uncommitted and preserved.
+
+| Native source | Cases | Assertions | Failures / skips |
+|---|---:|---:|---:|
+| Full working tree | 212 | 2,169 | 0 / 0 |
+| Isolated index: V2 + committed V1/v2 | 205 | 2,146 | 0 / 0 |
+
+Commands: `firmware/test/run.sh` and
+`firmware/build/v2-snapshot/firmware/test/run.sh`. Both also compile the native
+`session-driver` used by the desk simulator tests. Ten new native cases cover
+real captured instruction amounts, per-trade/program/mint/signer refusals,
+unmeasurable Phoenix leverage, pad auto-policy matching, full-review/fresh-hold
+authorization, policy serialization, rolling expiry, reboot restoration,
+failed durable writes, overflow and journal capacity. Existing tests remain.
+
+`node firmware/test/generate-session-fixture.mjs` generated the new public
+`session-usdc-transfer.json` using the actual SPL transferChecked builder,
+verified live devnet collateral mint/decimals, and a live blockhash. The source
+and destination are derived token accounts; this unsigned parser fixture does
+not assert they are funded. No handwritten serialized message was added.
+
+The final focused `node --test desk/test/pad-signer.test.mjs` passes all **5**
+tests. It executes production C++ parsing/approval/caps/counter and Ed25519 in
+a native child, verifies its signatures independently with Node crypto, checks
+bad hash/signature, incomplete/short hold, one-time consumption, reboot debit,
+zero-hold exact-policy auto signing, persisted pad mode, mainnet refusal,
+physical policy hold, encrypted v2 management/upload/signature, stale response
+refusal and disconnect cancellation. No RPC or signature is mocked. It uses
+real SDK constructors and the captured chain blockhash/mint. Simulated reboot
+reloads public accounting/policy but retains the process-RAM signing identity;
+it is not proof of physical NVS power-loss behavior.
+
+Full JavaScript suites, zero failures or cancellations:
+
+| Command | Passed | Explicit setup/provider skips | Total |
+|---|---:|---:|---:|
+| `npm test --prefix desk` | 163 | 10 | 173 |
+| `npm test --prefix site` | 14 | 0 | 14 |
+| `npm test --prefix keeper` | 7 | 2 | 9 |
+
+All final commands set `TMPDIR="$PWD/firmware/build/session-tmp"`; the desk
+run took 423.70 seconds. The five focused signer cases are a subset of the full
+desk suite and are not added again. Missing providers/funded account setup are
+explicit skips, not claimed executions. The keeper key-permission check was
+skipped because no keeper key was opened or provisioned.
+
+Exact FQBN and all compile commands are in [firmware/README.md](firmware/README.md#v3-v2-session-signing-2026-11-12).
+Arduino CLI 1.5.1, ESP32 core 3.3.10:
+
+| Source | Mode | Flash / 3,145,728 bytes | Static RAM / 327,680 bytes |
+|---|---|---:|---:|
+| Full working tree | normal | 1,833,902 | 65,996 |
+| Full working tree | release | 1,831,770 | 65,916 |
+| Isolated V2 + committed V1/v2 | normal | 1,828,810 | 65,940 |
+| Isolated V2 + committed V1/v2 | release | 1,826,602 | 65,860 |
+
+These are image/static sizes; runtime heap/PSRAM allocations are additional.
+The staged-source builds exclude all original unfinished edits. Logs and
+artifacts are under ignored `firmware/build/v2-*` and `session-*` paths. The
+initial full-suite attempt encountered a full internal temporary filesystem
+and is superseded by the final run with `TMPDIR` on the workspace drive.
+
+Funding/broadcast is **BLOCKED** pending a flashed paired pad and funded session
+public key/token accounts. `/pad/session` supplies the exact device public key
+to fund. There is no persistent simulator key to fund. Real Phoenix orders have
+no instruction leverage field and are refused; unpriced/rent-bearing messages
+are refused. Caps measure the approved nominal dollar-token input, excluding
+SOL network fees. Counter age uses conservative powered uptime because no
+trusted wall clock survives power loss. These boundaries are explicit; this is
+not a completed all-venues/funded full-v3 end-to-end claim. Hardware NVS power
+cuts, encrypted NVS provisioning, TFT readability and physical holds remain
+unverified.
