@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { fitCamera, boxCorners, HERO_DIRECTION } from "/shared/fit-camera.mjs";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import {
   STUDIO,
@@ -153,23 +154,55 @@ window.ready = (async () => {
       applyScreen();
     }
     root.rotation.y = angle;
-    reflectiveFloor.visible = dark && view === "hero";
+    reflectiveFloor.visible = dark && ["hero", "turntable"].includes(view);
     renderer.setClearColor("#030304", dark ? 1 : 0);
     scene.background = dark ? new THREE.Color("#030304") : null;
-    const p =
-      view === "top"
-        ? [0, 280, 5]
-        : view === "side"
-          ? [260, 70, 0]
-          : view === "exploded"
-            ? [190, 175, 260]
-            : [170, 155, 230];
-    camera.position.set(...p);
-    camera.lookAt(0, view === "exploded" ? 68 : 43, -10);
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
+    model.updateWorldMatrix(true, true);
+    let bounds = new THREE.Box3().setFromObject(model, true);
+    if (view === "turntable") {
+      root.rotation.y = 0;
+      root.updateWorldMatrix(true, true);
+      const fixed = new THREE.Box3().setFromObject(model, true),
+        corners = boxCorners(fixed),
+        sweep = new THREE.Box3();
+      for (let i = 0; i < 180; i++) {
+        const rotation = new THREE.Matrix4().makeRotationY(
+          (i * Math.PI * 2) / 180,
+        );
+        for (const p of corners)
+          sweep.expandByPoint(p.clone().applyMatrix4(rotation));
+      }
+      bounds = sweep;
+      root.rotation.y = angle;
+      root.updateWorldMatrix(true, true);
+    }
+    const framing = fitCamera(camera, bounds, {
+      direction:
+        view === "top"
+          ? [0, 1, 0]
+          : view === "side"
+            ? [1, 0.12, 0]
+            : HERO_DIRECTION,
+      aspect: innerWidth / innerHeight,
+      padding: 0.08,
+    });
     renderer.setSize(innerWidth, innerHeight);
     renderer.render(scene, camera);
+    const hotspots = {};
+    for (let i = 1; i <= 14; i++) {
+      const name = "key-" + String(i).padStart(2, "0"),
+        n = model.getObjectByName(name),
+        p = new THREE.Vector3(0, 0, 7.5)
+          .applyMatrix4(n.matrixWorld)
+          .project(camera);
+      hotspots[name] = [(p.x + 1) / 2, (1 - p.y) / 2];
+    }
+    const knob = model.getObjectByName("knob"),
+      k = new THREE.Vector3(0, 0, 10)
+        .applyMatrix4(knob.matrixWorld)
+        .project(camera);
+    hotspots.knob = [(k.x + 1) / 2, (1 - k.y) / 2];
+    return { ...framing, hotspots };
   };
   await window.renderFrame();
   return {

@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
 import { useGLTF, useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import { fitCamera, HERO_DIRECTION } from "./fit-camera.mjs";
 import { STUDIO, configureStudio, prepareProduct } from "./studio-quality.mjs";
 import { drawFirmware } from "./screen.mjs";
 function Model(p) {
@@ -41,6 +42,15 @@ function Model(p) {
       ),
     [model, originals],
   );
+  useEffect(() => {
+    model.updateWorldMatrix(true, true);
+    fitCamera(camera, new THREE.Box3().setFromObject(model, true), {
+      direction: HERO_DIRECTION,
+      aspect: size.width / size.height,
+      padding: 0.08,
+    });
+    invalidate();
+  }, [model, camera, size.width, size.height, invalidate]);
   const texture = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = 320;
