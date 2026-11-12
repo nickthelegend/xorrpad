@@ -6,6 +6,20 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D4, Activity
+
+- Activity now shows authenticated clear-sign results, fingerprints, hashes,
+  bounded actual pad-decoded rows, explicit refusals and real pad signatures.
+  Review approvals and crew approvals never claim a transaction was signed or
+  filled. The last 100 results remain available across screen navigation in the
+  current desktop session; reload starts an honest empty event history.
+- Added the existing crew threshold/quorum policy editor, paired identity
+  selection and actual round approvers. The clear-sign sheet sends only unsigned
+  review requests through the real route; signing remains the gated pad executor.
+- Added public firmware review telemetry, native-backed encrypted padsim coverage
+  for approval/refusal/signatures and independent two-pad quorum, and inspected
+  1440/375 px screenshots. The approved desktop components and styling remain.
+
 ### Added — Desktop v3 D4, Agent
 
 - Added Pad signer as the third wallet mode, bound to the selected paired pad.

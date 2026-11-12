@@ -31,7 +31,14 @@ int main(int argc,char **argv){
    approval.configure(in["allowBlind"] | false,1);if(ok)ok=approval.offer(request.value,1);
    out["ok"]=ok;out["rows"]=request.value.rows.size();
   }else if(command=="reboot"){counter={};healthy=load();approval.reset();out["ok"]=healthy;}
+  else if(command=="clear_approve"){
+   if(in["reviewed"] | false)for(size_t i=0;i<approval.get().rows.size();i++)approval.visit(i);
+   bool yes=in["yes"] | true;
+   out["ok"]=!yes || approval.confirm(in["heldMs"] | 0,1);
+   solana::reviewTelemetry(approval.get(),out);approval.reset();
+  }
   else if(command=="sign"){
+   solana::reviewTelemetry(approval.get(),out);
    if(in["reviewed"] | false)for(size_t i=0;i<approval.get().rows.size();i++)approval.visit(i);
    auto e=session::authorize(approval,policy,owner,in["heldMs"] | 0,1);out["error"]=e.error;
    if(healthy && e.ok && counter.reserve(e.amount,policy.day,0,save)){

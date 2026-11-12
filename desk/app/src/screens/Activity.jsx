@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useDesk, useRead, State, Empty, money } from "../core";
 import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
+import { PadActivity } from "../components/PadActivity";
 const parse = (v) => {
   if (typeof v !== "string") return v;
   try {
@@ -86,6 +87,7 @@ export function Activity() {
           <i />
         </div>
       </div>
+      <PadActivity />
       <div className="activity-filters">
         {[
           ["all", "Everything"],

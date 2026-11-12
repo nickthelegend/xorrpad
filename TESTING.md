@@ -1687,3 +1687,25 @@ disconnect without write redirection. No trade is broadcast. Six inspected
 screenshots (`agent-{empty,policy,approved}-{1440,375}.png`) check no overflow and
 44 px controls with reduced motion. Build passes. Final full-suite evidence follows
 with the remaining D4 screens.
+
+### D4 — Activity
+
+Activity uses `/pad/clear-sign`, the authenticated `/events` stream and `/pad/crew`.
+The last 100 real review/signature events survive screen navigation, with no
+persisted or invented history. Reload honestly starts a new event session. The
+unsigned review sheet cannot sign or broadcast. Results distinguish review approval,
+refusal, actual pad signature and crew co-sign approval; show hash/fingerprint and
+verbatim reasons; and display bounded actual firmware-decoded rows. Older firmware
+honestly reports missing decoded text. Public review telemetry is capped to fit a
+single encrypted response, with an explicit truncation indication.
+
+The crew editor uses pinned device identities, strict USD threshold and a 2–8-pad
+quorum; polling cannot overwrite the open form. Round rows show actual approvers,
+state, hash and deadline. The focused Activity browser regression passes **1/1**:
+actual `/pad/clear-sign` with real devnet genesis lookup, native review refusal and
+approval, encrypted actual native signature, navigation/reload history semantics,
+crew policy save and independent native-backed two-pad approval. No transaction is
+broadcast. Native tests pass **269/269 cases, 2,669 assertions**. Ten inspected
+Activity screenshots cover empty, verbatim error, actual clear results, crew policy
+and approved round at **1440/375 px**; no horizontal overflow or short added controls.
+Build passes. Full-suite evidence is recorded after the Markets screen.

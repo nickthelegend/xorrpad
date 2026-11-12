@@ -114,11 +114,14 @@ public:
       out["type"]="session_signature";out["ok"]=false;
       if(yes)signer.sign(approval,signingBytes,hold.elapsed(millis()),epoch,out);else out["error"]="refused on pad";
       out["signalId"]=signal.id;out["messageHash"]=approval.get().message.hash;
+      xorr::solana::reviewTelemetry(approval.get(),out);
       out["automatic"]=false;pad.pending=false;reset(pad);return true;
     }
     out["type"]="clear_approval";out["signalId"]=signal.id;
     out["fingerprint"]=approval.get().message.fingerprint;out["messageHash"]=approval.get().message.hash;out["accepted"]=yes;
     out["blind"]=approval.get().blind;out["heldMs"]=hold.elapsed(millis());
+    if(!yes)out["error"]="refused on pad";
+    xorr::solana::reviewTelemetry(approval.get(),out);
     pad.pending=false;pad.signalState=yes?"accepted":"refused";reset(pad);return true;
   }
   void key(bool down,uint32_t epoch,bool visible){
@@ -135,6 +138,7 @@ public:
       if(!e.ok || e.automatic){
         signer.sign(approval,signingBytes,hold.elapsed(millis()),epoch,out);out["signalId"]=signal.id;
         out["messageHash"]=approval.get().message.hash;out["automatic"]=e.ok && e.automatic;
+        xorr::solana::reviewTelemetry(approval.get(),out);
         pad.pending=false;reset(pad);return true;
       }
     }

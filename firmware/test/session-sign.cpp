@@ -75,3 +75,9 @@ TEST_CASE("session authorization requires full review fresh hold or pad stored m
  p.autoTrade=123456;p.market=r.value.decoded.back().destination;
  REQUIRE(a.offer(r.value,7));CHECK(authorize(a,p,k,0,7).ok);p.market=p.mint;CHECK_FALSE(authorize(a,p,k,0,7).ok);
 }
+TEST_CASE("review telemetry contains only bounded actual decoded public rows"){
+ auto r=captured("session-usdc-transfer");JsonDocument out;xorr::solana::reviewTelemetry(r.value,out);
+ REQUIRE(out["decoded"].size()>0);CHECK(out["decoded"][0].as<std::string>()==r.value.rows[0]);
+ r.value.rows=std::vector<std::string>(100,std::string(100,'x'));out.clear();xorr::solana::reviewTelemetry(r.value,out);
+ CHECK(out["decoded"].size()==12);CHECK(out["decodedTruncated"].as<bool>());
+}

@@ -31,12 +31,14 @@ async function pair(pad, port) {
   return peer;
 }
 async function capture(page, screen, state, area) {
+  const dismiss = page.getByRole('button', { name: 'Dismiss notification', exact: true });
+  if (await dismiss.count()) await dismiss.click();
   for (const width of [1440, 375]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => document.fonts.ready);
     await page.evaluate(async () => { window.scrollTo(0, 0); await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${screen} ${state} ${width} overflow`);
-    for (const control of await area.locator('button, input:not([type=checkbox]), select, a.button').all()) {
+    for (const control of await area.locator('button, input:not([type=checkbox]), label.check, select, a.button').all()) {
       const box = await control.boundingBox();
       if (box) assert.ok(box.height >= 44, `${screen} ${state}: ${await control.getAttribute('name')} tap target ${box.height}`);
     }
@@ -123,3 +125,105 @@ test('Agent selects native pad signer, approves session caps, reports spend and 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); await pad.close(); await other?.close(); }
 });
+
+test('Activity renders actual clear-sign results, retained events, crew policy and independent native rounds', { timeout: 180000 }, async (t) => {
+  const { CrewPadSimulator } = await import('../../tools/padsim/crew.mjs');
+  const { clearSignFrames } = await import('../main/clear-sign.mjs');
+  const { VersionedTransaction } = await import('@solana/web3.js');
+  const browser = await chromium.launch({ headless: true, args: ['--disable-gpu'] });
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+  const pad = new SessionPadSimulator({ device: 'esp32-d4review1234', serial: true, sessionStateFile: path.join(dir, 'review-public.json') });
+  const crewPads = [new CrewPadSimulator({ device: 'crew-d4-alpha', serial: true }), new CrewPadSimulator({ device: 'crew-d4-beta', serial: true })];
+  try {
+    await page.goto(origin + '/?token=isolated-d4-browser-test#activity');
+    const area = page.getByRole('region', { name: 'Pad activity', exact: true });
+    await area.getByRole('heading', { name: 'No pad connected', exact: true }).waitFor();
+    await capture(page, 'activity', 'empty', area);
+    await pair(pad, 8726);
+    await area.getByRole('button', { name: 'Review unsigned transaction on pad', exact: true }).click();
+    let sheet = page.getByRole('dialog', { name: 'Clear-sign review', exact: true });
+    await sheet.getByLabel('Unsigned transaction (base64)', { exact: true }).fill('invalid');
+    await sheet.getByRole('button', { name: 'Send review to pad', exact: true }).click();
+    await sheet.locator('[role=alert]').waitFor();
+    await capture(page, 'activity', 'error', sheet);
+    const fixture = JSON.parse(await readFile(new URL('../../firmware/test/fixtures/system-legacy.json', import.meta.url)));
+    await sheet.getByLabel('Unsigned transaction (base64)', { exact: true }).fill(fixture.unsignedTx);
+    const response = page.waitForResponse((r) => r.url().endsWith('/pad/clear-sign') && r.request().method() === 'POST');
+    await sheet.getByRole('button', { name: 'Send review to pad', exact: true }).click();
+    const r = await response;
+    if (r.status() === 202) {
+      await until(() => pad.review); await pad.approveReview({ yes: false });
+      await area.getByRole('heading', { name: 'Review refused', exact: true }).waitFor();
+      await area.getByText('refused on pad', { exact: true }).waitFor();
+      await area.getByText(/System transfer/, { exact: false }).first().waitFor();
+      await area.getByRole('button', { name: 'Review unsigned transaction on pad', exact: true }).click();
+      sheet = page.getByRole('dialog', { name: 'Clear-sign review', exact: true });
+      await sheet.getByLabel('Unsigned transaction (base64)', { exact: true }).fill(fixture.unsignedTx);
+      pad.review = null;
+      await sheet.getByRole('button', { name: 'Send review to pad', exact: true }).click();
+      await until(() => pad.review); await pad.approveReview();
+      await area.getByRole('heading', { name: 'Review approved', exact: true }).waitFor();
+      // A signed result must originate from a real native firmware signature and
+      // encrypted correlated response, never a fabricated WebSocket event.
+      const signedFixture = JSON.parse(await readFile(new URL('../../firmware/test/fixtures/session-usdc-transfer.json', import.meta.url)));
+      const { PublicKey, Transaction } = await import('@solana/web3.js');
+      const { createTransferCheckedInstruction, getAssociatedTokenAddressSync } = await import('@solana/spl-token');
+      const owner = new PublicKey((await pad.driver.call({ command: 'status' })).publicKey);
+      const captured = VersionedTransaction.deserialize(Buffer.from(signedFixture.unsignedTx, 'base64'));
+      const mint = captured.message.staticAccountKeys[captured.message.compiledInstructions[0].accountKeyIndexes[1]];
+      const destination = captured.message.staticAccountKeys[captured.message.compiledInstructions[0].accountKeyIndexes[2]];
+      await pad.driver.call({ command: 'policy', heldMs: 3800, policy: { trade: 200000, day: 240000, autoTrade: 0, maxLeverage: 1, mint: mint.toBase58(), market: '', programs: ['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'] } });
+      const tx = new Transaction({ feePayer: owner, recentBlockhash: captured.message.recentBlockhash }).add(createTransferCheckedInstruction(getAssociatedTokenAddressSync(mint, owner, true), mint, destination, owner, 123456n, 6));
+      const v = VersionedTransaction.deserialize(tx.serialize({ requireAllSignatures: false, verifySignatures: false }));
+      const prepared = clearSignFrames({ signalId: 'd4-actual-signature', remainingMs: 120000, message: Buffer.from(v.message.serialize()).toString('hex'), tables: [], sign: true });
+      const peer = server.padlink.sessionPeer(pad.device);
+      pad.review = null;
+      const signing = server.padlink.waitSession(peer, { type: 'session_signature', signalId: 'd4-actual-signature', messageHash: prepared.messageHash }, () => { for (const frame of prepared.frames) server.padlink.send(peer, frame); });
+      await until(() => pad.review); await pad.approveSign(); assert.equal((await signing).ok, true);
+      await area.getByRole('heading', { name: 'Signed on pad', exact: true }).waitFor();
+      await capture(page, 'activity', 'clear-results', area);
+      await page.evaluate(() => { location.hash = 'markets'; });
+      // Hash navigation retains Provider history; a page reload honestly starts
+      // another desktop event session.
+      await page.evaluate(() => { location.hash = 'activity'; });
+      await area.getByRole('heading', { name: 'Signed on pad', exact: true }).waitFor();
+      await page.reload();
+      await page.getByText('No clear-sign results received in this desktop session.', { exact: true }).waitFor();
+    } else {
+      const error = (await r.json()).error;
+      assert.match(error, /fetch failed|timeout|429|503|RPC/i);
+      t.diagnostic('Public devnet RPC unavailable: ' + error + '; native crew coverage still runs.');
+      await sheet.getByRole('button', { name: 'Close sheet', exact: true }).click();
+    }
+    await pair(crewPads[0], 8727); await pair(crewPads[1], 8728);
+    await until(() => server.padlink.snapshot().devices.length === 3);
+    await area.getByRole('button', { name: 'Edit crew policy', exact: true }).click();
+    sheet = page.getByRole('dialog', { name: 'Crew co-sign policy', exact: true });
+    // Wait for the real link read to include both identities before editing.
+    if (!(await sheet.locator('[name=member]').count() >= 2)) {
+      await sheet.getByRole('button', { name: 'Close sheet', exact: true }).click();
+      await delay(3100); await area.getByRole('button', { name: 'Edit crew policy', exact: true }).click();
+    }
+    await sheet.getByLabel('Require crew approvals', { exact: true }).selectOption('true');
+    await sheet.getByLabel('For trades above (USD)', { exact: true }).fill('25');
+    for (const crewPad of crewPads) await sheet.locator(`[name=member][value="${crewPad.device}"]`).check();
+    await capture(page, 'activity', 'crew-policy', sheet);
+    await sheet.getByRole('button', { name: 'Save crew policy', exact: true }).click();
+    await area.getByText('Above 25 USD, require 2 crew approvals.', { exact: true }).waitFor();
+    const f = JSON.parse(await readFile(new URL('../../firmware/test/fixtures/session-usdc-transfer.json', import.meta.url)));
+    const tx = VersionedTransaction.deserialize(Buffer.from(f.unsignedTx, 'base64'));
+    const roundId = 'd4-native-crew-round';
+    const prepared = clearSignFrames({ signalId: roundId, remainingMs: 120000, message: f.message, tables: [], cosign: true });
+    const collecting = server.executor.crew.collect(tx, { usd: 26, signalId: roundId, expiresAt: Date.now() + 120000, cluster: 'devnet', recheck: async () => {}, prepared: { ...prepared, request: { signalId: roundId, remainingMs: 120000, cosign: true } } });
+    await until(() => crewPads.every((p) => p.review));
+    for (const crewPad of crewPads) await crewPad.approveCrew();
+    assert.equal((await collecting).approvals.length, 2);
+    await area.getByRole('heading', { name: roundId + ' · approved', exact: true }).waitFor();
+    await area.getByText('2 of 2 approvals · crew-d4-alpha, crew-d4-beta', { exact: true }).waitFor();
+    assert.equal(await area.getByRole('heading', { name: 'Signed on pad', exact: true }).count(), 0, 'Crew approvals cannot become wallet signatures');
+    await capture(page, 'activity', 'crew-approved', area);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); await pad.close(); for (const p of crewPads) await p.close(); }
+});
+

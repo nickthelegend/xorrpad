@@ -26,10 +26,18 @@ import {
   trustedSignal,
   fingerprint,
   verifyManifest,
+  base58,
   ReconnectBackoff,
 } from "./pad-v2.mjs";
 import { WebSocketServer, WebSocket } from "ws";
 import { appDataDir } from "./permissions.mjs";
+
+function publicReview(message) {
+  const rows=message.decoded;
+  if(!Array.isArray(rows) || rows.length>64 || !rows.every(row=>typeof row==="string") ||
+    Buffer.byteLength(JSON.stringify(rows))>1800)return {};
+  return {decoded:rows,decodedTruncated:message.decodedTruncated===true};
+}
 
 export const UART = "6e400001b5a3f393e0a9e50e24dcca9e";
 export const CELLS = [
@@ -1190,7 +1198,9 @@ export class PadLink extends EventEmitter {
       if(m.type==="session_signature" && m.ok && (!/^[0-9a-f]{128}$/.test(m.signature) || typeof m.publicKey!=="string"))throw Error("invalid pad signature");
       if(m.type==="crew_approval" && m.ok)verifyCrewApproval({device:p.device,publicKey:p.candidate.pk,name:p.device},{...m,device:p.device},pending.messageHash);
       pending.finish(m.ok?null:Error(m.error || "pad signing refused"),{...m,device:p.device});
-      this.signals?.publish({type:"pad_signer",device:p.device,ok:m.ok,automatic:m.automatic===true,signalId:m.signalId});
+      this.signals?.publish({type:"pad_signer",operation:m.type,device:p.device,ok:m.ok,automatic:m.automatic===true,signalId:m.signalId,
+        messageHash:m.messageHash,error:m.error,fingerprint:m.messageHash?base58(Buffer.from(m.messageHash,"hex")).slice(0,6):undefined,
+        ...publicReview(m)});
       return;
     }
     if(m.type==="clear_approval"){
@@ -1200,7 +1210,7 @@ export class PadLink extends EventEmitter {
         typeof m.accepted!=="boolean" || typeof m.blind!=="boolean" ||
         (m.accepted && (!Number.isInteger(m.heldMs) || m.heldMs<(m.blind?3800:800) || (m.blind && !this.options.allowBlindSigning))))throw Error("clear-sign approval refused");
       p.clearReview=null;
-      const approval={type:"clear_approval",device:p.device,...review,accepted:m.accepted,blind:m.blind};
+      const approval={type:"clear_approval",device:p.device,...review,accepted:m.accepted,blind:m.blind,error:m.error,...publicReview(m)};
       this.emit("clear_approval",approval);this.signals?.publish(approval);return;
     }
     if (!["key", "knob", "signal_state", "voice"].includes(m.type))

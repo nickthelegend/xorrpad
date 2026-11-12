@@ -41,6 +41,13 @@ const routes = [
   ["/pad/options", "GET"],
   ["/pad/abilities", "GET"],
   ["/pad/abilities", "POST"],
+  ["/wallet/mode", "GET"],
+  ["/wallet/mode", "POST"],
+  ["/pad/session", "GET"],
+  ["/pad/session", "POST"],
+  ["/pad/clear-sign", "POST"],
+  ["/pad/crew", "GET"],
+  ["/pad/crew", "POST"],
   ["/events", "GET"],
 ];
 const output = new URL("../../docs/screens/v3/", import.meta.url);
@@ -70,7 +77,7 @@ after(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-test("D1/D2/D3 built app references real routes; auth, methods and no-pad states are honest", async () => {
+test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad states are honest", async () => {
   const assets = new URL("../app/dist/assets/", import.meta.url);
   const bundle = (
     await Promise.all(
@@ -110,6 +117,8 @@ test("D1/D2/D3 built app references real routes; auth, methods and no-pad states
     ["/pad/ota", {}],
     ["/pad/abilities", { device: "absent", action: "developer", developerPublicKey: "ab".repeat(32) }],
     ["/pad/abilities", { device: "absent", action: "remove", slot: 0 }],
+    ["/pad/session", { device: "absent", policy: {} }],
+    ["/pad/clear-sign", { device: "absent" }],
   ]) {
     const response = await fetch(origin + route, {
       method: "POST",
@@ -129,6 +138,12 @@ test("D1/D2/D3 built app references real routes; auth, methods and no-pad states
     "boolean",
   );
   assert.equal((await fetch(origin + "/classic")).status, 200);
+  const session = await fetch(origin + "/pad/session?device=absent", { headers });
+  assert.ok(session.status >= 400);
+  assert.equal((await session.json()).error, "Setup required: select one paired, online, rearmed pad");
+  const crew = await (await fetch(origin + "/pad/crew", { headers })).json();
+  assert.deepEqual(crew.rounds, []);
+  assert.equal(crew.policy.enabled, false);
   const absent = await fetch(origin + "/pad/abilities?device=absent", { headers });
   assert.ok(absent.status >= 400);
   assert.equal((await absent.json()).error, "Setup required: select one paired, online, rearmed pad");

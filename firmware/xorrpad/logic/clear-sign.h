@@ -2,6 +2,15 @@
 #include "solana.h"
 #include <ArduinoJson.h>
 namespace xorr::solana {
+// Bounded public review text fits one encrypted response alongside a signature.
+inline void reviewTelemetry(const Review &review,JsonDocument &out){
+  auto rows=out["decoded"].to<JsonArray>();size_t used=0,count=0;
+  for(const auto &row:review.rows){
+    if(used+row.size()>1200 || count>=32)break;
+    rows.add(row);used+=row.size();++count;
+  }
+  out["decodedTruncated"]=count<review.rows.size();
+}
 struct Request { std::string id;uint32_t remainingMs=0;bool sign=false,cosign=false;std::vector<uint8_t> bytes;Review value; };
 inline bool parseRequest(const std::string &json,Request &out) {
   out={};if(json.size()>131072)return false;JsonDocument d;

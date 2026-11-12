@@ -143,6 +143,7 @@ export function Provider({ children }) {
     [revision, bump] = useState(0),
     [message, setMessage] = useState(null),
     [event, setEvent] = useState(null),
+    [padEvents, setPadEvents] = useState([]),
     [online, setOnline] = useState(false);
   const notify = useCallback(
     (text) => setMessage({ text, id: crypto.randomUUID() }),
@@ -170,6 +171,7 @@ export function Provider({ children }) {
     [token],
   );
   useEffect(() => {
+    setPadEvents([]);
     if (!token) return;
     let ws,
       t,
@@ -182,7 +184,10 @@ export function Provider({ children }) {
       ws.onopen = () => setOnline(true);
       ws.onmessage = (e) => {
         try {
-          setEvent(JSON.parse(e.data));
+          const next = JSON.parse(e.data);
+          setEvent(next);
+          if (next.type === "clear_approval" || (next.type === "pad_signer" && next.operation === "session_signature" && next.signalId))
+            setPadEvents((previous) => [...previous, { ...next, recordId: crypto.randomUUID() }].slice(-100));
         } catch {}
       };
       ws.onclose = () => {
@@ -222,6 +227,7 @@ export function Provider({ children }) {
         notify,
         run,
         event,
+        padEvents,
         online,
       }}
     >

@@ -3,6 +3,7 @@ import {PadSimulatorV2} from './v2.mjs';
 import {spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {createHash} from 'node:crypto';
+import {base58} from '../../desk/main/pad-v2.mjs';
 import {fileURLToPath} from 'node:url';
 export class SessionDriver {
   constructor(stateFile){
@@ -48,6 +49,14 @@ export class SessionPadSimulator extends PadSimulatorV2 {
     this.send({type:'session_signature',signalId:this.request.signalId,
       messageHash:createHash('sha256').update(Buffer.from(this.request.message,'hex')).digest('hex'),...result});
     return result;
+  }
+  async approveReview({reviewed=true,heldMs=800,yes=true}={}){
+    if(!this.request || this.request.sign || this.request.cosign)throw Error('no clear review');
+    const result=await this.driver.call({command:'clear_approve',reviewed,heldMs,yes});
+    if(!result.ok)throw Error('native clear approval refused');
+    const hash=createHash('sha256').update(Buffer.from(this.request.message,'hex')).digest();
+    this.send({type:'clear_approval',signalId:this.request.signalId,messageHash:hash.toString('hex'),fingerprint:base58(hash).slice(0,6),
+      accepted:yes,blind:false,heldMs,decoded:result.decoded,decodedTruncated:result.decodedTruncated,...(!yes?{error:'refused on pad'}:{})});
   }
   async close(){this.driver.close();await super.close();}
 }
