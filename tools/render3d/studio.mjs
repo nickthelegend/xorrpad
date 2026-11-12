@@ -102,8 +102,46 @@ window.ready = (async () => {
   try {
     const { default: create } = await import("/firmware-screen.js");
     const wasm = await create({ locateFile: (f) => "/" + f });
-    wasm._screen_reset();
-    const p = wasm._screen_render();
+    const snapshot = await (await fetch("/screen-snapshot.json")).json();
+    const pixels = (offline = false) => {
+      wasm._screen_reset();
+      if (!offline) {
+        const config = snapshot.previewConfiguration,
+          fields = {
+            ok: 1,
+            market: "SOL",
+            price: snapshot.price,
+            chain: "solana",
+            chainOk: 1,
+            agent: config.agent,
+            link: config.link,
+            remembers: 1,
+            armed: 0,
+            hoursState: "CRYPTO",
+            marketOpen: 1,
+            hoursNote: "public price snapshot",
+          };
+        for (const [k, v] of Object.entries(fields))
+          wasm.ccall("screen_set", null, ["string", "string"], [k, String(v)]);
+        // The current live quote remains the large price; pool closes supply only the real historical trace.
+        if (snapshot.chart?.closes?.length) {
+          for (const v of snapshot.chart.closes) wasm._screen_close(v);
+          wasm.ccall(
+            "screen_chart",
+            null,
+            ["string", "number", "number", "number"],
+            [
+              "SOL",
+              snapshot.price,
+              snapshot.chart.change24h || 0,
+              Number(snapshot.chart.change24h != null),
+            ],
+          );
+        }
+      }
+      return wasm._screen_render();
+    };
+    const p = pixels(false);
     const px = new Uint16Array(wasm.HEAPU16.buffer, p, 320 * 240);
     const c = document.createElement("canvas");
     c.width = 320;
@@ -126,6 +164,29 @@ window.ready = (async () => {
     tex.flipY = false;
     tex.colorSpace = THREE.SRGBColorSpace;
     screenTexture = tex;
+    const offlineCanvas = document.createElement("canvas");
+    offlineCanvas.width = 320;
+    offlineCanvas.height = 240;
+    const ptr = pixels(true),
+      data = new Uint16Array(wasm.HEAPU16.buffer, ptr, 320 * 240),
+      context = offlineCanvas.getContext("2d"),
+      image = context.createImageData(320, 240);
+    data.forEach((v, i) =>
+      image.data.set(
+        [
+          Math.round(((v >> 11) * 255) / 31),
+          Math.round((((v >> 5) & 63) * 255) / 63),
+          Math.round(((v & 31) * 255) / 31),
+          255,
+        ],
+        i * 4,
+      ),
+    );
+    context.putImageData(image, 0, 0);
+    window.offlineScreenTexture = new THREE.CanvasTexture(offlineCanvas);
+    window.offlineScreenTexture.flipY = false;
+    window.offlineScreenTexture.colorSpace = THREE.SRGBColorSpace;
+    window.homeScreenTexture = tex;
     applyScreen();
   } catch (e) {
     throw Error("Actual firmware screen required: " + e.message);
@@ -134,7 +195,12 @@ window.ready = (async () => {
     view = "hero",
     dark = false,
     angle = 0,
+    offline = false,
   } = {}) => {
+    screenTexture = offline
+      ? window.offlineScreenTexture
+      : window.homeScreenTexture;
+    applyScreen();
     if ((view === "exploded") !== !!model.userData.exploded) {
       root.remove(model);
       const g = await loader.loadAsync(

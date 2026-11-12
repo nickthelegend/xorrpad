@@ -219,8 +219,8 @@ void drawOffline(GFXcanvas16 &c) {
  * The resting screen: what it is worth, who is minding it, is the floor open.
  */
 void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
-  // header — symbol left, state and venue pills right
-  text(c, 12, 10, 3, INK, ascii(pad.market.length() ? pad.market : String("--")).c_str());
+  // Product title left, state and venue pills right; the live symbol is in the profile strip.
+  text(c, 12, 10, 3, INK, "xorr-pad");
 
   int right = W - 12;
   if (pad.autoAccept) right = pillSolid(c, right, 88, "AUTO", WARN, BG) - 6;
@@ -233,7 +233,8 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   }
 
   // subtitle — the agent holding the baton, and what it can spend
-  String sub = pad.agent.length() ? pad.agent : String("no agent");
+  String sub = (pad.market.length() ? pad.market : String("--")) + " / " +
+               (pad.agent.length() ? pad.agent : String("no agent"));
   if (pad.dayLimit > 0) {
     sub += "  -  $"; sub += (pad.spentToday >= 0 ? pad.spentToday : 0);
     sub += " of $";  sub += pad.dayLimit; sub += " today";

@@ -5,6 +5,7 @@ import { resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { captureScreen } from "./capture-screen.mjs";
 import { chromium } from "playwright";
 const here = fileURLToPath(new URL(".", import.meta.url)),
   repo = resolve(here, "../.."),
@@ -12,9 +13,18 @@ const here = fileURLToPath(new URL(".", import.meta.url)),
 await mkdir(out, { recursive: true });
 const frames = await mkdtemp(resolve(repo, "exports/turntable-"));
 let browser;
+const snapshot = await captureScreen();
+await writeFile(
+  resolve(out, "SCREEN-SNAPSHOT.json"),
+  JSON.stringify(snapshot, null, 2) + "\n",
+);
 const server = createServer(async (req, res) => {
   try {
     const p = new URL(req.url, "http://localhost").pathname;
+    if (p === "/screen-snapshot.json") {
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify(snapshot));
+    }
     let base = resolve(here),
       name = p.slice(1) || "index.html";
     if (p.startsWith("/vendor/")) {
