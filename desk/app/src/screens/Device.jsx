@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useDesk, useRead, State, Sheet, Field, money } from "../core";
 import { PadModel } from "../three/PadModel";
 import { BlurWords } from "../brand/BlurWords";
+import { DeviceControls } from "../components/DeviceControls";
 import { Icon } from "../brand/Icon";
 const fixed = ["mic", "kill", "yes", "no"];
 const actions = [
@@ -18,11 +19,13 @@ const actions = [
 ];
 export function Device() {
   const d = useDesk(),
-    link = useRead("/desk/link", 5000),
-    map = useRead("/pad/keymap"),
+    link = useRead("/desk/link", 5000, true),
+    map = useRead("/pad/keymap", 15000, true),
     profiles = useRead("/desk/profiles"),
+    padProfiles = useRead("/pad/profiles", 15000, true),
     queue = useRead("/signals"),
     abilities = useRead("/abilities");
+  const [selection, setSelection] = useState({ profile: 0, layer: 0 });
   const [edit, setEdit] = useState(null),
     [label, setLabel] = useState(""),
     [action, setAction] = useState(""),
@@ -31,6 +34,9 @@ export function Device() {
     [last, setLast] = useState(null),
     [now, setNow] = useState(Date.now());
   const device = link.data?.devices?.[0],
+    selectedMap =
+      device && padProfiles.data?.[selection.profile]?.layers[selection.layer],
+    displayedMap = selectedMap || map.data,
     pending = queue.data?.signals
       ?.filter((s) => s.state === "awaiting" && s.expiresAt > now)
       .at(-1);
@@ -58,11 +64,21 @@ export function Device() {
         setLast(e.message.sizeUsd);
       }
     }
-    if (["signal", "snapshot", "pad_link", "profile"].includes(e?.type))
+    if (
+      ["signal", "snapshot", "pad_link", "profile", "pad_profiles"].includes(
+        e?.type,
+      )
+    )
       d.refresh();
   }, [d.event]);
+  useEffect(() => setEdit(null), [device?.device]);
   function choose(k) {
-    setEdit(k);
+    if (!displayedMap || (device && !padProfiles.data)) return;
+    setEdit({
+      ...k,
+      map: displayedMap,
+      profile: selectedMap ? { ...selection } : null,
+    });
     setLabel(k.label);
     setAction(k.action);
   }
@@ -129,7 +145,7 @@ export function Device() {
         </div>
         <div className="pad-perspective">
           <PadModel
-            keys={map.data?.keys}
+            keys={displayedMap?.keys}
             device={device}
             pending={pending}
             angle={angle}
@@ -169,6 +185,18 @@ export function Device() {
           </span>
         </div>
       </div>
+      <DeviceControls
+        key={device?.device || "disconnected"}
+        device={device}
+        profiles={padProfiles}
+        selection={selection}
+        setSelection={(value) => {
+          setSelection(value);
+          setEdit(null);
+        }}
+        keymap={map.data}
+      />
+      {link.error && <State state={link} />}
       {map.error && <State state={map} />}{" "}
       {edit && (
         <Sheet
@@ -213,25 +241,43 @@ export function Device() {
               onSubmit={(e) => {
                 e.preventDefault();
                 d.run(async () => {
-                  const keys = map.data.keys.map((k) =>
+                  const keys = edit.map.keys.map((k) =>
                     k.row === edit.row && k.col === edit.col
                       ? { ...k, label, action }
                       : k,
                   );
-                  await d.api("/pad/keymap", {
-                    revision: map.data.revision + 1,
-                    keys,
-                  });
+                  if (edit.profile) {
+                    const next = structuredClone(padProfiles.data);
+                    next[edit.profile.profile].layers[edit.profile.layer] = {
+                      ...edit.map,
+                      revision: edit.map.revision + 1,
+                      keys,
+                    };
+                    await d.api("/pad/profiles", { profiles: next });
+                  } else {
+                    await d.api("/pad/keymap", {
+                      revision: edit.map.revision + 1,
+                      keys,
+                    });
+                  }
                   d.notify(
-                    device
-                      ? "Key saved and pushed."
-                      : "Key saved locally. Syncs on connection.",
+                    edit.profile
+                      ? "Profile layer saved and sent to paired pads."
+                      : device
+                        ? "Key saved and pushed."
+                        : "Key saved locally. Syncs on connection.",
                   );
                   d.refresh();
                   setEdit(null);
                 });
               }}
             >
+              {edit.profile && (
+                <p>
+                  Editing {padProfiles.data?.[edit.profile.profile]?.name} ·
+                  Layer {edit.profile.layer + 1}. Save changes this layer only.
+                </p>
+              )}
               <div className="key-preview">{label || "KEY"}</div>
               <p>
                 Preview only until you save. Safety controls keep their action.

@@ -1568,3 +1568,53 @@ TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
 
 The final working-tree `npm run build:app --prefix desk` also passes. Local logs
 are retained at `firmware/build/desktop-v3-d1-{desk,build,native}.log`.
+
+### D2 — Device
+
+The approved Device layout, pad model and key sheet remain in place. Firmware
+controls use `/pad/manifest`, `/pad/ota` (optional delta), `/pad/ota-channel` and
+`/events`; the desk publishes transfer percentages and reboot/error states.
+The UI distinguishes transfer completion from a confirmed installed version.
+Kill state is read from the peer and `/pad/rearm` requests the physical YES hold.
+Eight stored profile slots each expose three layers; editing slot 8/layer 3
+through the existing key sheet leaves the other layers and desk keymap intact.
+Brightness/night writes use `/pad/options`, preserving all other options.
+
+The built-bundle/authentication regression now covers every D1/D2 route,
+method restrictions, absent-pad failures, persisted empty profiles/options and
+continued `/classic` access. The real encrypted USB-CRC padsim browser check
+covers explicit beta opt-in, option propagation, profile creation/activation,
+reported profile state, kill/re-arm with a real simulated hold, invalid
+manifest/delta errors, refresh-safe manifest selection and a complete transfer
+of the existing public signed app image. Start, intermediate and rebooting
+progress events are asserted alongside the pad's installed SHA-256.
+
+Eight Device screenshots (empty, connected/kill pending, manifest error and
+transfer complete) are saved under `docs/screens/v3/` at 1440 and 375 px and
+visually inspected. Browser checks enforce no horizontal overflow and 44 px
+controls for the added Device forms, with reduced motion enabled.
+
+The full suite runs alone using the same disposable-checkout approach as D1,
+with the existing public compiled ability WASM modules, public firmware images,
+native drivers and dependency directories available. No existing environment,
+wallet or private-key files are copied or opened; no tests are removed,
+weakened or excluded. The unmodified funded-wallet check creates a fresh,
+disposable unfunded test identity inside that checkout.
+
+The final focused D1/D2 route/browser run passes **3/3 tests**, zero failures
+or cancellations (58,761.708666 ms). The final working-tree
+`npm run build:app --prefix desk` passes. The resize check waits for the real
+responsive WebGL/poster lifecycle before asserting the unchanged overflow
+condition; it never masks or clips the page. Logs are retained in
+`firmware/build/desktop-v3-d2-{focused,build,desk}.log`.
+
+Final complete run: **232 tests, 222 passed, 10 setup/provider skips, zero
+failures or cancellations**, 674,206.422167 ms. Run alone from the isolated
+checkout, with no skip filter:
+
+```sh
+TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+```
+
+The tested application, server and test source files match the working tree
+byte for byte. Nothing was flashed or pushed.

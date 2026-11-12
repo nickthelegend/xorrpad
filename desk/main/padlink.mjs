@@ -815,6 +815,13 @@ export class PadLink extends EventEmitter {
       progress: 0,
       state: "uploading",
     };
+    let lastProgress;
+    const progress = () => {
+      const value = `${p.otaStatus.state}:${p.otaStatus.progress}`;
+      if (value !== lastProgress) this.signals?.publish({ type: "ota_progress", device, ...p.otaStatus });
+      lastProgress = value;
+    };
+    progress();
     const exchange = message => {
       if(p.secure !== secure || !p.verified || this.preferred(device) !== p) throw Error('OTA connection changed');
       return this.otaRequest(p,message);
@@ -830,13 +837,16 @@ export class PadLink extends EventEmitter {
         p.otaStatus.progress = Math.floor(
           (Math.min(payload.length, offset + 512) * 100) / payload.length,
         );
+        progress();
       }
       await exchange({ type: "ota_end" });
       p.otaStatus.state = "rebooting";
+      progress();
       return { ok: true };
     } catch (e) {
       p.otaStatus.state = "error";
       p.otaStatus.error = e.message;
+      progress();
       throw e;
     } finally {
       p.updating = false;

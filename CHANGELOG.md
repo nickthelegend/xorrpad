@@ -6,6 +6,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D2, Device
+
+- Existing Device surfaces now expose signed manifest/image OTA with optional
+  delta, authenticated event progress, explicit per-pad stable/beta channel
+  read/save, and the installed firmware version from the real peer snapshot.
+- Kill-latch state and a desk re-arm request preserve the physical YES hold;
+  eight profile slots with three layers use the existing key assignment sheet,
+  and brightness/night controls save through the real pad options route.
+- Readable empty/error states, refresh-safe Device forms, authenticated route
+  and encrypted padsim browser coverage, and 1440/375 px screenshots. The
+  approved navigation, pad model, palette, fonts and classic UI stay intact.
+
 ### Added — Desktop v3 D1, Connect
 
 - Encrypted pairing through `/pad/pair` using the discovered public pad identity

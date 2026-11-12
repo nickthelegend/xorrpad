@@ -2775,3 +2775,55 @@ summary {
     --poster-scale: 1.4;
   }
 }
+
+/* Device controls reuse the approved surfaces, fields, buttons and pills. */
+.device-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 32px;
+}
+.device-controls > *,
+.device-controls .field {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.device-controls input,
+.device-controls select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 16px;
+}
+.device-controls .actions,
+.device-controls .profile-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.device-controls button {
+  min-height: 44px;
+  white-space: normal;
+}
+.device-controls progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+@media (max-width: 760px) {
+  .device-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.device-controls h2:not(:first-child) {
+  margin-top: 28px;
+}
+.device-controls progress::-webkit-progress-bar {
+  background: var(--raised);
+}
+.device-controls progress::-webkit-progress-value {
+  background: var(--accent);
+}
+.device-controls progress::-moz-progress-bar {
+  background: var(--accent);
+}

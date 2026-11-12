@@ -7,7 +7,7 @@ import React, {
 } from "react";
 export const Desk = createContext(null);
 export const useDesk = () => useContext(Desk);
-export function useRead(path, interval = 15000) {
+export function useRead(path, interval = 15000, keepData = false) {
   const { api, revision } = useDesk();
   const [state, set] = useState({ loading: true });
   useEffect(() => {
@@ -25,14 +25,16 @@ export function useRead(path, interval = 15000) {
         running = false;
       }
     };
-    set({ loading: true });
+    set((previous) =>
+      keepData ? { ...previous, loading: true } : { loading: true },
+    );
     load();
     const t = interval ? setInterval(load, interval) : null;
     return () => {
       c.abort();
       clearInterval(t);
     };
-  }, [path, api, revision, interval]);
+  }, [path, api, revision, interval, keepData]);
   return state;
 }
 export const money = (n, unit = "USD") =>
