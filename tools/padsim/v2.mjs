@@ -13,6 +13,7 @@ import {
   fingerprint,
   verifyManifest,
   sha,
+  challenge,
 } from "../../desk/main/pad-v2.mjs";
 import { Lines } from "../../desk/main/padlink.mjs";
 export class PadSimulatorV2 extends PadSimulator {
@@ -50,6 +51,7 @@ export class PadSimulatorV2 extends PadSimulator {
   attach(stream) {
     this.stream = stream;
     this.session = null;
+    this.nonce = challenge();
     this.out = [];
     const lines = new Lines((frame) => {
       try {
@@ -103,6 +105,7 @@ export class PadSimulatorV2 extends PadSimulator {
           fw: "2.0.0",
           pk: rawPublic(this.identity.publicKey),
           xpk: rawPublic(this.exchange.publicKey),
+          nonce: this.nonce,
         },
         this.serial,
       ),
@@ -128,12 +131,14 @@ export class PadSimulatorV2 extends PadSimulator {
     }
     if (input.v !== 2) throw Error("v2 required");
     if (input.type === "pair") {
+      if (this.session || input.nonce !== this.nonce) throw Error("stale pairing offer");
       const m = this.serial ? checkCRC(input) : input,
         text = transcript(
           this.device,
           rawPublic(this.exchange.publicKey),
           m.deskpk,
           m.challenge,
+          m.nonce,
         );
       const keys = sessionKeys(
         this.exchange.privateKey,

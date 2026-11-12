@@ -16,17 +16,20 @@ physical QR, not just the untrusted transport advertisement.
 
 Plaintext handshake records are the only v2 records permitted before encryption:
 
-- Pad: `{v:2,type:"hello",device,fw:"2.0.0",pk,xpk}` (separate 64-hex keys).
-- Desk: `{v:2,type:"pair",deskpk,challenge}` (fresh X25519 ephemeral key and
+- Pad: `{v:2,type:"hello",device,fw:"2.0.0",pk,xpk,nonce}` (separate 64-hex keys).
+- Desk: `{v:2,type:"pair",deskpk,challenge,nonce}` (fresh X25519 ephemeral key and
   32 random bytes as hex for each session).
 - Pad: `{v:2,type:"pair_proof",signature}` (128-hex Ed25519 signature).
 
 The signed UTF-8 transcript is
-`xorrpad-v2|<device>|<xpk>|<deskpk>|<challenge>`.
+`xorrpad-v2|<device>|<xpk>|<deskpk>|<challenge>|<nonce>`.
 Given X25519 shared bytes `S`, the direction keys are
 `SHA256(S || code || transcript || "desk")` and
 `SHA256(S || code || transcript || "pad")`.
-The device rejects weak shared points and limits pairing attempts. A valid
+The device supplies a fresh 32-byte nonce for each offer, consumes it once,
+rejects weak shared points and limits pairing attempts to five per minute.
+Unfinished offers expire after 10 seconds. Old pairing requests cannot reset
+sequence numbers under reused session keys. A valid
 identity signature alone is insufficient: both sides exchange encrypted `ready`
 records to demonstrate knowledge of the code-derived keys. The pad's ready
 includes `killed`. Pairing codes stay in desk memory; restart requires the

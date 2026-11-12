@@ -15,6 +15,7 @@
 // the whole model the firmware holds: it keeps no opinion of its own about what
 // is armed or what is in hand, because the backend is the only thing that knows.
 struct PadState {
+  String pairCode, pairQr;
   String keyLabels[14];uint32_t keymapUntil=0;
   bool autoAccept = false;
   String link, signalId, signalState, receiptSignature, receiptExplorer, lastKeyLabel;

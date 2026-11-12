@@ -74,6 +74,7 @@ function sessions(serial = false) {
       rawPublic(p.publicKey),
       rawPublic(d.publicKey),
       "00".repeat(32),
+      "11".repeat(32),
     );
   const dk = sessionKeys(d.privateKey, rawPublic(p.publicKey), "123456", t),
     pk = sessionKeys(p.privateKey, rawPublic(d.publicKey), "123456", t);
@@ -189,3 +190,12 @@ import { sha } from "../main/pad-v2.mjs";
 function awaitHash(b) {
   return sha(b).toString("hex");
 }
+test("pairing transcript requires and binds fresh device challenge", () => {
+  const fields = ["unit-1", "11".repeat(32), "22".repeat(32), "33".repeat(32)];
+  assert.throws(() => transcript(...fields));
+  assert.notEqual(transcript(...fields, "44".repeat(32)), transcript(...fields, "55".repeat(32)));
+  const a = keypair(), b = keypair();
+  const first = sessionKeys(a.privateKey, rawPublic(b.publicKey), "123456", transcript(...fields, "44".repeat(32)));
+  const second = sessionKeys(a.privateKey, rawPublic(b.publicKey), "123456", transcript(...fields, "55".repeat(32)));
+  assert.notDeepEqual(first, second);
+});

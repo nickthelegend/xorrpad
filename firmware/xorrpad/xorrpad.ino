@@ -397,6 +397,8 @@ void setup() {
 
 void loop() {
   provision.poll();padlink.tick();
+  pad.pairCode = padlink.secureReady() && !padlink.blePairing ? "" : padlink.identity.code;
+  pad.pairQr = padlink.identity.qr();
   if(WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
   static uint32_t tickScreen=0;
   if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}

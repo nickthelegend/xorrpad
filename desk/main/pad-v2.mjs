@@ -115,13 +115,13 @@ export function publicKey(raw, type = "x25519") {
     ),
   });
 }
-export function transcript(device, xpk, deskpk, challenge) {
+export function transcript(device, xpk, deskpk, challenge, nonce) {
   if (
     !/^[\w-]{1,64}$/.test(device) ||
-    ![xpk, deskpk, challenge].every((x) => /^[0-9a-f]{64}$/.test(x))
+    ![xpk, deskpk, challenge, nonce].every((x) => /^[0-9a-f]{64}$/.test(x))
   )
     throw Error("invalid handshake");
-  return `xorrpad-v2|${device}|${xpk}|${deskpk}|${challenge}`;
+  return `xorrpad-v2|${device}|${xpk}|${deskpk}|${challenge}|${nonce}`;
 }
 export function sessionKeys(privateKey, remote, code, text) {
   if (!/^\d{6}$/.test(code)) throw Error("six digit code required");

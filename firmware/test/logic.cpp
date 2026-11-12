@@ -73,6 +73,19 @@ TEST_CASE("VAD empty"){CHECK(energy(nullptr,0)==0);}
 TEST_CASE("profiles reject empty"){CHECK_FALSE(validProfiles({}));}
 TEST_CASE("keymap rejects missing bindings"){CHECK_FALSE(validBindings({}));}
 TEST_CASE("keymap serialization controls and cells"){std::vector<Binding>b;const char*a[]={"momentum","grid","dca","risk","yield","rebalance","no","yes","buy","base","kill","mic","sell","portfolio"};for(int r=0;r<4;r++)for(int c=0;c<4;c++){int i=cell(r,c);if(i>=0)b.push_back({r,c,a[i],a[i]});}CHECK(validBindings(b));auto copy=b;copy[0].action="kill";CHECK_FALSE(validBindings(copy));copy=b;copy[1]=copy[0];CHECK_FALSE(validBindings(copy));Profile p;p.name="Scalper";for(auto&l:p.layers)l=b;CHECK(validProfiles({p}));CHECK_FALSE(validProfiles({p,p}));}
-TEST_CASE("RFC8032 Ed25519 empty message vector"){uint8_t pk[32],sig[64];REQUIRE(unhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",pk,32));REQUIRE(unhex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",sig,64));auto k=EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519,nullptr,pk,32);auto c=EVP_MD_CTX_new();REQUIRE(EVP_DigestVerifyInit(c,nullptr,nullptr,nullptr,k)==1);CHECK(EVP_DigestVerify(c,sig,64,(const unsigned char*)"",0)==1);sig[0]^=1;CHECK(EVP_DigestVerify(c,sig,64,(const unsigned char*)"",0)!=1);EVP_MD_CTX_free(c);EVP_PKEY_free(k);}
+TEST_CASE("RFC8032 Ed25519 empty message vector") {
+  uint8_t pk[32], sig[64];
+  REQUIRE(
+      unhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+            pk, 32));
+  REQUIRE(
+      unhex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555f"
+            "b8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",
+            sig, 64));
+  CHECK(Ed25519::verify(sig, pk, "", 0));
+  sig[0] ^= 1;
+  CHECK_FALSE(Ed25519::verify(sig, pk, "", 0));
+}
+
 TEST_CASE("manifest rejects unsigned"){Manifest m;m.version="2.0.0";m.size=100;m.minDesk="1.0.0";m.sha256=std::string(64,'0');CHECK_FALSE(m.valid());}
 TEST_CASE("manifest rejects oversized"){Manifest m;m.version="2.0.0";m.size=0x300001;m.minDesk="1.0.0";m.sha256=std::string(64,'0');m.signature=std::string(128,'0');CHECK_FALSE(m.valid());}

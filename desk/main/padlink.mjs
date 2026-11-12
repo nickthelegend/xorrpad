@@ -493,16 +493,18 @@ export class PadLink extends EventEmitter {
     return { ok: true };
   }
   startPair(p, m) {
-    if (p.handshake) return;
+    if (p.handshake && Date.now() - p.handshake.at < 10000 &&
+        p.handshake.candidate.nonce === m.nonce) return;
     const pin = this.pairings.get(m.device);
     if (!pin || pin.pk !== m.pk || pin.xpk !== m.xpk) return;
-    p.handshake = { keys: keypair(), challenge: challenge(), candidate: m };
+    p.handshake = { keys: keypair(), challenge: challenge(), candidate: m, at: Date.now() };
     const h = p.handshake;
     h.text = transcript(
       m.device,
       m.xpk,
       rawPublic(h.keys.publicKey),
       h.challenge,
+      m.nonce,
     );
     h.session = sessionKeys(h.keys.privateKey, m.xpk, pin.code, h.text);
     this.send(p, {
@@ -510,6 +512,7 @@ export class PadLink extends EventEmitter {
       type: "pair",
       deskpk: rawPublic(h.keys.publicKey),
       challenge: h.challenge,
+      nonce: m.nonce,
     });
   }
   signal(p, e) {
@@ -791,7 +794,8 @@ export class PadLink extends EventEmitter {
           hello.fw !== "2.0.0" ||
           !/^\w[\w-]{0,63}$/.test(hello.device) ||
           !/^[0-9a-f]{64}$/.test(hello.pk) ||
-          !/^[0-9a-f]{64}$/.test(hello.xpk)
+          !/^[0-9a-f]{64}$/.test(hello.xpk) ||
+          !/^[0-9a-f]{64}$/.test(hello.nonce)
         )
           throw Error("invalid v2 identity");
         p.candidate = hello;
