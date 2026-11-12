@@ -16,7 +16,7 @@ export function Connect() {
       <div className="page-heading">
         <div>
           <h1>
-            <BlurWords text={"Good things connect."} immediate />
+            <BlurWords text={"Good things take one cable."} immediate />
           </h1>
           <p>One calm setup. Then your whole desk, at your fingertips.</p>
         </div>

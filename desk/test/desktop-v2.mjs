@@ -160,9 +160,12 @@ try {
     markets: "#price-candles",
     activity: ".activity-filters",
   };
+  const headlines = {device: "Your edge, at your fingertips.", abilities: "Small additions. Entirely yours.", agent: "A voice that knows your rules.", connect: "Good things take one cable."};
   async function ready(name) {
     await page.locator(names[name]).first().waitFor({ timeout: 120000 });
     await page.evaluate(() => document.fonts.ready);
+    if (headlines[name]) assert.equal(await page.locator("h1").innerText(), headlines[name]);
+    assert.ok(await page.locator("h1").evaluate(h => [h,...h.querySelectorAll("*")].every(n => Number(getComputedStyle(n).opacity) === 1 && ["none", "blur(0px)"].includes(getComputedStyle(n).filter))), "Entire headline is revealed");
     if (name === "markets") {
       await page.locator("#price-candles:visible").waitFor({ timeout: 120000 });
       assert.match(

@@ -24,6 +24,7 @@ export function Reveal({
   immediate = false,
 }: RevealProps) {
   const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
   const shown = { opacity: 1, y: 0, filter: "blur(0px)" };
   return (
     <motion.div

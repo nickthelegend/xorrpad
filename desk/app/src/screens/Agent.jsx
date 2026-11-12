@@ -75,7 +75,7 @@ export function Agent() {
       <div className="page-heading">
         <div>
           <h1>
-            <BlurWords text={"A voice that gets you."} immediate />
+            <BlurWords text={"A voice that knows your rules."} immediate />
           </h1>
           <p>Your model. Your persona. An agent that plays by your rules.</p>
         </div>

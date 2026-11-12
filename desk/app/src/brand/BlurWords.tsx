@@ -27,6 +27,8 @@ export function BlurWords({
   immediate = false,
 }: BlurWordsProps) {
   const reduce = useReducedMotion();
+  // Reduced motion is a fully visible state, not a shorter staggered reveal.
+  if (reduce) return <span className={`block ${className}`}>{text.split("\n").map((line, i) => <span key={i} className="block">{line}</span>)}</span>;
   const lines = text.split("\n").map((line) => line.split(" "));
   const starts = lines.map((_, i) =>
     lines.slice(0, i).reduce((n, words) => n + words.length, 0),

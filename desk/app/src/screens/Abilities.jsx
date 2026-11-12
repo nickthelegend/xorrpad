@@ -27,7 +27,7 @@ export function Abilities() {
           <Badge>Made for your pad</Badge>
           <h1>
             <BlurWords
-              text={"Small additions.\nEntirely new possibilities."}
+              text={"Small additions. Entirely yours."}
               immediate
             />
           </h1>

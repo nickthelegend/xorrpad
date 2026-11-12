@@ -93,7 +93,7 @@ export function Device() {
       <div className="device-intro">
         <div>
           <h1>
-            <BlurWords text={"Your edge.\nAt your fingertips."} immediate />
+            <BlurWords text={"Your edge, at your fingertips."} immediate />
           </h1>
           <p>Your pad. Your abilities. Your rules.</p>
         </div>
