@@ -68,3 +68,27 @@ TEST_CASE("left handed key mapping is a permutation and never moves a fixed cell
   CHECK(xorr::leftColumn(1,safetyRow)==1);
   CHECK(xorr::leftColumn(2,safetyRow)==3);
 }
+
+#include "../xorrpad/logic/status-led.h"
+TEST_CASE("killed LED wins over errors, pending signals, fill and hold") {
+  for(uint32_t t=0;t<4000;t+=100) {
+    auto color=xorr::statusLed(t,true,true,true,true,.5f);
+    CHECK(color.r==100);CHECK(color.g==0);CHECK(color.b==0);
+  }
+}
+TEST_CASE("LED palette animates smoothly and fill has a fully dark phase") {
+  auto idle=xorr::statusLed(0,false,false,false,false);
+  auto peak=xorr::statusLed(1500,false,false,false,false);
+  CHECK(idle.b>0);CHECK(peak.b>idle.b);CHECK(peak.b>peak.g);CHECK(peak.g>peak.r);
+  auto pending=xorr::statusLed(600,false,false,true,true);
+  CHECK(pending.g>pending.r);CHECK(pending.r>pending.b);
+  auto off=xorr::statusLed(0,false,false,false,true);
+  CHECK(off.r==0);CHECK(off.g==0);CHECK(off.b==0);
+  auto fill=xorr::statusLed(120,false,false,false,true);
+  CHECK(fill.g>fill.b);CHECK(fill.b>fill.r);
+  auto amber=xorr::statusLed(120,false,true,true,true);
+  CHECK(amber.r==100);CHECK(amber.g==63);CHECK(amber.b==0);
+  auto start=xorr::statusLed(0,false,false,true,false,0);
+  auto end=xorr::statusLed(0,false,false,true,false,1);
+  CHECK(end.g>start.g);
+}

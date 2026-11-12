@@ -38,6 +38,7 @@
 #include "display.h"
 #include "presentation.h"
 #include "accessibility.h"
+#include "logic/status-led.h"
 #include "ota.h"
 #include "logic/kill-switch.h"
 #include "profiles.h"
@@ -127,20 +128,12 @@ inline void led(uint8_t r, uint8_t g, uint8_t b) {
   else rgbLedWrite(STATUS_LED,r,g,b);
 }
 
-// The status light, from real backend state. In order of what matters most:
-//   disarmed        → hard red, steady. Nothing can trade.
-//   decision waiting → amber, breathing. A ✓ is owed.
-//   forgotten        → white, breathing. The store was wiped; it trades timid.
-//   armed            → the agent's own colour, dim and steady.
-//   no backend       → dark blue pulse. The pad is alone.
+// One language, ordered by urgency. KILL always wins.
 void ledFromState() {
-  uint32_t t = millis();
-  if (killSwitch.killed) { led(100, 0, 0); return; }
-  if (!pad.ok)            { uint8_t b = 8 + (t / 8 % 40); led(0, 0, b); return; }
-  if (!pad.armed)         { led(90, 0, 0); return; }
-  if (pad.pending)        { uint8_t b = 30 + (t / 6 % 70); led(b, (uint8_t)(b * 0.6f), 0); return; }
-  if (!pad.remembers)     { uint8_t b = 20 + (t / 10 % 50); led(b, b, b); return; }
-  led(keyR / 3, keyG / 3, keyB / 3);
+  uint32_t now=millis();
+  auto color=xorr::statusLed(now,killSwitch.killed,pad.errorCode.length(),
+    pad.ok && pad.pending,(int32_t)(pad.receiptUntil-now)>0);
+  led(color.r,color.g,color.b);
 }
 
 // Messages are applied on loop(), including BLE callbacks queued by link.h.
