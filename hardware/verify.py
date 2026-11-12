@@ -113,13 +113,14 @@ class ManufacturingArtifacts(unittest.TestCase):
             else:
                 self.assertTrue(r['stop_reason']);self.assertNotEqual(r['exit_code'],0)
 
-        r=json.loads((GEN/'jar-routing-result.json').read_text())[0]
-        self.assertEqual(r['sku'],'pro')
-        self.assertEqual(hashlib.sha256((GEN/'pro.dsn').read_bytes()).hexdigest(),r['dsn_sha256'])
-        self.assertEqual(r['exit_code'],0);self.assertTrue(r['session_created'])
-        self.assertTrue((GEN/'pro.ses').is_file())
-        self.assertIn('-da',r['command']);self.assertIn('--api_server.enabled=false',r['command'])
-        self.assertIn('(deny network*)',' '.join(r['command']))
+        for sku,evidence in [('pro','jar-routing-result.json'),('core','core-jar-routing-result.json')]:
+            r=json.loads((GEN/evidence).read_text())[0]
+            self.assertEqual(r['sku'],sku)
+            self.assertEqual(hashlib.sha256((GEN/f'{sku}.dsn').read_bytes()).hexdigest(),r['dsn_sha256'])
+            self.assertEqual(r['exit_code'],0);self.assertTrue(r['session_created'])
+            self.assertTrue((GEN/f'{sku}.ses').is_file())
+            self.assertIn('-da',r['command']);self.assertIn('--api_server.enabled=false',r['command'])
+            self.assertIn('(deny network*)',' '.join(r['command']))
 
     def test_baseline_and_routed_drc_evidence_are_distinct(self):
         for sku in ['pro','core']:
@@ -127,19 +128,21 @@ class ManufacturingArtifacts(unittest.TestCase):
             self.assertGreater(len(d['unconnected_items']),0)
             self.assertGreater(len(d['violations']),0)
             self.assertTrue((GEN/f'{sku}-placement.kicad_pcb').is_file())
-        d=json.loads((GEN/'pro-p1-drc.json').read_text())
-        self.assertFalse(d['unconnected_items'])
-        self.assertFalse([v for v in d['violations'] if v['severity']=='error'])
-        summary=json.loads((GEN/'pro-p1-summary.json').read_text())
-        self.assertEqual(summary['board_sha256'],hashlib.sha256((GEN/'pro.kicad_pcb').read_bytes()).hexdigest())
-        self.assertEqual(summary['drc_sha256'],hashlib.sha256((GEN/'pro-p1-drc.json').read_bytes()).hexdigest())
-        self.assertEqual(summary['final']['warnings'],len([v for v in d['violations'] if v['severity']=='warning']))
-        self.assertFalse(summary['key_centre_discrepancies'])
-        self.assertEqual(summary['copper_layers'],4)
-        settings=json.loads((GEN/'pro.kicad_pro').read_text())['board']['design_settings']
-        baseline=json.loads((GEN/'pro-placement.kicad_pro').read_text())['board']['design_settings']
-        self.assertEqual(settings['rule_severities'],baseline['rule_severities'])
-        self.assertEqual(settings['drc_exclusions'],baseline['drc_exclusions'])
+        for sku,phase in [('pro','p1'),('core','p2')]:
+            d=json.loads((GEN/f'{sku}-{phase}-drc.json').read_text())
+            self.assertFalse(d['unconnected_items'])
+            self.assertFalse(d['violations'])
+            summary=json.loads((GEN/f'{sku}-{phase}-summary.json').read_text())
+            self.assertEqual(summary['board_sha256'],hashlib.sha256((GEN/f'{sku}.kicad_pcb').read_bytes()).hexdigest())
+            self.assertEqual(summary['drc_sha256'],hashlib.sha256((GEN/f'{sku}-{phase}-drc.json').read_bytes()).hexdigest())
+            self.assertEqual(summary['final'],dict(errors=0,warnings=0,unconnected=0))
+            self.assertFalse(summary['key_centre_discrepancies'])
+            self.assertEqual(summary['copper_layers'],4)
+            settings=json.loads((GEN/f'{sku}.kicad_pro').read_text())['board']['design_settings']
+            baseline=json.loads((GEN/f'{sku}-placement.kicad_pro').read_text())['board']['design_settings']
+            self.assertEqual(settings['rule_severities'],baseline['rule_severities'])
+            self.assertEqual(settings['drc_exclusions'],baseline['drc_exclusions'])
+
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

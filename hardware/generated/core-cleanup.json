@@ -1,0 +1,102 @@
+[
+  {
+    "uuid": "933faae1-98f8-4bc2-8202-76ff0839a8e5",
+    "net": "RGB_LINK1",
+    "kind": "via"
+  },
+  {
+    "uuid": "583e3e7a-cfd1-4c81-9756-68aa602869e7",
+    "net": "RGB_IN",
+    "kind": "via"
+  },
+  {
+    "uuid": "e27d67df-f043-4946-b737-18652999a8be",
+    "net": "RGB_IN",
+    "kind": "via"
+  },
+  {
+    "uuid": "409cb63b-44fb-4bb3-a3b0-34c7fddcd5ef",
+    "net": "RGB_5V",
+    "kind": "via"
+  },
+  {
+    "uuid": "5cbd6142-1c39-43ea-9c0d-d3ecf4c25c3c",
+    "net": "RGB_LINK13",
+    "kind": "via"
+  },
+  {
+    "uuid": "3a9fceaa-1f86-47b0-8841-6fe047361717",
+    "net": "ROW2",
+    "kind": "track"
+  },
+  {
+    "uuid": "3c443894-e5af-4e43-9ee3-53e3ab7a03e3",
+    "net": "ROW2",
+    "kind": "track"
+  },
+  {
+    "uuid": "bc8fc7a4-f9fd-4fb4-b09b-4cf898247d0b",
+    "net": "ROW2",
+    "kind": "track"
+  },
+  {
+    "uuid": "ce81d3f1-8be6-4dc9-959c-2ca6f433c682",
+    "net": "ROW2",
+    "kind": "track"
+  },
+  {
+    "uuid": "e0785ff5-7d7a-497a-932c-92f334d828e6",
+    "net": "ROW2",
+    "kind": "track"
+  },
+  {
+    "uuid": "f6595c2d-f1dd-4869-9002-bc242a045ea4",
+    "net": "RGB_LINK9",
+    "kind": "via"
+  },
+  {
+    "uuid": "f9923264-25d3-4c80-80c2-055cd9e6fc6c",
+    "net": "COL1",
+    "kind": "via"
+  },
+  {
+    "uuid": "fd310667-b104-47d8-b802-204bb539d752",
+    "net": "COL1",
+    "kind": "via"
+  },
+  {
+    "uuid": "583a00f8-97c1-4f54-8bc0-9f90e647d9d9",
+    "net": "COL0",
+    "kind": "via"
+  },
+  {
+    "uuid": "db4d5a16-62e5-45ce-9187-3b793f0ff190",
+    "net": "COL0",
+    "kind": "via"
+  },
+  {
+    "uuid": "15cad63a-40c1-4914-b536-609347be44cf",
+    "net": "COL2",
+    "kind": "via"
+  },
+  {
+    "uuid": "9a935fc5-80d7-40fc-89ec-96b60048e6c4",
+    "net": "COL2",
+    "kind": "via"
+  },
+  {
+    "uuid": "a3787d35-90ac-416f-a97e-fd4ee6ce8bb7",
+    "net": "COL2",
+    "kind": "via"
+  },
+  {
+    "uuid": "bff63ef7-4850-44cf-8782-6c9ce971d877",
+    "net": "COL2",
+    "kind": "via"
+  },
+  {
+    "uuid": "71afc7e2-fc4f-4068-8e07-dfe4475e6b08",
+    "net": "COL3",
+    "kind": "via"
+  }
+]

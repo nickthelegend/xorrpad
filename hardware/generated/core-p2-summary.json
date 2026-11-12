@@ -1,0 +1,63 @@
+{
+  "scope": "Core P2 routing only; local draft; human PCB review required before any order",
+  "baseline": {
+    "errors": 0,
+    "warnings": 0,
+    "unconnected": 197
+  },
+  "final": {
+    "errors": 0,
+    "warnings": 0,
+    "unconnected": 0
+  },
+  "board_sha256": "89b4da836ceef82f816fba33b40be36cd8e2f535badfad1ea3bdba8cb9555eae",
+  "drc_sha256": "c9cb3a5c5f52077fde382ecf6288509670cc5a358f58364c10916352d8ade364",
+  "copper_layers": 4,
+  "signal_tracks_by_layer": {
+    "F.Cu": 854,
+    "B.Cu": 293
+  },
+  "key_centre_discrepancies": [],
+  "pad_net_discrepancies": [],
+  "usb": {
+    "A6": {
+      "shortest_pad_to_pad_mm": 44.49146192802269,
+      "total_copper_trace_mm": 43.36527938732787,
+      "vias": 3,
+      "widths_mm": [
+        0.1565,
+        0.1566
+      ]
+    },
+    "B6": {
+      "shortest_pad_to_pad_mm": 43.16927938732788,
+      "total_copper_trace_mm": 43.36527938732787,
+      "vias": 3,
+      "widths_mm": [
+        0.1565,
+        0.1566
+      ]
+    },
+    "A7": {
+      "shortest_pad_to_pad_mm": 35.88359396237866,
+      "total_copper_trace_mm": 39.53909396237864,
+      "vias": 0,
+      "widths_mm": [
+        0.1565,
+        0.1566
+      ]
+    },
+    "B7": {
+      "shortest_pad_to_pad_mm": 34.88359396237866,
+      "total_copper_trace_mm": 39.53909396237864,
+      "vias": 0,
+      "widths_mm": [
+        0.1565,
+        0.1566
+      ]
+    }
+  },
+  "ground_stitching_vias_added": 154,
+  "warnings": [],
+  "drc_exclusions": []
+}

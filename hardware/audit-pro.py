@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-"""Record final local P1 DRC and board invariants; regenerate Pro CPL."""
-import collections,csv,hashlib,heapq,itertools,json,math,runpy,sys
+"""Record final local DRC and board invariants; regenerate the selected CPL."""
+import argparse,collections,csv,hashlib,heapq,itertools,json,math,runpy,sys
 from pathlib import Path
 from shapely.geometry import LineString,Point
 from shapely.ops import unary_union
 m=runpy.run_path(str(Path(__file__).with_name('routing-geometry.py')))
 k=m['k'];OUT=m['OUT'];xy=m['xy'];padshape=m['padshape']
-b=k.LoadBoard(str(OUT/'pro.kicad_pcb'))
+parser=argparse.ArgumentParser();parser.add_argument('--sku',choices=['pro','core'],default='pro');args=parser.parse_args()
+sku=args.sku;phase='p1' if sku=='pro' else 'p2'
+b=k.LoadBoard(str(OUT/f'{sku}.kicad_pcb'))
 sys.path.insert(0,str(OUT.parent.parent/'cad'))
 import partlib as cad
-report=json.loads((OUT/'pro-p1-drc.json').read_text())
+report=json.loads((OUT/f'{sku}-{phase}-drc.json').read_text())
 errors=[v for v in report['violations'] if v['severity']=='error']
 warnings=[v for v in report['violations'] if v['severity']=='warning']
 fp={f.GetReference():f for f in b.GetFootprints()}
+manifest={p['ref']:p for p in json.loads((OUT/f'{sku}-parts.json').read_text())}
+assert set(fp)==set(manifest),'Footprint population changed'
+pad_net_errors=[dict(ref=ref,pad=p.GetNumber(),expected=manifest[ref]['pins'].get(p.GetNumber(),''),actual=p.GetNetname())
+    for ref,f in fp.items() for p in f.Pads()
+    if p.GetNetname()!=manifest[ref]['pins'].get(p.GetNumber(),'')]
+assert not pad_net_errors,pad_net_errors
 key_errors=[]
 for i,c in enumerate(cad.key_layout(),1):
     expected=(142+c['x'],142-c['y']);actual=xy(fp[f'SW{i}'].GetPosition())
@@ -57,27 +65,37 @@ def usb(net,connector_pin,mcu_pin):
 
 usb_data={pin:usb(net,pin,mp) for net,pin,mp in [('USB_DP','A6','14'),('USB_DP','B6','14'),('USB_DN','A7','13'),('USB_DN','B7','13')]}
 counts=collections.Counter(t.GetLayerName() for t in b.GetTracks() if not isinstance(t,k.PCB_VIA))
-decoupling=json.loads((OUT/'pro-decoupling.json').read_text())
+decoupling=json.loads((OUT/f'{sku}-decoupling.json').read_text())
+if sku=='core':
+    decoupling=[r for r in decoupling if not r['IC'].startswith('LED')]
+    decoupling += [dict(capacitor=f'C{i+19}',IC=f'LED{i}',power_pin='4') for i in range(1,16)]
 for row in decoupling:
     cp=next(p for p in fp[row['capacitor']].Pads() if p.GetNumber()=='1')
     ip=next(p for p in fp[row['IC']].Pads() if p.GetNumber()==row['power_pin'])
     row['pad_distance_mm']=round(math.dist(xy(cp.GetPosition()),xy(ip.GetPosition())),3)
-(OUT/'pro-decoupling.json').write_text(json.dumps(decoupling,indent=2)+'\n')
-with (OUT/'pro-cpl.csv').open('w',newline='') as stream:
+(OUT/f'{sku}-decoupling.json').write_text(json.dumps(decoupling,indent=2)+'\n')
+with (OUT/f'{sku}-cpl.csv').open('w',newline='') as stream:
     w=csv.writer(stream,lineterminator='\n');w.writerow(['Designator','Mid X','Mid Y','Layer','Rotation'])
     for ref,f in sorted(fp.items()):
         x,y=xy(f.GetPosition());w.writerow([ref,f'{x-100:.4f}mm',f'{184-y:.4f}mm','B' if f.IsFlipped() else 'T',f.GetOrientationDegrees()])
-result=dict(scope='Pro P1 only; local draft; human PCB review required before any order',
-    baseline=dict(errors=0,warnings=0,unconnected=207),
+result=dict(scope=f'{sku.title()} {phase.upper()} routing only; local draft; human PCB review required before any order',
+    baseline=dict(errors=0,warnings=0,unconnected=207 if sku=='pro' else 197),
     final=dict(errors=len(errors),warnings=len(warnings),unconnected=len(report['unconnected_items'])),
-    board_sha256=hashlib.sha256((OUT/'pro.kicad_pcb').read_bytes()).hexdigest(),
-    drc_sha256=hashlib.sha256((OUT/'pro-p1-drc.json').read_bytes()).hexdigest(),
+    board_sha256=hashlib.sha256((OUT/f'{sku}.kicad_pcb').read_bytes()).hexdigest(),
+    drc_sha256=hashlib.sha256((OUT/f'{sku}-{phase}-drc.json').read_bytes()).hexdigest(),
     copper_layers=b.GetCopperLayerCount(),signal_tracks_by_layer=dict(counts),
-    key_centre_discrepancies=key_errors,usb=usb_data,
-    ground_stitching_vias_added=json.loads((OUT/'pro-stitching.json').read_text())['added_count'],
+    key_centre_discrepancies=key_errors,pad_net_discrepancies=pad_net_errors,usb=usb_data,
+    ground_stitching_vias_added=json.loads((OUT/f'{sku}-stitching.json').read_text())['added_count'],
     warnings=warnings,
-    drc_exclusions=json.loads((OUT/'pro.kicad_pro').read_text())['board']['design_settings']['drc_exclusions'])
-(OUT/'pro-p1-summary.json').write_text(json.dumps(result,indent=2)+'\n')
+    drc_exclusions=json.loads((OUT/f'{sku}.kicad_pro').read_text())['board']['design_settings']['drc_exclusions'])
+(OUT/f'{sku}-{phase}-summary.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))
 assert not errors and not report['unconnected_items'] and not key_errors
+settings=json.loads((OUT/f'{sku}.kicad_pro').read_text())['board']['design_settings']
+baseline=json.loads((OUT/f'{sku}-placement.kicad_pro').read_text())['board']['design_settings']
+assert settings['rule_severities']==baseline['rule_severities']
+assert settings['drc_exclusions']==baseline['drc_exclusions']==[]
+assert min(k.ToMM(t.GetWidth()) for t in b.GetTracks() if not isinstance(t,k.PCB_VIA))>=.15
+assert all(k.ToMM(t.GetDrillValue())>=.3 and k.ToMM(t.GetWidth(k.F_Cu))>=.6 for t in b.GetTracks() if isinstance(t,k.PCB_VIA))
+assert not warnings
 assert b.GetCopperLayerCount()==4 and not counts.get('In1.Cu') and not counts.get('In2.Cu')

@@ -16,5 +16,95 @@
     "IC": "U4",
     "power_pin": "5",
     "pad_distance_mm": 2.145
+  },
+  {
+    "capacitor": "C20",
+    "IC": "LED1",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C21",
+    "IC": "LED2",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C22",
+    "IC": "LED3",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C23",
+    "IC": "LED4",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C24",
+    "IC": "LED5",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C25",
+    "IC": "LED6",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C26",
+    "IC": "LED7",
+    "power_pin": "4",
+    "pad_distance_mm": 2.066
+  },
+  {
+    "capacitor": "C27",
+    "IC": "LED8",
+    "power_pin": "4",
+    "pad_distance_mm": 3.663
+  },
+  {
+    "capacitor": "C28",
+    "IC": "LED9",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C29",
+    "IC": "LED10",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C30",
+    "IC": "LED11",
+    "power_pin": "4",
+    "pad_distance_mm": 3.663
+  },
+  {
+    "capacitor": "C31",
+    "IC": "LED12",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C32",
+    "IC": "LED13",
+    "power_pin": "4",
+    "pad_distance_mm": 3.487
+  },
+  {
+    "capacitor": "C33",
+    "IC": "LED14",
+    "power_pin": "4",
+    "pad_distance_mm": 3.872
+  },
+  {
+    "capacitor": "C34",
+    "IC": "LED15",
+    "power_pin": "4",
+    "pad_distance_mm": 3.679
   }
 ]
