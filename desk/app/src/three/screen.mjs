@@ -21,6 +21,15 @@ export async function drawFirmware(
     signalId: pending?.id || "",
     signalDeadline: pending ? Math.max(0, pending.expiresAt - now) : 0,
   };
+  const predict=device?.predict, market=now-Date.parse(predict?.observedAt)<(predict?.validForMs ?? 30000)?predict?.markets?.[device?.predictSelected || 0]:null;
+  if(predict)Object.assign(fields,{predictEnabled:predict.enabled,predictMessage:predict.message,predictSize:predict.sizeUsd || 1,predictTotal:predict.total || 0,predictOffset:predict.offset || 0,
+    ...(market?{predictQuestion:market.question,predictProbability:market.probability,predictChange:market.change24h ?? "",
+      predictClosesIn:Math.max(0,market.closesIn-Math.floor((now-Date.parse(predict.observedAt))/1000))}:{})});
+  const outcomes=device?.outcomePositions;
+  if(outcomes && predict?.enabled) {
+    Object.assign(fields,{outcomeVisible:true,outcomeMessage:outcomes.message || ""});
+    outcomes.positions?.forEach((p,i)=>Object.assign(fields,{[`outcomeRow${i}Question`]:p.name,[`outcomeRow${i}Yes`]:p.yes,[`outcomeRow${i}No`]:p.no}));
+  }
   if (pending) {
     fields.market = pending.proposal.signal.symbol;
     fields.verdict =

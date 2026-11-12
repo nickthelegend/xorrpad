@@ -1,3 +1,4 @@
+import {predictRecord, outcomePositionsRecord, predictProposal} from "./pad-predict.mjs";
 import {otaEligible, verifyPatch} from "./ota.mjs";
 import {verifyCrewApproval} from "./crew.mjs";
 import {validatePriceAlerts} from "./price-alerts.mjs";
@@ -273,6 +274,9 @@ export class PadLink extends EventEmitter {
           killed: this.killed.has(p.device),
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
+          predict: p.predict,
+          predictSelected: p.predictSelected || 0,
+          outcomePositions: p.outcomePositions,
         })),
     };
   }
@@ -452,7 +456,40 @@ export class PadLink extends EventEmitter {
       this.remove(p);
     }
   }
+  isPredictor(p) {
+    if(this.profiles.length && p.profileState?.ok)return this.profiles[p.profileState.profile]?.name === "Predictor";
+    return this.activeProfile === "Predictor";
+  }
+  async read(route) {
+    const r=await fetch(this.baseUrl+route,{headers:{authorization:`Bearer ${this.token}`},signal:AbortSignal.timeout(25000)});
+    const body=await r.json();if(!r.ok)throw Error(body.error || "Setup required: prediction feed unavailable");return body;
+  }
+  async predictPulse(p) {
+    if(p.predictBusy)return;
+    const enabled=this.isPredictor(p);p.predictBusy=true;
+    try {
+      if(enabled){p.predictData=await this.read("/pm/markets");p.predictDataAt=Date.now();}
+      p.predict=enabled?predictRecord(p.predictData,{selected:p.predictIndex || 0}):{type:"predict",enabled:false,cluster:"devnet",markets:[]};
+      p.predictAt=Date.now();
+    } catch {
+      p.predict={type:"predict",enabled,cluster:"devnet",markets:[],message:"Setup required: pm-AMM devnet feed unavailable"};p.predictAt=Date.now();
+    } finally {p.predictBusy=false;}
+    if(this.isPredictor(p)!==enabled){this.predictPulse(p);return;}
+    p.predict.sizeUsd=this.getStatus(p).sizeUsd || 1;
+    p.predictSelected=p.predict.selected || 0;
+    this.send(p,p.predict);
+    this.signals?.publish({type:"pad_predict",device:p.device,predict:p.predict});
+  }
+  refreshPredict() {
+    for(const p of this.peers)if(p.secure && p.verified) {this.send(p,this.getStatus(p));this.predictPulse(p);}
+  }
+  async outcomePositions(p) {
+    try {p.outcomePositions=outcomePositionsRecord(await this.read("/pm/positions"));}
+    catch {p.outcomePositions={type:"outcome_positions",cluster:"devnet",positions:[],message:"Setup required: connect your devnet outcome wallet and RPC"};}
+    this.send(p,p.outcomePositions);
+  }
   async marketPulse(p) {
+    if(this.isPredictor(p) || p.predict?.enabled)await this.predictPulse(p);
     if (p.pulseBusy) return;
     p.pulseBusy = true;
     try {
@@ -982,7 +1019,7 @@ export class PadLink extends EventEmitter {
           (!p.verified && Date.now() - p.handshake?.at >= 10000))) {
         const hello = p.name === "usb" ? checkCRC(m) : m;
         if (
-          !["2.0.0","3.0.0"].includes(hello.fw) ||
+          !["2.0.0","3.0.0","4.0.0"].includes(hello.fw) ||
           !/^\w[\w-]{0,63}$/.test(hello.device) ||
           !/^[0-9a-f]{64}$/.test(hello.pk) ||
           !/^[0-9a-f]{64}$/.test(hello.xpk) ||
@@ -1046,6 +1083,7 @@ export class PadLink extends EventEmitter {
         this.send(p, { type: "config", ...this.options });
         this.send(p, this.getStatus(p));
         this.syncProfiles(p);
+        if(this.isPredictor(p))this.predictPulse(p);
         for (const e of this.signals?.list() || [])
           if (e.state === "awaiting") this.signal(p, e);
         p.last = Date.now();
@@ -1128,6 +1166,7 @@ export class PadLink extends EventEmitter {
             m.profile < 0 || m.profile > 7 || !Number.isInteger(m.layer) ||
             m.layer < 0 || m.layer > 2) throw Error("invalid profile state");
         p.profileState = { ok: m.ok, profile: m.profile, layer: m.layer };
+        if(this.isPredictor(p) || p.predict?.enabled)this.predictPulse(p);
         this.signals?.publish({ type: "pad_profiles", device: p.device, ...p.profileState });
         return;
       }
@@ -1263,6 +1302,19 @@ export class PadLink extends EventEmitter {
           : m,
     });
     if (m.type === "key") {
+      if(m.action!=="portfolio")p.outcomePositions=null;
+      if(m.action==="predict:close") {this.send(p,{type:"result",id:m.id,ok:true});return;}
+      if(m.edge==="down" && ["predict:yes","predict:no"].includes(m.action)) {
+        const proposal=predictProposal({peer:p,message:m,enabled:this.isPredictor(p),killed:this.killed.has(p.device),
+          pending:!!p.clearReview || !!p.sessionRequest || this.signals?.list().some(e=>e.state==="awaiting" && e.expiresAt>Date.now()),size:this.getStatus(p).sizeUsd});
+        await this.read("/pm/quote?"+new URLSearchParams({market:proposal.market,side:proposal.side,usdc:String(proposal.size)}));
+        if(this.signals?.list().some(e=>e.state==="awaiting" && e.expiresAt>Date.now()))throw Error("Decision pending: review it before proposing");
+        await this.request("/signals",proposal);
+        this.send(p,{type:"result",id:m.id,ok:true});return;
+      }
+      if(m.edge==="down" && m.action==="portfolio" && this.isPredictor(p)) {
+        await this.outcomePositions(p);this.send(p,{type:"result",id:m.id,ok:true});return;
+      }
       if (p.secure && m.action === "yes") {
         if (
           m.signalId !== p.displayed?.id ||
@@ -1310,6 +1362,16 @@ export class PadLink extends EventEmitter {
         throw new Error("invalid signal answer");
       await this.request(`/signals/${m.signalId}/${m.state}`, {});
     } else if (m.type === "knob") {
+      if(m.mode==="predict") {
+        if(!p.secure || !p.verified || !this.isPredictor(p) || this.killed.has(p.device) ||
+          !Number.isInteger(m.delta) || Math.abs(m.delta)>128 || !p.predict?.markets.length || Date.now()-p.predictAt>=30000 ||
+          this.signals?.list().some(e=>e.state==="awaiting" && e.expiresAt>Date.now()))throw Error("invalid predict scroll");
+        const n=p.predict.total;
+        p.predictIndex=((p.predictIndex || 0)+m.delta%n+n)%n;
+        p.predict=predictRecord(p.predictData,{selected:p.predictIndex});p.predictAt=p.predictDataAt;p.predict.validForMs=Math.max(0,30000-(Date.now()-p.predictDataAt));p.predict.sizeUsd=this.getStatus(p).sizeUsd || 1;p.predictSelected=p.predict.selected;
+        this.send(p,p.predict);
+        this.send(p,{type:"result",id:m.id,ok:true});return;
+      }
       if (!Number.isFinite(m.sizeUsd) || m.sizeUsd <= 0)
         throw new Error("invalid knob size");
       if (m.mode && m.mode !== "size") {

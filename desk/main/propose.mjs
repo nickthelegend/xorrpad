@@ -10,6 +10,7 @@ export async function propose(signal,brief,{price}={}) {
  const kind=signal.kind||(['LONG','SHORT'].includes(signal.side)?'perp':'spot');
  const sig={...signal,kind,...(kind==='perp'?{leverage:signal.leverage??1}:{})};
  let verdict=decide(sig,brief);
+ if(sig.manualConfirmation)verdict.autoAccept=false;
  if(verdict.action!=='EXECUTE')return {signal:sig,verdict,routing:null};
  let size=verdict.sizeUsd;
  if(kind==='spot'&&sig.side==='SELL'){
@@ -26,6 +27,7 @@ export async function propose(signal,brief,{price}={}) {
  if(!routing.best)return {signal:sig,routing,verdict:{...verdict,action:'REJECT',sizeUsd:0,ruleId:'routing.no_quote',rules:[...verdict.rules,'routing.no_quote'],why:[...verdict.why,'no venue returned a quote; see routing alternatives']}};
  sig.venue=routing.best.venue;
  verdict=decide(sig,brief);
+ if(sig.manualConfirmation)verdict.autoAccept=false;
  return {signal:sig,verdict,routing};
 }
 export async function buildRouted(proposal, {owner, request = true} = {}) {

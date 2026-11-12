@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <cmath>
 #include "padstate.h"
+#include "logic/predict.h"
 #include "logic/presentation.h"
 #include "logic/portfolio.h"
 #include "logic/fund.h"
@@ -11,20 +12,37 @@ inline bool presentationConfirmationVisible(const PadState &pad) {
     pad.updating,pad.errorCode.length(),pad.pairCode.length());
 }
 inline bool presentationWalletVisible(const PadState &pad) {
-  return (pad.fund.visible || pad.portfolio.visible) && pad.ok && !pad.pending &&
+  return (pad.fund.visible || pad.portfolio.visible || pad.predict.positionsVisible) && pad.ok && !pad.pending &&
     !pad.factory && !pad.killed && !pad.updating && !pad.errorCode.length() &&
     !pad.alertsOnly && !pad.pairCode.length() && !pad.abilityReview && !pad.listening &&
     !(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0);
 }
 
+inline bool presentationPredictVisible(const PadState &p) {
+  return p.predict.enabled && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
+    !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview &&
+    !p.listening && !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible &&
+    !p.reply.length() && !p.abilityWidget.length() &&
+    !(p.receiptSignature.length() && (int32_t)(p.receiptUntil-millis())>0) &&
+    (int32_t)(p.keymapUntil-millis())<=0;
+}
+
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if (type == "fund") {
+  if(type=="predict") {
+    if(!xorr::parsePredict(d,pad.predict,millis())) {pad.predict.markets.clear();pad.predict.message="Setup required: refresh prediction feed";}
+  } else if(type=="outcome_positions") {
+    if(xorr::parseOutcomePositions(d,pad.predict)) {
+      pad.fund.visible=pad.portfolio.visible=false;pad.reply="";pad.labelUntil=pad.receiptUntil=0;
+    }
+  } else if (type == "fund") {
+    pad.predict.positionsVisible=false;
     if(xorr::parseFund(d,pad.fund)) {
       pad.portfolio.visible=false;pad.reply="";pad.labelUntil=0;pad.receiptUntil=0;
     } else pad.fund.visible=false;
   } else if (type == "portfolio") {
+    pad.predict.positionsVisible=false;
     pad.fund.visible=false;
     pad.reply="";pad.labelUntil=0;pad.receiptUntil=0;
     if(!xorr::parsePortfolio(d,pad.portfolio))pad.portfolio.visible=false;

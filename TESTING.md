@@ -2106,3 +2106,62 @@ Local implementation commit: `6a64a69`. Acceptance documentation and captures
 are committed separately. No existing secret files, `.env`, `.loom` or dedicated
 wallet directories were opened; no transaction was submitted and nothing was
 pushed. Mainnet execution gating and the approved desktop look are unchanged.
+
+## Firmware v4 F1 — Predict on the pad (2026-11-13)
+
+Scope: Predictor home, real pm-AMM devnet feed and quote-backed proposals,
+YES arc/closing time, knob paging, two-step YES/NO, outcome positions, encrypted
+v4 padsim, firmware mirror, version 4.0.0 and F1-only release notes. No prior
+feature/test was removed. The approved desktop keeps its components and styling.
+
+- `bash firmware/test/run.sh`: **277 cases / 2,744 assertions passed, 0 failed,
+  0 skipped**. Tests include bounded/wrong-cluster records, unknown change,
+  clock wrapping, stale refusal, outcome shares/Setup, two-step intent and
+  fingerprint-bound confirmations which cannot inherit a held proposal key.
+- Focused F1 actual HTTP/encrypted-native-padsim scenario: **4 passed / 0 failed**.
+  The public devnet feed returned **89 open markets** in this run; a knob turn
+  traversed beyond the first six-record page. The proposal remained gated by
+  the real allowlist, and no accepted/signed/executed signal resulted. Missing
+  outcome owner returned actual `/pm/positions` Setup required. No API mocks.
+- Native/WASM RGB565 parity includes 13 distinct frames: existing Fund/Portfolio,
+  prediction probabilities 0/42/100%, unavailable 24h history, prediction Setup,
+  outcome Setup/empty/share rows. QR decoding remains checked independently.
+- `npm run build:app --prefix desk`: exit **0**. Existing bundle size warnings
+  remain; no new desktop CSS or assets were introduced. Impeccable's detector
+  reports **0 findings** on the changed desktop screens.
+- WASM rebuilt from final `ui.h` with
+  `EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' bash tools/uipreview/build-web-screen.sh`.
+  SHA-256: `29b40994dc48f9c4031e4e369090a94edc27176e99ddffc8c1a93d1b258a4b3d`.
+  Public-record frames are in `docs/screens/v4/`; desktop captures are 1440/375 px.
+
+Unsigned Arduino CLI compile-only evidence (both exit **0**):
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 1,969,062 | 68,660 |
+| Core, release, `XORR_CORE=1` | 1,949,107 | 68,356 |
+
+```sh
+mkdir -p firmware/build/f1-tmp
+TMPDIR="$PWD/firmware/build/f1-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/f1-pro" --output-dir firmware/build/f1-pro-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/f1-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/f1-core" --output-dir firmware/build/f1-core-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_CORE=1 -DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_CORE=1 -DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+Compiled, not flashed. No existing key files were opened; no release signing,
+OTA publication, transaction submission or push was performed. Core skips TFT
+access and relies on the authenticated desktop/phone for visual review; local
+transaction-byte clear-sign approval is not bypassed. The current pm-AMM adapter
+has no 24h history, so that metric is unavailable. Outcome balances require a
+configured public owner/RPC and are shown as shares without invented USD prices.
+F2–F7 remain future work; `docs/v4/V4-NOTES.md` specifies F1 records and limits.
+
+Full isolated desk regression: `SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk`
+ran alone, exit **0**: **256 tests / 244 passed / 12 skipped / 0 failed /
+0 cancelled**, duration **933,996.289916 ms**. Every existing v1–v3 and
+agent-wallet test remains in the normal suite. The skips report actual missing
+local/provider/account setup or live upstream rate limits; none substitutes data.
+The full run includes the new F1 scenario, all 13 frame parity cases, existing
+model3d parity, Fund/Portfolio, cap persistence, clear-sign, crew, OTA and audio.
+Test-generated v3 PNG changes were restored with `git checkout -- docs/screens/v3`.
+The final app bundle was rebuilt after the final firmware WASM, and the native
+suite was rerun after the final firmware request-error feedback change.

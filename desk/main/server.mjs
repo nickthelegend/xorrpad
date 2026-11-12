@@ -500,7 +500,7 @@ export function createServer(mem) {
         const kind = body.kind || "spot", side = String(body.side || "").toUpperCase();
         const sig = {agent:"agent",kind,side:kind==="predict"?"BUY":side,
           symbol:kind==="predict"?`pmamm:${body.market}:${side.toLowerCase()}`:body.market,
-          market:body.market,outcomeSide:kind==="predict"?side.toLowerCase():undefined,
+          market:body.market,manualConfirmation:body.source==="pad-predict",outcomeSide:kind==="predict"?side.toLowerCase():undefined,
           sizeUsd:Number(body.size),leverage:Number(body.leverage ?? 1),reason:body.reason || "agent propose tool"};
         const proposal = await propose(sig,await mem.recallBrief());
         const queued = await signals.create(proposal);
@@ -1110,6 +1110,7 @@ export function createServer(mem) {
     }};
   },status:() => ({...livePulse,armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
+  srv.padlink.activeProfile=new Profiles(srv.padlink).read().active;
   executor.setPadLink(srv.padlink);
   signals.on('event',e=>{
     if(e.type!=='pad_signer' || !e.ok || !e.automatic)return;

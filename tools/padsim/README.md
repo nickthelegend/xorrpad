@@ -117,3 +117,11 @@ a failing regression, invalid signature or wrong genesis exits nonzero.
 Attestation tests missing from a committed checkout are also explicitly BLOCKED;
 an uncommitted working-tree test does not establish committed feature delivery.
 Do not run the runner alongside the desk suite because they share test ports.
+
+Firmware v4 F1: `PredictPadSimulator` from `predict.mjs` extends the encrypted
+native-session simulator. It receives actual `predict` / `outcome_positions`
+records, pages the market catalogue with `scroll(delta)`, and maps an idle
+`key('yes')` or `key('no')` to a proposal. With a decision pending those same
+keys retain trusted acceptance/refusal and hold checks. An empty/stale feed
+cannot propose; an outcome card consumes its closing key. The real-route
+scenario and 1440/375 captures run in `desk/test/pad-predict.test.mjs`.

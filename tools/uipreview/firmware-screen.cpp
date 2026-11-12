@@ -7,6 +7,26 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"predictEnabled")){pad.predict.enabled=atoi(v)!=0;return;}
+ if(!strcmp(k,"predictSize")){pad.predict.sizeUsd=atof(v);return;}
+ if(!strcmp(k,"predictTotal")){pad.predict.total=atoi(v);return;}
+ if(!strcmp(k,"predictOffset")){pad.predict.offset=atoi(v);return;}
+ if(!strcmp(k,"predictMessage")){pad.predict.message=v;return;}
+ if(!strcmp(k,"predictQuestion")){pad.predict.markets.resize(1);pad.predict.markets[0].question=v;return;}
+ if(!strcmp(k,"predictProbability")){pad.predict.markets.resize(1);pad.predict.markets[0].probability=atof(v);return;}
+ if(!strcmp(k,"predictClosesIn")){pad.predict.markets.resize(1);pad.predict.markets[0].closesIn=atoi(v);return;}
+ if(!strcmp(k,"predictChange")){pad.predict.markets.resize(1);pad.predict.markets[0].hasChange=strlen(v)>0;pad.predict.markets[0].change24h=atof(v);return;}
+ if(!strcmp(k,"outcomeVisible")){pad.predict.positionsVisible=atoi(v)!=0;return;}
+ if(!strcmp(k,"outcomeMessage")){pad.predict.positionsMessage=v;return;}
+ if(!strcmp(k,"outcomeQuestion")){pad.predict.positions.resize(1);pad.predict.positions[0].question=v;return;}
+ if(!strcmp(k,"outcomeYes")){pad.predict.positions.resize(1);pad.predict.positions[0].yes=atof(v);return;}
+ if(!strcmp(k,"outcomeNo")){pad.predict.positions.resize(1);pad.predict.positions[0].no=atof(v);return;}
+ if(!strncmp(k,"outcomeRow",10) && k[10]>='0' && k[10]<='7') {
+   size_t i=k[10]-'0';pad.predict.positions.resize(std::max(pad.predict.positions.size(),i+1));auto &r=pad.predict.positions[i];
+   if(!strcmp(k+11,"Question"))r.question=v;
+   else if(!strcmp(k+11,"Yes"))r.yes=atof(v);
+   else if(!strcmp(k+11,"No"))r.no=atof(v);return;
+ }
  if(!strcmp(k,"fundVisible")){pad.fund.visible=atoi(v)!=0;return;}
  if(!strcmp(k,"fundAddress")){pad.fund.address=v;return;}
  if(!strcmp(k,"fundUri")){pad.fund.uri=v;return;}

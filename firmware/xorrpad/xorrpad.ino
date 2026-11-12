@@ -44,6 +44,7 @@
 #include "logic/status-led.h"
 #include "ota.h"
 #include "logic/kill-switch.h"
+#include "logic/decision-confirm.h"
 #include "profiles.h"
 #include "knob.h"
 #include "health.h"
@@ -93,6 +94,7 @@ PadState   pad;
 xorr::KillSwitch killSwitch;
 PadLink::Transport rearmTransport = PadLink::NONE;
 ClearSigning clearSigning;
+xorr::DecisionConfirm decisionConfirm;
 Abilities abilities;
 PriceAlerts priceAlerts;
 
@@ -110,7 +112,7 @@ void showKillState() {
   if (killSwitch.killed) { pad.armed = pad.autoAccept = pad.pending = false; }
 }
 void latchKill() {
-  killSwitch.kill();
+  killSwitch.kill();decisionConfirm.reset();
   persistKill(true); // Local disarm precedes every network operation.
   padlink.stopInputs();
   recording = recStreaming = false;
@@ -173,7 +175,7 @@ void onPadMessage(JsonVariantConst d) {
   }
   presentationMessage(d,pad,chartNow);
   String type=d["type"] | "";
-  if((type=="fund" && pad.fund.visible) || (type=="portfolio" && pad.portfolio.visible)) {
+  if((type=="fund" && pad.fund.visible) || (type=="portfolio" && pad.portfolio.visible) || (type=="outcome_positions" && pad.predict.positionsVisible)) {
     accessibility.idle.wake(millis());screenHoldUntil=0;
   }
   if(type=="signal")amountSpoken=false;
@@ -228,6 +230,10 @@ void onPadMessage(JsonVariantConst d) {
     if(d["remembers"].is<bool>())pad.remembers=d["remembers"];
   } else if(type=="signal") {
     if(killSwitch.killed)return;
+    if(padlink.secureReady() && !decisionConfirm.offer(d,padlink.connectionEpoch())) {
+      pad.pending=false;pad.errorCode="QUOTE_REQUIRED";pad.errorFix="Refresh the executable quote";return;
+    }
+    pad.holdRequired=decisionConfirm.needsHold();
     pad.signalId=d["signalId"].as<String>();pad.signalState="awaiting";
     pad.signalDeadline=millis()+min((uint32_t)86400000,d["remainingMs"].as<uint32_t>());
     pad.pending=d["remainingMs"].as<uint32_t>()>0;pad.market=d["market"].as<String>();
@@ -240,6 +246,7 @@ void onPadMessage(JsonVariantConst d) {
     pad.pending=false;pad.receiptSignature=d["signature"].as<String>();pad.receiptExplorer=d["explorer"].as<String>();pad.receiptUntil=millis()+15000;
   } else if(type=="result" && d["ok"]==false) {
     pad.lastKeyLabel=d["error"].as<String>();pad.labelUntil=millis()+5000;
+    if(pad.predict.enabled) {pad.errorCode="PREDICT_REQUEST";pad.errorFix=pad.lastKeyLabel;}
   } else if (type == "tts") {
     if (!d["stream"].is<const char*>() || !d["seq"].is<uint32_t>() ||
         !d["end"].is<bool>() || !d["sampleRate"].is<int>()) {playback.reset();return;}
@@ -260,12 +267,19 @@ void onPadMessage(JsonVariantConst d) {
 
 bool sendLinkedKey(const String &action) {
   if(clearSigning.active && (action=="yes" || action=="no"))return true;
+  if((action=="yes" || action=="no") && !pad.pending && pad.predict.enabled) {
+    if(!presentationPredictVisible(pad) || !pad.predict.fresh(millis()) || !padlink.secureReady())return true;
+    JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["edge"]="down";
+    d["action"]=xorr::predictKey(true,false,action=="yes");
+    d["market"]=pad.predict.markets[pad.predict.selected].market;padlink.send(d);return true;
+  }
   if(action=="yes" && !presentationConfirmationVisible(pad))return true;
   if (action == "yes" && padlink.blePairing)
     return true;
   if(killSwitch.killed && action!="kill")return true;
   if(!padlink.ready())return false;
   JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]=action;d["edge"]="down";
+  if(action=="yes" && padlink.secureReady())return true; // trusted tap/hold is emitted from loop()
   if(action=="yes" || action=="no") {
     if(!pad.pending || (int32_t)(pad.signalDeadline-millis())<=0)return true;
     d["signalId"]=pad.signalId;
@@ -384,7 +398,10 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   bool portfolio=kb.id && String(kb.id)=="portfolio";
   if(pressed && walletVisible) {
     bool wasFund=pad.fund.visible;
-    pad.fund.visible=false;pad.portfolio.visible=false;
+    if(pad.predict.positionsVisible && padlink.secureReady()) {
+      JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]="predict:close";d["edge"]="down";padlink.send(d);
+    }
+    pad.fund.visible=false;pad.portfolio.visible=false;pad.predict.positionsVisible=false;
     portfolioKey.cancel();
     // KILL retains its safety action; other keys only dismiss the wallet card.
     if(kb.role!=ROLE_KILL) {
@@ -411,11 +428,14 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(kb.role==ROLE_CONFIRM) {
     killSwitch.confirmKey(pressed,millis(),padlink.secureReady() && !padlink.blePairing);
     if(killSwitch.killed)return;
+    decisionConfirm.key(pressed,presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
+      !padlink.blePairing && millis()>=screenHoldUntil,millis());
     if(pressed && pad.pending && padlink.secureReady() && !padlink.blePairing && accessibility.speakAmounts() && !amountSpoken) {
       amountSpoken=true;JsonDocument d;d["type"]="speak_amount";d["signalId"]=pad.signalId;padlink.send(d);
     }
   }
   if(killSwitch.killed)return;
+  if(kb.role==ROLE_REFUSE && pressed)decisionConfirm.reset();
   if(portfolio) {
     if(pressed)portfolioKey.press(millis());
     else walletKeyAction(portfolioKey.release(millis()));
@@ -693,6 +713,12 @@ void loop() {
   showKillState();
   profiles.refresh(pad.pending || recording);
   pad.profile=profiles.name();pad.layer=profiles.layerName();
+  static String reportedProfile;static uint32_t profileEpoch=0;
+  String profileState=pad.profile+"/"+pad.layer;
+  if(padlink.secureReady() && (profileState!=reportedProfile || profileEpoch!=padlink.connectionEpoch())) {
+    reportedProfile=profileState;profileEpoch=padlink.connectionEpoch();
+    JsonDocument d;d["type"]="profile_state";d["ok"]=true;d["profile"]=profiles.active();d["layer"]=profiles.layer();padlink.send(d);
+  }
   pad.highContrast=accessibility.highContrast();
   screen.brightness(accessibility.brightness(millis()));
   auto event=knob.tick();
@@ -707,6 +733,10 @@ void loop() {
   }
   else if(event==Knob::Turn) {
     if(profiles.voice){audio.volume=xorr::voiceVolume(audio.volume,knob.delta);pad.lastKeyLabel="Volume "+String(audio.volume)+"%";pad.labelUntil=millis()+1800;}
+    else if(presentationPredictVisible(pad)) {
+      pad.predict.scroll(knob.delta);pad.labelUntil=0;
+      JsonDocument d;d["type"]="knob";d["id"]=padlink.eventId();d["mode"]="predict";d["delta"]=knob.delta;padlink.send(d);
+    }
     else if(!killSwitch.killed && padlink.ready() && !pad.pending && !recording) {
       double value=knobControl.turn(knob.delta,millis());
       pad.lastKeyLabel=String(knobControl.name())+" "+String(value,0);pad.labelUntil=millis()+1800;
@@ -725,6 +755,14 @@ void loop() {
   {JsonDocument result;
     bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
+  }
+  bool decisionVisible=presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
+    !padlink.blePairing && millis()>=screenHoldUntil;
+  if(!pad.clearSigning)pad.holdProgress=decisionConfirm.progress(millis());
+  if(decisionConfirm.due(decisionVisible,padlink.connectionEpoch(),millis())) {
+    JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]="yes";d["edge"]="down";
+    d["signalId"]=decisionConfirm.signal().id;d["fingerprint"]=xorr::fingerprint(decisionConfirm.signal());
+    d["heldMs"]=decisionConfirm.heldMs(millis());padlink.send(d);
   }
   int abilityChime=-1;
   abilities.tick(padlink.connectionEpoch(),padlink.secureReady(),health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !pad.listening && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length() && !killSwitch.requested,pad,abilityChime);

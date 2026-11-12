@@ -53,6 +53,10 @@ export class Profiles {
     s.active = name;
     s.profiles[name] = map.keys;
     this.save(s);
+    this.pad.activeProfile=name;
+    const profile=this.pad.profiles.findIndex(p=>p.name===name);
+    if(profile>=0)for(const p of this.pad.peers)if(p.secure && p.verified)this.pad.selectProfile({device:p.device,profile,layer:name==="Predictor"?2:0});
+    this.pad.refreshPredict();
     return { ...s, keymap: map };
   }
 }

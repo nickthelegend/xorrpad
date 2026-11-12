@@ -442,6 +442,52 @@ static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
     banner(c,BLUE,"PORTFOLIO",line);
 }
 
+static void drawPredict(GFXcanvas16 &c,const PadState &pad) {
+  const auto &p=pad.predict;
+  text(c,12,10,2,INK,"PREDICT");pill(c,308,8,"devnet",WARN);
+  text(c,12,34,1,SOL,"pm-AMM");
+  if(!p.fresh(millis())) {
+    wrap(c,12,72,296,2,MUTE,"Setup required",2);
+    wrap(c,12,112,296,1,INK,String(p.message.empty()?"Refresh open, funded devnet markets in XOR Desktop":p.message.c_str()),5);
+    banner(c,BLUE,"NO LIVE QUOTE","Connect the desk / nothing will trade");return;
+  }
+  const auto &m=p.markets[p.selected];
+  wrap(c,12,51,296,1,INK,String(m.question.c_str()),3);
+  // A 240-degree arc: the lit fraction is the quoted YES probability.
+  for(int a=0;a<=240;a+=3) {
+    float r=(150+a)*0.01745329252f;
+    uint16_t color=a<=int(m.probability*240)?UP:GRID;
+    for(int radius=45;radius<51;++radius)c.fillCircle(77+int(radius*cosf(r)),143+int(radius*sinf(r)),1,color);
+  }
+  char b[64];snprintf(b,sizeof b,"%.0f%%",m.probability*100);text(c,45,130,3,UP,b);
+  text(c,68,159,1,MUTE,"YES");
+  if(m.hasChange)snprintf(b,sizeof b,"24h %+.2f pp",m.change24h);
+  else snprintf(b,sizeof b,"24h unavailable");
+  text(c,147,103,1,MUTE,b);
+  uint32_t elapsed=uint32_t(millis()-p.receivedAt)/1000;
+  uint32_t left=m.closesIn>elapsed?m.closesIn-elapsed:0;
+  if(left>=86400)snprintf(b,sizeof b,"Closes in %ud %uh",unsigned(left/86400),unsigned(left%86400/3600));
+  else snprintf(b,sizeof b,"Closes in %uh %um",unsigned(left/3600),unsigned(left%3600/60));
+  text(c,147,125,1,INK,b);
+  snprintf(b,sizeof b,"%u / %u  TURN KNOB",unsigned(p.offset+p.selected+1),unsigned(p.total?p.total:p.markets.size()));text(c,147,147,1,MUTE,b);
+  text(c,147,170,1,WARN,"mUSDC / test tokens");
+  snprintf(b,sizeof b,"BUY YES/NO $%.2f / then YES accepts",p.sizeUsd);
+  banner(c,UP,"YES / NO: PROPOSE",b);
+}
+static void drawOutcomePositions(GFXcanvas16 &c,const xorr::Predict &p,uint32_t now) {
+  text(c,12,10,2,INK,"OUTCOME POSITIONS");pill(c,308,36,"devnet",WARN);
+  if(!p.positionsMessage.empty())wrap(c,12,74,296,1,MUTE,String(p.positionsMessage.c_str()),6);
+  else if(p.positions.empty())text(c,12,85,2,MUTE,"No outcome positions");
+  size_t page=(now/12000)%std::max(size_t(1),(p.positions.size()+2)/3);
+  for(size_t i=page*3;i<p.positions.size() && i<(page+1)*3;++i) {
+    int y=66+int(i%3)*42;char b[64];
+    textClip(c,12,y,296,1,INK,String(p.positions[i].question.c_str()));
+    snprintf(b,sizeof b,"YES %.6g / NO %.6g shares",p.positions[i].yes,p.positions[i].no);
+    text(c,12,y+16,1,UP,b);
+  }
+  banner(c,BLUE,"PORTFOLIO","pm-AMM / any key to close / hold for FUND");
+}
+
 /**
  * One frame. Which screen to show is a property of the state, not a mode the
  * firmware keeps: a pending decision outranks everything, and an unreachable
@@ -502,6 +548,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   }
   else if(pad.fund.visible) {drawFund(c,pad.fund);return;}
   else if(pad.portfolio.visible) {drawPortfolio(c,pad.portfolio);return;}
+  else if(pad.predict.positionsVisible) {drawOutcomePositions(c,pad.predict,millis());return;}
   else if(pad.abilityWidget.length() && !pad.reply.length()) {
     textClip(c,12,18,296,1,MUTE,"ABILITY / "+pad.abilityName);
     wrap(c,12,58,296,2,INK,pad.abilityWidget,6);
@@ -518,6 +565,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
     return;
   }
+  else if(pad.predict.enabled && (int32_t)(pad.keymapUntil-millis())<=0) {drawPredict(c,pad);return;}
   else if (pad.positionCount >= 0 && (millis()/6000)%2 == 1) {
     drawPositions(c,pad,millis());
   }

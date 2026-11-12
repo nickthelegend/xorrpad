@@ -19,6 +19,7 @@
 #define ARDUINOJSON_ENABLE_PROGMEM 0
 #include "../../firmware/xorrpad/logic/portfolio.h"
 #include "../../firmware/xorrpad/logic/fund.h"
+#include "../../firmware/xorrpad/logic/predict.h"
 #include <fstream>
 
 #include <cstdio>
@@ -134,6 +135,11 @@ int main(int argc, char **argv) {
     std::ifstream input(argv[3]);JsonDocument d;
     if(!input || deserializeJson(d,input))return 2;
     PadState p;ChartState ch;p.ok=true;
+    if(d["type"]=="predict" || d["type"]=="outcome_positions") {
+      bool outcomes=d["type"]=="outcome_positions";
+      if(outcomes?!xorr::parseOutcomePositions(d,p.predict):!xorr::parsePredict(d,p.predict,millis()))return 3;
+      ui::drawFrame(c,p,ch);shot(outcomes?"outcome-positions":"predict","actual supplied public desk record");return made==1?0:4;
+    }
     bool fund=d["type"]=="fund";
     if(fund?!xorr::parseFund(d,p.fund):!xorr::parsePortfolio(d,p.portfolio))return 3;
     ui::drawFrame(c,p,ch);shot(fund?"fund":"portfolio","actual supplied public desk record");return made==1?0:4;

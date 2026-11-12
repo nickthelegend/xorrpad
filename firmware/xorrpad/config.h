@@ -5,7 +5,10 @@
 #if XORR_RELEASE != 0 && XORR_RELEASE != 1
 #error "XORR_RELEASE must be 0 or 1"
 #endif
-#define XORR_FW_VERSION "3.0.0"
+#define XORR_FW_VERSION "4.0.0"
+#ifndef XORR_CORE
+#define XORR_CORE 0  // Core has no TFT; use the authenticated desktop/phone mirror.
+#endif
 // ─────────────────────────────────────────────────────────────────────────────
 // Board + wiring for the ESP32-S3 macropad. Only fixed hardware facts live here;
 // WiFi and the backend address are provisioned at runtime through the captive

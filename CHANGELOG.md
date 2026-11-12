@@ -6,6 +6,22 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F1: Predict on the pad
+
+- Predictor home uses real devnet pm-AMM markets, with a YES probability arc,
+  question wrapping, closing countdown, venue/cluster and unavailable 24h history.
+  The knob pages through all markets in bounded six-market records.
+- YES/NO with no pending decision proposes BUY YES/NO at the current desk size.
+  A separate YES accepts the fingerprint-bound proposal under existing gates;
+  NO refuses. Pad proposals explicitly disable auto-accept, including re-gating.
+- PORTFOLIO shows actual outcome share balances or an honest Setup/empty state;
+  the existing one-second funding hold remains. The desktop adds “Predict on pad”
+  using its existing components. Its firmware mirror renders Predict and outcomes.
+- Encrypted v4 padsim, native parser/confirmation tests, native/WASM frame parity,
+  uipreview and responsive desktop evidence accompany F1. Core can compile with
+  `XORR_CORE=1` and uses the desktop/phone for visual review. No release signing,
+  flashing or push is performed. F2–F7 remain future steps.
+
 ### Added — Agent wallet W3, part 4
 
 - Agent now shows the existing agent wallet's full public address with copy,

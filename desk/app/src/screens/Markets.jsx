@@ -327,6 +327,10 @@ export function Markets() {
         <section>
           <div className="section-title">
             <h2>Outcome markets.</h2>
+            <button onClick={async () => {
+              try { await d.api("/desk/profiles", {name:"Predictor"}); d.refresh(); }
+              catch(e) { setError(e.message); }
+            }}>Predict on pad</button>
             <span className="badge">pm-AMM · devnet</span>
           </div>
           <State state={pm} />

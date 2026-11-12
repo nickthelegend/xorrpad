@@ -35,6 +35,7 @@ public:
   static constexpr int W = ui::W, H = ui::H;
 
   bool begin() {
+    if(XORR_CORE)return false; // No SPI or panel access on the screenless Core.
     if (TFT_BLK >= 0) { pinMode(TFT_BLK, OUTPUT); digitalWrite(TFT_BLK, LOW); }
     _spi = new SPIClass(FSPI);
     _spi->begin(TFT_SCK, -1, TFT_MOSI, TFT_CS);   // no MISO: the module's SDO stays unconnected
@@ -74,6 +75,7 @@ public:
   }
 
   void brightness(int value) {
+    if(XORR_CORE)return;
     value=std::clamp(value,0,255);
     if(TFT_BLK>=0 && value!=_brightness){analogWrite(TFT_BLK,value);_brightness=value;}
   }

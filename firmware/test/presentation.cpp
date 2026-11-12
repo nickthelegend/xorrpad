@@ -147,3 +147,42 @@ TEST_CASE("hidden signal screens cannot confirm even when the key is already hel
     CHECK_FALSE(xorr::confirmationVisible(true,true,flags[0],flags[1],flags[2],flags[3],flags[4]));
   }
 }
+
+#include "../xorrpad/logic/predict.h"
+TEST_CASE("Predict records are bounded devnet reads; scroll and freshness survive clock wrap") {
+  JsonDocument d;d["enabled"]=true;d["cluster"]="devnet";
+  auto m=d["markets"].to<JsonArray>().add<JsonObject>();
+  m["market"]="11111111111111111111111111111111";m["question"]="An outcome question?";m["probability"]=0.4;m["closesIn"]=3600;m["change24h"]=nullptr;
+  xorr::Predict p;REQUIRE(xorr::parsePredict(d,p,UINT32_MAX-10));CHECK(p.enabled);CHECK_FALSE(p.markets[0].hasChange);
+  CHECK(p.fresh(5));CHECK_FALSE(p.fresh(30000));p.scroll(-128);CHECK(p.selected==0);
+  d["markets"].as<JsonArray>().add(m);d["markets"][1]["market"]="So11111111111111111111111111111111111111112";
+  REQUIRE(xorr::parsePredict(d,p,10));p.scroll(-1);CHECK(p.selected==1);p.scroll(3);CHECK(p.selected==0);
+  d["markets"][0]["probability"]=1.1;CHECK_FALSE(xorr::parsePredict(d,p,10));CHECK(p.markets.size()==2);
+  d["markets"][0]["probability"]=0.4;d["cluster"]="mainnet-beta";CHECK_FALSE(xorr::parsePredict(d,p,10));
+}
+TEST_CASE("Predict two-step rule never turns a first YES or NO into an answer") {
+  CHECK(std::string(xorr::predictKey(true,false,true))=="predict:yes");
+  CHECK(std::string(xorr::predictKey(true,false,false))=="predict:no");
+  CHECK(std::string(xorr::predictKey(true,true,true))=="yes");
+  CHECK(std::string(xorr::predictKey(true,true,false))=="no");
+  CHECK(std::string(xorr::predictKey(false,false,true))=="yes");
+}
+TEST_CASE("Outcome positions preserve YES and NO quantities and honest empty/setup") {
+  JsonDocument d;d["cluster"]="devnet";auto r=d["positions"].to<JsonArray>().add<JsonObject>();
+  r["name"]="Outcome";r["yes"]=2.;r["no"]=3.;xorr::Predict p;
+  REQUIRE(xorr::parseOutcomePositions(d,p));CHECK(p.positionsVisible);CHECK(p.positions[0].yes==2);CHECK(p.positions[0].no==3);
+  r["yes"]=-1;CHECK_FALSE(xorr::parseOutcomePositions(d,p));CHECK(p.positions[0].yes==2);
+  d["positions"].to<JsonArray>();d["message"]="Setup required: connect devnet wallet";
+  REQUIRE(xorr::parseOutcomePositions(d,p));CHECK(p.positions.empty());CHECK_FALSE(p.positionsMessage.empty());
+}
+
+#include "../xorrpad/logic/decision-confirm.h"
+TEST_CASE("new proposal cannot inherit a held YES; trusted confirmations require fresh tap or hold") {
+  xorr::Signal s{"0.01","pmamm:market:yes","0.5","yes","decision","150","pmamm"};
+  JsonDocument d;d["signalId"]=s.id;d["fingerprint"]=xorr::fingerprint(s);d["holdThreshold"]=100.;
+  auto t=d["trusted"].to<JsonObject>();t["fee"]=s.fee;t["market"]=s.market;t["price"]=s.price;t["side"]=s.side;t["signalId"]=s.id;t["size"]=s.size;t["venue"]=s.venue;
+  xorr::DecisionConfirm confirm;confirm.key(true,true,0);REQUIRE(confirm.offer(d,1));CHECK_FALSE(confirm.due(true,1,1000));
+  confirm.key(true,true,1000);CHECK_FALSE(confirm.due(true,1,1799));CHECK(confirm.due(true,1,1800));CHECK_FALSE(confirm.due(true,1,1900));
+  REQUIRE(confirm.offer(d,1));confirm.key(true,true,2000);CHECK_FALSE(confirm.due(true,2,3000));
+  d["fingerprint"]="tamper";CHECK_FALSE(confirm.offer(d,1));confirm.key(true,true,4000);CHECK_FALSE(confirm.due(true,1,5000));
+}

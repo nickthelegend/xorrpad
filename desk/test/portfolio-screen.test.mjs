@@ -11,7 +11,7 @@ import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 import jsQR from 'jsqr';
 const repo=fileURLToPath(new URL('../..',import.meta.url));
-test('Fund QR decodes to its URI; funding and Portfolio frames match native firmware byte for byte',{timeout:90000},async()=>{
+test('Predict, outcomes, funding and Portfolio frames match native firmware byte for byte; Fund QR decodes',{timeout:90000},async()=>{
  const dir=await mkdtemp(path.join(tmpdir(),'xorr-portfolio-screen-'));
  const gfx=process.env.GFX||path.join(homedir(),'Documents/Arduino/libraries/Adafruit_GFX_Library');
  let server,browser;
@@ -31,7 +31,13 @@ test('Fund QR decodes to its URI; funding and Portfolio frames match native firm
   for(let i=0;i<5;i++)Object.assign(full,{[`portfolioRow${i}Symbol`]:['SOL','USDC','TOKEN A','TOKEN B','UNKNOWN TOKEN'][i],[`portfolioRow${i}Amount`]:'1.25',[`portfolioRow${i}Usd`]:i===4?'':'25.10'});
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
-  for(const state of [full,{ok:'1',portfolioVisible:'1',portfolioCluster:'devnet',portfolioTotal:'',portfolioRow0Symbol:'SOL',portfolioRow0Amount:'2',portfolioRow0Usd:''},
+  for(const state of [
+   {ok:'1',predictEnabled:'1',predictMessage:'Setup required: pm-AMM devnet feed unavailable'},
+   ...[0,0.42,1].map(p=>({ok:'1',predictEnabled:'1',predictQuestion:'Layout only: will this question wrap across at most three lines on the physical pad?',predictProbability:String(p),predictClosesIn:'93600',predictChange:''})),
+   {ok:'1',outcomeVisible:'1',outcomeMessage:'Setup required: connect your devnet outcome wallet and RPC'},
+   {ok:'1',outcomeVisible:'1'},
+   {ok:'1',outcomeVisible:'1',outcomeQuestion:'Layout only',outcomeYes:'1.25',outcomeNo:'2.5'},
+   full,{ok:'1',portfolioVisible:'1',portfolioCluster:'devnet',portfolioTotal:'',portfolioRow0Symbol:'SOL',portfolioRow0Amount:'2',portfolioRow0Usd:''},
    {ok:'1',portfolioVisible:'1',portfolioMessage:'Create your agent wallet in XOR Desktop'},
    ...['devnet','mainnet-beta'].map(fundCluster=>({ok:'1',fundVisible:'1',fundAddress:address,fundUri:uri,fundCluster})),
    {ok:'1',fundVisible:'1',fundAddress:'So11111111111111111111111111111111111111112',fundUri:'solana:So11111111111111111111111111111111111111112?label=xorrpad%20agent',fundCluster:'devnet'}]){
@@ -53,6 +59,6 @@ test('Fund QR decodes to its URI; funding and Portfolio frames match native firm
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,6,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,13,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });
