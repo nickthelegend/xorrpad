@@ -406,7 +406,7 @@ export function createServer(mem) {
       if(url.pathname==='/abilities')return send(200,await abilities().list());
       const abilityMatch=url.pathname.match(/^\/abilities\/([a-z]+)(\/run)?$/);
       if(abilityMatch)return send(200,await (abilityMatch[2]?abilities().run(abilityMatch[1]):abilities().install(abilityMatch[1],body)));
-      if(url.pathname==='/agent/voice-test'){await speakReply('Your pad. Your rules. I am ready when you are.');return send(200,{spoken:true});}
+      if(url.pathname==='/agent/voice-test'){if(![...srv.padlink.peers].some(p=>p.device))throw Error('Setup required: connect a verified pad for speaker playback');await speakReply('Your pad. Your rules. I am ready when you are.');return send(200,{spoken:true});}
       if (url.pathname === '/pad/keymap') {
         try {const map=srv.padlink.setKeymap(body);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
       }
