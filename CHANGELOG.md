@@ -6,6 +6,21 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D5 acceptance
+
+- Final isolated desk suite: 238 tests, 228 passed, 10 setup/provider skips,
+  zero failures or cancellations; standalone app build passes.
+- Completed built-app coverage for all 17 brief routes and 25 route/method
+  pairs, including invalid authentication, remaining methods, readable no-pad
+  responses and the actual authenticated event WebSocket. Classic UI access
+  remains checked; all existing tests are retained.
+- Regenerated and inspected 46 real padsim screenshots across all six screens
+  at 1440/375 px. Added text clipping, 44×44 px target and reduced-motion checks,
+  plus lower-form captures proving the Markets sheet's Save action is reachable.
+  The approved desktop components and styling are unchanged.
+- Recorded simulator provenance, screenshot inventory, actual verification
+  counts and local per-screen commits in TESTING.md. Nothing was pushed.
+
 ### Added — Desktop v3 D4, Markets
 
 - Final D4 verification: 236 desk tests, 226 passed, 10 setup/provider skips,

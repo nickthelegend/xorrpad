@@ -1761,3 +1761,73 @@ Logs: `firmware/build/desktop-v3-d4-{desk,build,native,agent-final}.log`.
 Public firmware spend/review telemetry was native-tested; older firmware uses
 honest unavailable states. No board was flashed, no existing secret was opened,
 and nothing was pushed. D4 is recorded as one local commit per screen.
+
+## Desktop v3
+
+### D5 — route and responsive acceptance
+
+`desk/test/app-v3-routes.test.mjs` now checks **17 distinct brief routes and
+25 route/method pairs** against the built JavaScript and actual authenticated
+desk server. It preserves the D1–D4 browser coverage and adds invalid-token
+checks, the remaining GET/POST methods, readable no-pad/validation errors and
+actual `/events` WebSocket authentication and empty-snapshot checks. The
+authenticated HTTP event route correctly returns 426 with its readable upgrade
+instruction. `/classic` remains covered.
+
+No-pad errors remain real errors. `/desk/link` and `/desk/status` honestly
+report no devices; profiles, options, crew policy and wallet mode are persisted
+desk configuration, not fabricated device responses. Their actual empty/default
+state is checked separately from unavailable pad operations. “Setup required”
+messages remain verbatim. No test was deleted, weakened or excluded.
+
+The initial focused browser/route run passed **9/9 tests**, zero failures,
+cancellations or skips, **120,421.127542 ms**. The final layout check also checks
+text rectangles against viewport and clipping ancestors, 44×44 px added controls
+and reduced motion. This catches clipping hidden by the existing body overflow
+rule. Long Sheet content retains its intended vertical scrolling; the Markets
+test scrolls to and captures the reachable Save action at each width.
+
+**46 freshly generated and visually inspected screenshots** in
+`docs/screens/v3/` cover **23 states at 1440 and 375 px**: Connect 8, Device 8,
+Abilities 8, Agent 6, Activity 10 and Markets 6. No horizontal overflow or
+unreachable/clipped v3 content was found. The extra Markets lower-form captures
+complete the evidence for its scrolling sheet. No UI source, CSS, font, color,
+library, navigation or approved desktop component was changed.
+
+Captures use the actual built app and desk routes with encrypted USB-CRC
+`tools/padsim` peers, including native firmware-backed abilities, session,
+clear-sign, crew and alert logic. Attestation uses an explicitly injected
+disposable test factory; production roots remain unchanged. The screenshots
+establish simulator behavior, not physical flashing, BLE or board acceptance.
+See [the screenshot inventory](docs/screens/v3/README.md) for state names and
+provenance.
+
+The full desk suite runs alone in a disposable source copy with all **44 desk
+test files**, matching application/test sources, installed dependency links,
+the repo Python venv, public native drivers and public compiled OTA/SDK inputs.
+Existing environment files, wallets, private keys and `.loom` are excluded.
+An incomplete setup attempt was stopped after missing public SDK WASM fixtures
+were detected; all public WASM fixtures were linked before the complete rerun.
+No test filter or suite modification is used.
+
+```sh
+TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+npm run build:app --prefix desk
+```
+
+Final complete run: **238 tests, 228 passed, 10 skipped, zero failures or
+cancellations**, **581,771.341417 ms**, exit **0**. Skips are unavailable Ollama,
+Anthropic and Deepgram setup, missing Electron binary, rate-limited Meteora,
+unconfigured keeper, an unfunded disposable pad test wallet, two unconfigured
+Phoenix account cases and an unfunded pm-AMM simulation owner. No new trade was
+broadcast. All nine v3 route/browser cases passed within that complete run.
+The standalone working-tree `npm run build:app --prefix desk` also passes,
+exit **0**, on the final unchanged app source. Existing bundle-size and mixed
+static/dynamic Device import warnings remain non-failing.
+
+Logs: `firmware/build/desktop-v3-d5-{desk,browser,build}.log`;
+the incomplete setup log is retained separately as
+`firmware/build/desktop-v3-d5-incomplete-setup.log`.
+Six local screen commits record the test/capture work; the acceptance
+documentation is a separate local commit. No existing secret was opened,
+no board was flashed, and nothing was pushed.

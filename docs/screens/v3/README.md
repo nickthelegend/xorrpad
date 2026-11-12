@@ -13,3 +13,38 @@ root is installed; these screenshots do not claim a provisioned physical pad.
 Both widths use reduced motion. Browser checks cover 44 px controls, horizontal
 overflow, wrong-code timeout, transport selection and clearing trust after
 disconnect. The captured states are visually inspected before committing.
+
+## D5 acceptance captures
+
+All six v3 screens are captured from the built app served by the actual desk,
+using `desk/test/app-v3-routes.test.mjs` and `desk/test/app-d4.test.mjs`.
+No HTTP or WebSocket response is intercepted. Each state has a 1440 px and a
+375 px image, with a 1000 px viewport height and reduced motion enabled.
+Full-page images include content reached by ordinary page scrolling.
+
+| Screen | States (filename suffix before width) | Images |
+| --- | --- | ---: |
+| Connect | empty, pair, unverified, genuine | 8 |
+| Device | empty, connected, error, updated | 8 |
+| Abilities | empty, review, installed, error | 8 |
+| Agent | empty, policy, approved | 6 |
+| Activity | empty, error, clear-results, crew-policy, crew-approved | 10 |
+| Markets | alert-empty, alerts-stored, alerts-form | 6 |
+| Total | 23 states at both widths | 46 |
+
+Connect and Device use `tools/padsim/v2.mjs` with real encrypted pairing and
+USB CRC framing. Device OTA uses the existing public signed image and manifest;
+the transfer does not claim a physical flash. Abilities uses
+`tools/padsim/abilities.mjs` and the native firmware interpreter with both SDK
+samples. Agent, clear-sign review and price alerts use
+`tools/padsim/session.mjs`; crew uses independent `tools/padsim/crew.mjs` peers.
+Their native drivers execute the firmware policy, parser and approval logic.
+Test identities are disposable; no existing secret or wallet is opened.
+
+The layout check examines rendered text rectangles against viewport and
+clipping ancestors, so `overflow-x: clip` cannot mask text outside the viewport.
+Added controls are checked for 44×44 px targets. Long Sheet content deliberately
+scrolls vertically: `markets-alerts-form-*` shows the lower form and reachable
+Save action, complementing the top-of-sheet stored-alert captures.
+All images are visually inspected for wrapping, clipped labels, public hashes,
+verbatim errors and empty states. The approved components and styles are retained.
