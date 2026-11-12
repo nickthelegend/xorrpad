@@ -1,0 +1,4 @@
+import{execFile}from'node:child_process';import{promisify}from'node:util';import{hostname,platform}from'node:os';
+const exec=promisify(execFile);
+export async function connectionStatus(){let tailscale;try{const {stdout}=await exec('tailscale',['status','--json'],{timeout:5000,maxBuffer:1024*1024});const j=JSON.parse(stdout);tailscale={state:j.BackendState,online:!!j.Self?.Online,hostname:j.Self?.HostName||null};}catch{tailscale={online:false,setupRequired:'Setup required: install and sign in to Tailscale on the desk host'};}
+return{host:{name:hostname(),platform:platform(),backend:'reachable'},tailscale,firmware:{version:'1.0.0',available:false,setupRequired:'Setup required: signed firmware file and verification manifest',notes:['USB-CDC, BLE and Wi-Fi transport priority','Keymap programming and expiring signal decisions','Compiled for ESP32-S3; not yet flashed']}};}

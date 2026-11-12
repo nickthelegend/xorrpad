@@ -1,3 +1,4 @@
+import { connectionStatus } from './connection-status.mjs';
 import { Abilities } from './abilities.mjs';
 import { regimeOf } from './strategies.mjs';
 import { Profiles } from './profiles.mjs';
@@ -149,7 +150,7 @@ export function createServer(mem) {
     const r=await fetch(`http://127.0.0.1:${srv.address().port}`+path,{method:body===undefined?'GET':'POST',headers:{authorization:'Bearer '+TOKEN,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
     const data=await r.json();if(!r.ok||data.ok===false)throw Error(data.error||'Setup required: ability request');return data;
   };
-  function abilities(){return abilityStore??=new Abilities({pad:srv.padlink,permissions,configured:async n=>n==='model'?!!agentSettings.read().model:(await credentials.masked(n)).configured,request:abilityRequest,
+  function abilities(){return abilityStore??=new Abilities({pad:srv.padlink,permissions,configured:async n=>n==='model'?!!agentSettings.read().model:!!(await credentials.masked(n)),request:abilityRequest,
     scan:async c=>{
       const to=Math.floor(Date.now()/3600000)*3600,history=new History();const h=await history.get({symbol:c.market||'SOL',from:to-300*3600,to});
       const daily=await history.get({symbol:'BTC',from:to-202*86400,to,resolution:'1D'});
@@ -400,6 +401,8 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if(url.pathname==='/desk/connection')return send(200,await connectionStatus());
+      if(url.pathname==='/desk/discover'){await srv.padlink.discover();return send(200,srv.padlink.snapshot());}
       if(url.pathname==='/abilities')return send(200,await abilities().list());
       const abilityMatch=url.pathname.match(/^\/abilities\/([a-z]+)(\/run)?$/);
       if(abilityMatch)return send(200,await (abilityMatch[2]?abilities().run(abilityMatch[1]):abilities().install(abilityMatch[1],body)));
@@ -1279,7 +1282,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],
