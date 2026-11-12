@@ -1522,6 +1522,19 @@ summary {
 .found-device p {
   font-size: 12px;
 }
+.connect-page .pairing-steps,
+.connect-page .found-device > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.connect-page .badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.connect-page input,
+.connect-page select {
+  font-size: 16px;
+}
 .connection-details {
   display: grid;
   grid-template-columns: 1fr 1fr;

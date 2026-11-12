@@ -1,16 +1,54 @@
-import React, { useState } from "react";
-import { useDesk, useRead, State } from "../core";
+import React, { useEffect, useState } from "react";
+import { useDesk, useRead, State, Field } from "../core";
 import { LoopVideo } from "../brand/LoopVideo";
 import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
+import { attestationState } from "../../../renderer/ui/device-attestation.mjs";
+
+function verification(peer) {
+  return peer.secure && peer.attestation?.verified === true
+    ? attestationState(true, peer.attestation.serial)
+    : attestationState(false, "", peer.attestation?.reason);
+}
+
 export function Connect() {
   const d = useDesk(),
-    link = useRead("/desk/link", 5000),
+    link = useRead("/desk/link", 2000),
+    status = useRead("/desk/status", 15000),
     system = useRead("/desk/connection", 30000);
   const [transport, setTransport] = useState("usb"),
     [searching, setSearching] = useState(false),
-    [searched, setSearched] = useState(false);
+    [searched, setSearched] = useState(false),
+    [pairDevice, setPairDevice] = useState(""),
+    [code, setCode] = useState(""),
+    [pairing, setPairing] = useState(false),
+    [pairState, setPairState] = useState(null);
   const found = link.data?.devices?.filter((x) => x.link === transport) || [];
+  const offers = link.data?.pairing || [];
+  const candidate = offers.find((x) => x.device === pairDevice) || offers[0];
+  const identity = found[0] && verification(found[0]);
+  useEffect(() => setCode(""), [candidate?.device]);
+  useEffect(() => {
+    if (!pairing || !pairState?.device) return;
+    if (link.data?.devices?.some((peer) => peer.device === pairState.device && peer.secure)) {
+      setPairing(false);
+      setPairState({ confirmed: pairState.device, data: "Encrypted pairing confirmed by the pad." });
+    }
+  }, [link.data, pairing, pairState]);
+  useEffect(() => {
+    if (pairState?.confirmed && (link.error || (link.data &&
+      !link.data.devices?.some((peer) => peer.device === pairState.confirmed && peer.secure)))) {
+      setPairState(null);
+    }
+  }, [link.data, link.error, pairState]);
+  useEffect(() => {
+    if (!pairState?.device) return;
+    const timer = setTimeout(() => {
+      setPairing(false);
+      setPairState({ error: "Setup required: pairing was not confirmed by the pad. Check its current code, try again and reconnect the pad." });
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [pairState?.device]);
   return (
     <section className="page connect-page">
       <div className="page-heading">
@@ -33,7 +71,11 @@ export function Connect() {
             className="rings-film"
           />
           <div className="pairing-copy">
-            <span className="badge">
+            <span
+              className="badge"
+              style={identity && !identity.verified ? { color: "var(--bad)", borderColor: "var(--bad)" } : undefined}
+              role="status"
+            >
               {!found.length && (
                 <img
                   className="connection-empty-art"
@@ -41,7 +83,7 @@ export function Connect() {
                   alt=""
                 />
               )}
-              {found.length ? "Verified device" : "Let’s find your pad"}
+              {identity ? identity.label : "Let’s find your pad"}
             </span>
             <h2>{found.length ? found[0].device : "A little closer."}</h2>
             <p>
@@ -49,6 +91,7 @@ export function Connect() {
                 ? `${found[0].link.toUpperCase()} · Firmware ${found[0].firmware}`
                 : "Connect xorrpad to the machine running your desk."}
             </p>
+            {identity && <p>{identity.reason}</p>}
           </div>
         </div>
         <div className="pairing-steps">
@@ -100,7 +143,7 @@ export function Connect() {
               setSearching(false);
             }}
           >
-            {searching ? "Reading available transports…" : "Find my pad"}
+            {searching ? "Reading available transports…" : "Connect a pad"}
             <Icon name="arrowUpRight" />
           </button>
           <State state={link} />
@@ -119,26 +162,85 @@ export function Connect() {
             <span>02</span>
             <h2>Make it official.</h2>
           </div>
-          {found.length ? (
-            <div className="found-device">
-              <span className="status-dot live" />
-              <div>
-                <b>{found[0].device}</b>
-                <p>
-                  Firmware {found[0].firmware} · Last seen{" "}
-                  {new Date(found[0].lastSeen).toLocaleTimeString()}
-                </p>
-                <a className="subtle-link" href="#device">
-                  Customize this pad <Icon name="arrowUpRight" />
-                </a>
+          {found.map((peer) => {
+            const attestation = verification(peer);
+            return (
+              <div className="found-device" key={peer.device + peer.link}>
+                <span className="status-dot live" />
+                <div>
+                  <b>{peer.device}</b>
+                  <p>
+                    {peer.link.toUpperCase()} · {peer.secure ? "Encrypted v2" : "Legacy v1 · not encrypted"}
+                    <br />
+                    Firmware {peer.firmware} · Last seen {new Date(peer.lastSeen).toLocaleTimeString()}
+                  </p>
+                  <span
+                    className="badge"
+                    style={!attestation.verified ? { color: "var(--bad)", borderColor: "var(--bad)" } : undefined}
+                    role="status"
+                  >
+                    {attestation.label}
+                  </span>
+                  <p>{attestation.reason}</p>
+                  <a className="button" href="#device">
+                    Customize this pad <Icon name="arrowUpRight" />
+                  </a>
+                </div>
               </div>
-            </div>
-          ) : (
-            <p>
-              Setup required: a valid v1 hello from your pad. We’ll show it here
-              when the handshake is verified.
-            </p>
+            );
+          })}
+          {candidate ? (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setPairing(true);
+              setPairState(null);
+              try {
+                await d.api("/pad/pair", { ...candidate, code });
+                setPairState({ device: candidate.device, data: "Pairing started. Confirm the connection on the pad; waiting for its encrypted handshake." });
+              } catch (error) {
+                setPairState({ error: error.message });
+                setPairing(false);
+              } finally {
+                setCode("");
+              }
+            }}>
+              <p>Enter the six-digit code shown on the pad, then confirm on the pad.</p>
+              <Field label="Pad to pair">
+                <select value={candidate.device} disabled={pairing} onChange={(e) => {
+                  setPairDevice(e.target.value);
+                  setCode("");
+                  setPairState(null);
+                }}>
+                  {offers.map((offer) => <option key={offer.device} value={offer.device}>{offer.device}</option>)}
+                </select>
+              </Field>
+              <Field label="Code on the pad">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  minLength={6}
+                  maxLength={6}
+                  autoComplete="off"
+                  spellCheck={false}
+                  required
+                  disabled={pairing}
+                  aria-describedby="pair-code-note"
+                />
+              </Field>
+              <p id="pair-code-note">The code stays in memory. Pair again after restarting the desk or pad.</p>
+              <button className="primary" disabled={pairing}>
+                {pairing ? "Starting encrypted pairing…" : "Pair securely"}
+                <Icon name="arrowUpRight" />
+              </button>
+            </form>
+          ) : !found.length && (
+            <p>No pad connected. Connect a pad over USB, Bluetooth or Wi-Fi to pair.</p>
           )}
+          <State state={pairState} title="Pairing needs attention." />
+          {pairState?.data && <p role="status">{pairState.data}</p>}
           <div className="step-heading">
             <span>03</span>
             <h2>Ready for what’s next.</h2>
@@ -177,6 +279,13 @@ export function Connect() {
           <Icon name="users" />
           <h3>Your desk, wherever it lives.</h3>
           <State state={system} />
+          <State state={status} />
+          {status.data && (
+            <div className="connection-line">
+              <span>Desk status checked</span>
+              <b>{new Date(status.data.observedAt).toLocaleTimeString()}</b>
+            </div>
+          )}
           {system.data && (
             <>
               <div className="connection-line">

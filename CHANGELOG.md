@@ -6,6 +6,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D1, Connect
+
+- Encrypted pairing through `/pad/pair` using the discovered public pad identity
+  and six-digit code shown on the pad, with confirmation from the peer snapshot,
+  readable errors and an explicit timeout when pairing is not confirmed.
+- Lime `Genuine xorrpad #serial` or red `Unverified device` badges and the exact
+  attestation reason from the current encrypted peer; legacy and unprovisioned
+  pads remain unverified, and disconnect/read failures clear the badge.
+- Existing Connect components retain the approved desktop appearance, with
+  transport/link timestamps, authenticated D1 route/browser regressions and
+  encrypted padsim screenshots at 1440 and 375 px.
+
 ### Added — firmware 3.0.0, factory and XOR phone attestation
 
 - Factory-signed device certificates, offline external-path key/issuance tools,

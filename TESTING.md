@@ -1524,3 +1524,47 @@ weakened. The V3 RAM-only signing/broadcast path supplies the explicit unfunded
 BLOCKED evidence above. Full output: `firmware/build/attestation-final-full-desk.log`.
 The signed firmware-3.0.0 factory-report regression also passes in the focused
 five-test factory rerun. All executed final checks have zero failures.
+
+## Desktop v3
+
+### D1 — Connect
+
+`npm run build:app --prefix desk` passes. The focused
+`desk/test/app-v3-routes.test.mjs` run passes **2/2 tests**, zero failures.
+`TMPDIR` points to a temporary directory on the project SSD because the system
+volume is nearly full; `SIBYL_PY="$PWD/.venv/bin/python"` selects the repo Python.
+The native prerequisite `firmware/test/run.sh` passes **268 cases / 2,658
+assertions**, zero failures.
+
+The D1 test checks the built bundle's `/pad/pair`, `/desk/link` and
+`/desk/status` references, unauthenticated requests, method restrictions,
+readable no-pad responses and continued `/classic` access. Its actual browser
+uses the desk server and fragmented USB CRC padsim, never intercepted APIs.
+It checks six-digit pairing, wrong-code timeout and corrected-code reconnect,
+real encrypted completion, unprovisioned red attestation with the exact reason,
+and genuine lime attestation using an issued certificate and fresh proof from
+a transient in-memory test factory injected through the `PadLink` constructor.
+Disconnect and transport changes clear the badge; no production root changes.
+
+Screenshots for empty, pairing, unverified and genuine states are in
+`docs/screens/v3/`, at **1440 and 375 px**, with reduced motion. Browser checks
+assert no horizontal overflow and at least 44 px for the screen's buttons,
+form controls and customization links. The screenshots are visually inspected.
+
+The complete desk suite runs alone in a disposable copy of the current source,
+with dependencies, native helpers and public compiled images available. No
+existing wallet, environment or private-key files are copied into that checkout;
+the funded-wallet test can only create a disposable unfunded test identity.
+No existing local wallet is opened, no test is deleted or weakened, and nothing
+is signed with an existing key, flashed or pushed.
+
+Final complete run: **231 tests, 221 passed, 10 setup/provider skips, zero
+failures or cancellations**, 518,856.422209 ms. Run alone from the isolated
+checkout, with no skip filter and all existing test files unchanged:
+
+```sh
+TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+```
+
+The final working-tree `npm run build:app --prefix desk` also passes. Local logs
+are retained at `firmware/build/desktop-v3-d1-{desk,build,native}.log`.
