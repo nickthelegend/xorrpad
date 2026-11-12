@@ -450,3 +450,27 @@ env TMPDIR="$PWD/firmware/build/s4-tmp" arduino-cli compile --jobs 4 --build-pat
 S4 final sizes and test counts are recorded in [TESTING.md](../TESTING.md).
 Actual mic energy thresholds, BLE throughput/latency, amp volume and the TFT
 waveform require the assembled board. No hardware result is implied by tests.
+
+## v2 S4 health (2026-11-12)
+
+ESP32 core 3.3.10's `qio_opi` SDK enables
+`CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`, `CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF`
+and `CONFIG_ESP_BROWNOUT_DET`. Health compilation fails if flash core dumps or
+brownout detection are disabled. The existing `coredump` partition is 256 KiB
+at `0x610000`; install that partition layout before app-only OTA can use it.
+[Espressif's core dump guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/core_dump.html)
+describes decoding the SDK image with the matching application ELF.
+
+The loop task and idle tasks have a panic-enabled 90 s watchdog, allowing the
+retained 60 s legacy voice HTTP timeout. Brownout stays under the SDK handler;
+reset reason/name and a 120-character NVS history are reported at the next
+stable boot. Telemetry is encrypted, immediate on the first connection and then
+every 30 s; internal-sensor failures report null. Only an accepted link send
+advances the telemetry timer or the crash upload offset.
+
+On connect the pad checks the SDK flash dump checksum and hashes the bounded
+image. The desk verifies ordered chunks and SHA-256, writes a private 0600 file
+and fsyncs before acknowledging its digest and size. The pad retains flash
+until that exact acknowledgment; disconnects, transport changes, fresh pairing
+and lost acknowledgments restart safely. Dumps remain local to the paired desk.
+No crash is deliberately triggered or hardware brownout induced by this step.

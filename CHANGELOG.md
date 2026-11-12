@@ -6,6 +6,15 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S4 health
+
+- Panic-enabled task/idle watchdog, SDK brownout reset handling, bounded NVS
+  reset history and encrypted 30-second uptime/heap/PSRAM/RSSI/temperature/link
+  telemetry. Uptime uses the 64-bit monotonic clock.
+- Flash core dump upload with contiguous bounded chunks, SHA-256 and size-bound
+  acknowledgments, durable private desk storage, reconnect/re-pair recovery
+  and lost-ack retries. Flash is erased only after the desk saves the full image.
+
 ### Added — firmware 2.0.0, S4 voice
 
 - 16 kHz mono Opus at 24 kbps, push-to-talk energy VAD/noise gate, live TFT

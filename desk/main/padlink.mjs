@@ -2,9 +2,9 @@
 import OpusScript from "opusscript";
 import { EventEmitter } from "node:events";
 import { Duplex } from "node:stream";
-import { readFileSync, mkdirSync, writeFileSync, renameSync } from "node:fs";
+import { readFileSync, mkdirSync, writeFileSync, renameSync, openSync, fsyncSync, closeSync, unlinkSync } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   SecureSession,
   checkCRC,
@@ -894,36 +894,40 @@ export class PadLink extends EventEmitter {
         return;
       }
       if (m.type === "crash") {
-        if (
-          !Number.isInteger(m.offset) ||
-          m.offset < 0 ||
-          m.offset > 262144 ||
-          typeof m.data !== "string" ||
-          m.data.length > 684 ||
-          typeof m.end !== "boolean" ||
-          !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(m.data)
-        )
+        if (!Number.isInteger(m.offset) || m.offset < 0 ||
+            !Number.isInteger(m.size) || m.size < 1 || m.size > 262144 ||
+            typeof m.dump !== "string" || !/^[a-f0-9]{64}$/.test(m.dump) ||
+            typeof m.data !== "string" || m.data.length > 684 ||
+            typeof m.end !== "boolean" ||
+            !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(m.data))
           throw Error("invalid crash chunk");
-        p.crash ||= [];
-        if (m.offset !== p.crash.reduce((n, b) => n + b.length, 0))
-          throw Error("crash order");
         const chunk = Buffer.from(m.data, "base64");
-        if (!chunk.length || chunk.length > 512 || m.offset + chunk.length > 262144)
-          throw Error("crash size limit");
-        p.crash.push(chunk);
+        if (!chunk.length || chunk.length > 512 || m.offset+chunk.length > m.size ||
+            m.end !== (m.offset+chunk.length === m.size)) throw Error("crash size limit");
+        if (m.offset === 0) p.crash = { dump: m.dump, size: m.size, offset: 0, chunks: [] };
+        const c = p.crash;
+        if (!c || c.dump !== m.dump || c.size !== m.size || c.offset !== m.offset)
+          throw Error("crash order");
+        c.chunks.push(chunk);c.offset += chunk.length;
         if (m.end) {
-          mkdirSync(path.join(this.stateDir, "crashes"), { recursive: true });
-          writeFileSync(
-            path.join(
-              this.stateDir,
-              "crashes",
-              p.device + "-" + Date.now() + ".elf",
-            ),
-            Buffer.concat(p.crash),
-            { mode: 0o600 },
-          );
+          const image = Buffer.concat(c.chunks);
           p.crash = null;
-          this.send(p, { type: "crash_saved" });
+          if (createHash("sha256").update(image).digest("hex") !== m.dump)
+            throw Error("crash checksum");
+          const dir = path.join(this.stateDir,"crashes");
+          mkdirSync(dir,{recursive:true,mode:0o700});
+          const file = path.join(dir, p.device+"-"+m.dump+".coredump");
+          const temporary = file+"."+randomUUID()+".tmp";
+          let fd;
+          try {
+            fd=openSync(temporary,"wx",0o600);writeFileSync(fd,image);fsyncSync(fd);
+            closeSync(fd);fd=undefined;renameSync(temporary,file);
+            fd=openSync(dir,"r");fsyncSync(fd);closeSync(fd);fd=undefined;
+          } finally {
+            if(fd !== undefined) closeSync(fd);
+            try {unlinkSync(temporary);} catch(e) {if(e.code!=="ENOENT")throw e;}
+          }
+          this.send(p,{type:"crash_saved",dump:m.dump,size:m.size});
         }
         return;
       }

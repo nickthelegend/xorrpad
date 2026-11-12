@@ -137,7 +137,20 @@ before the existing voice backend; no provider key reaches the pad.
 
 `telemetry` runs every 30 s (uptime, heap, PSRAM, RSSI, temperature or null, link,
 fw, reset reason/log). `crash` chunks carry offset/data/end, bounded to 256 KiB;
-only encrypted `crash_saved` allows erasure. `factory_result` includes the exact
+each chunk also supplies `dump` (64 lowercase hex SHA-256 characters) and
+`size` (1–262,144 bytes). Offsets must be contiguous and `end` must coincide
+with the declared size. The desk checks SHA-256, saves the raw SDK flash image
+as `<device>-<dump>.coredump` with mode 0600, and fsyncs before sending
+`crash_saved {dump,size}`. Only a matching encrypted acknowledgment after the
+complete upload permits erasure. Disconnect, failover or a fresh pairing
+restarts at offset zero; loss of `crash_saved` retries after 30 seconds.
+Keep the matching firmware ELF for Espressif's core dump analysis tools.
+Reset telemetry also includes `resetName`, `brownout`, and `watchdog`; the SDK
+brownout ISR resets immediately and NVS history is updated on stable boot.
+The loop task and idle tasks use a panic-enabled 90-second task watchdog to
+allow the retained 60-second legacy voice HTTP operation.
+
+`factory_result` includes the exact
 signed JSON payload, public identity key and Ed25519 signature. Its serial must
 match the paired identity; the desk/factory monitor verify before reporting.
 

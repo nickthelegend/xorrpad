@@ -33,6 +33,7 @@ public:
     return via != NONE && _sessions[via].queue.empty() &&
            !_sessions[via].pending.size();
   }
+  uint32_t connectionEpoch() const {return _connectionEpoch;}
   bool secureReady() const {
     return active() != NONE && _sessions[active()].established;
   }
@@ -135,21 +136,21 @@ public:
     _out = "";
     newVoice();
   }
-  void send(JsonDocument &doc) {
+  bool send(JsonDocument &doc) {
     String type = doc["type"] | "";
     if (killed && (type == "knob" || type == "voice" ||
-        (type == "key" && doc["action"] != "kill"))) return;
+        (type == "key" && doc["action"] != "kill"))) return false;
     Transport via = active();
     if (via == NONE)
-      return;
+      return false;
     if (_sessions[via].established) {
       String payload;
       serializeJson(doc, payload);
       auto &s = _sessions[via];
-      if (s.queue.size() < 32)
-        s.queue.push_back(payload);
+      if(s.queue.size()>=32)return false;
+      s.queue.push_back(payload);
       flush(via);
-      return;
+      return true;
     }
     if (legacy) {
       doc["v"] = 1;
@@ -157,7 +158,9 @@ public:
       serializeJson(doc, line);
       line += '\n';
       write(via, line);
+      return true;
     }
+    return false;
   }
   void tick() {
     if (!_server || !identity.ok)
@@ -330,6 +333,7 @@ private:
   bool eligible(Transport via) const {
     return _sessions[via].established || (legacy && !_sessions[via].offered);
   }
+  uint32_t _connectionEpoch=0;
   Transport _previous = NONE;
   secure::Session _sessions[4];
   void flush(Transport via) {
@@ -453,6 +457,7 @@ private:
       }
       if (type == "ready") {
         session.established = true;
+        ++_connectionEpoch;
         JsonDocument ready;
         ready["type"] = "ready";
         ready["killed"] = killed;

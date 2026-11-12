@@ -36,6 +36,7 @@
 #include "logic/kill-switch.h"
 #include "profiles.h"
 #include "knob.h"
+#include "health.h"
 
 Display    screen;            // the display pod
 ChartState chartNow;
@@ -50,6 +51,7 @@ Net        net;
 Provision  provision;
 Settings   settings;
 PadLink    padlink;
+Health health;
 Profiles profiles;
 Knob knob;
 xorr::KnobControl knobControl;
@@ -57,6 +59,7 @@ xorr::KnobControl knobControl;
 bool telnetStarted=false, keymapShown=false;
 PadLink::Transport recTransport=PadLink::NONE;
 bool recStreaming=false;
+uint32_t recEpoch=0;
 xorr::VoicePlayback playback;
 xorr::VoiceGate voiceGate;
 
@@ -129,7 +132,8 @@ void ledFromState() {
 // Messages are applied on loop(), including BLE callbacks queued by link.h.
 void onPadMessage(JsonVariantConst d) {
   String type=d["type"] | "";
-  if (type == "kill_sync") { latchKill(); }
+  if(type=="crash_saved") health.crashSaved(d);
+  else if (type == "kill_sync") { latchKill(); }
   else if (type == "profiles" || type == "profile_map" || type == "profile_select") {
     bool ok=false;
     if(padlink.secureReady()) {
@@ -213,6 +217,7 @@ void startRecording(uint32_t autoStopMs = 0) {
   // No "select an agent first" gate: the backend always has one holding the
   // baton, so a spoken order is never homeless. Refusing here would invent a
   // rule the backend does not have.
+  recEpoch=padlink.connectionEpoch();
   recTransport = padlink.active();
   recStreaming = padlink.ready();
   if (!padlink.newVoice()) {
@@ -445,7 +450,7 @@ void setup() {
   loadKeymap();
   profiles.begin();
   knob.begin();
-  screen.begin();                       // shows the test card while WiFi comes up
+  health.begin(screen.begin());                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
   if (!audio.begin()) Serial.println("!! audio init failed");
   recBuf = (int16_t *)ps_malloc(REC_CAP * sizeof(int16_t));
@@ -500,6 +505,7 @@ void setup() {
 }
 
 void loop() {
+  health.tick(padlink);
   padlink.killed = killSwitch.killed;
   provision.poll();padlink.tick();
   if(killSwitch.killDue(millis()))latchKill();
@@ -533,6 +539,7 @@ void loop() {
   if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
   if(!padlink.ready() && !padlink.legacy)pad.ok=false;
   matrix.scan(onKey);
+  health.keysScanned=true;
   telnet.poll();
 
   // One cheap poll a second keeps the light honest — armed, waiting on a ✓,
@@ -570,7 +577,7 @@ void loop() {
   if (recording && recBuf) {
     int16_t block[256];
     size_t n = audio.readMic(block, 256);
-    if(recStreaming && (!padlink.ready() || padlink.active()!=recTransport)) {
+    if(recStreaming && (!padlink.ready() || padlink.active()!=recTransport || padlink.connectionEpoch()!=recEpoch)) {
       recording=pad.listening=false;pad.lastKeyLabel="Voice link lost";
       pad.labelUntil=millis()+4000;screenDirty=true;playback.reset();return;
     }

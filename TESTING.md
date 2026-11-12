@@ -545,3 +545,48 @@ BLE Opus TTS at 60 bytes/20 ms, exact USB PCM and invalid voice rejection.
 Complete normal working-tree build: **1,768,470 bytes flash; 64,900 bytes static
 RAM** before S4 health changes. Final normal/release evidence follows below.
 Mic, speaker, knob, TFT and radio behavior still require hardware verification.
+
+## Firmware v2 — S4 health and final builds (2026-11-12)
+
+**Compiled, not yet flashed.** S4 adds 14 native cases and seven encrypted
+simulator cases across voice and health. Native results:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S4 commit snapshot | 151 | 992 | all passed |
+| Complete working tree, preserving pre-existing work | 158 | 1,015 | all passed |
+
+The health cases cover exact 30-second cadence and timer wrap, bounded brownout
+and watchdog reset history, crash size/digest validation, ack binding, chunk
+progress, reconnect, failover, same-transport re-pair and lost-ack retries.
+The desk tests pair over real TCP with v2 encryption, exercise actual Opus,
+and test ordered binary crash transfer, private durable file storage, hash and
+offset failures, retry idempotence and storage failure without acknowledgment.
+Their generated transfer bytes are protocol fixtures, not a claim of a crash
+captured from hardware. Plaintext telemetry cannot update an encrypted peer.
+
+All four final Arduino builds passed with ESP32 core **3.3.10**:
+
+| Source | Normal flash | Release flash | Static RAM (both) |
+| --- | ---: | ---: | ---: |
+| Isolated S4 snapshot | 1,741,027 bytes | 1,741,027 bytes | 64,204 bytes |
+| Complete working tree | 1,770,706 bytes | 1,769,562 bytes | 64,940 bytes |
+
+App-slot limit: 3,145,728 bytes; static RAM limit: 327,680 bytes. Dynamic Opus,
+PSRAM audio/display and JSON allocations are additional. Exact working-tree
+commands and FQBN are in [firmware/README.md](firmware/README.md#v2-s4-voice-2026-11-12).
+The isolated snapshot uses those same flags/FQBN with a separate source and
+build path, keeping unrelated unfinished work out of the S4 commits.
+
+Hardware still needs mic/VAD calibration, BLE throughput and latency, actual
+PTT/knob/chimes/waveform, watchdog panic capture, brownout/reset history, flash
+dump retention across power loss, and reconnect/upload/erase verification.
+No upload/flash, secret-file read, signing, eFuse action or push was performed.
+
+Final full desk `npm test`: **158 tests, 148 passed, 10 explicit skips,
+0 failures, 0 cancelled**, in **386.30 s**. Skips retain the suite's existing
+setup conditions (missing optional credentials/services or unfunded devnet
+accounts). An initial full run timed out in the existing live book-strategy
+market-data test; that unchanged test passed in **68.14 s** on the final run.
+All seven S4 desk tests and existing v2 pairing, OTA, kill, replay, profile and
+live devnet signal/verified historical receipt cases passed.
