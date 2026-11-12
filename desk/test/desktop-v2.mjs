@@ -205,6 +205,18 @@ try {
   await ready("device");
   await page.keyboard.press("Meta+k");
   await page.getByRole("dialog", { name: "Command palette" }).waitFor();
+  const commandSearch = page.getByRole("combobox", {name: "Search screens and actions"});
+  for (const command of ["Device", "Abilities", "Connect", "Agent", "Markets", "Activity", "signal decisions", "Disarm", "permission policy", "real-history backtest"]) {
+    await commandSearch.fill(command);
+    assert.ok(await page.getByRole("option").count(), "Search finds " + command);
+  }
+  await commandSearch.fill("Open");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await commandSearch.getAttribute("aria-activedescendant"), "command-1");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await commandSearch.getAttribute("aria-activedescendant"), "command-0");
+  await page.keyboard.press("Tab");
+  assert.ok(await commandSearch.evaluate(e => e === document.activeElement));
   await page.screenshot({ path: path.join(output, "palette-1440.png") });
   screenshots.push({
     name: "palette",
@@ -216,9 +228,11 @@ try {
   await page.keyboard.press("Enter");
   await page.locator(".activity-filters").waitFor();
   assert.equal(new URL(page.url()).hash, "#activity");
-  checks.push(
-    "Command palette opens with Meta+K, searches and navigates by keyboard",
-  );
+  checks.push("Command palette searches all six screens and four actions, moves with arrows, contains Tab and opens Activity with Enter");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("dialog", { name: "Command palette" }).waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await page.getByRole("dialog", { name: "Command palette" }).count(), 0);
   await page.locator(".skip").focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement.id), "main");

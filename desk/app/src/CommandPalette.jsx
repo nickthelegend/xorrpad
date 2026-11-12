@@ -78,8 +78,14 @@ export function CommandPalette() {
     };
   }, []);
   useEffect(() => {
-    if (open) input.current?.focus();
+    if (!open) return;
+    const previous = document.activeElement;
+    input.current?.focus();
+    return () => previous?.focus?.();
   }, [open]);
+  useEffect(() => {
+    if (open) document.getElementById("command-" + active)?.scrollIntoView({block: "nearest"});
+  }, [open, active, query]);
   function choose(a) {
     setOpen(false);
     a.run();
@@ -97,7 +103,7 @@ export function CommandPalette() {
           if (e.key === "Escape") setOpen(false);
           if (e.key === "ArrowDown") {
             e.preventDefault();
-            setActive((a) => Math.min(a + 1, filtered.length - 1));
+            setActive((a) => Math.max(0, Math.min(a + 1, filtered.length - 1)));
           }
           if (e.key === "ArrowUp") {
             e.preventDefault();
@@ -118,6 +124,7 @@ export function CommandPalette() {
           <input
             ref={input}
             role="combobox"
+            aria-label="Search screens and actions"
             aria-expanded="true"
             aria-controls="command-options"
             aria-activedescendant={
