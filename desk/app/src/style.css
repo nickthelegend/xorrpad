@@ -510,6 +510,9 @@ small {
   margin-top: 20px;
 }
 .notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -2557,3 +2560,5 @@ summary {
     font-size: 9px;
   }
 }
+
+.notice button { color: inherit; border-color: #12121633; padding: 6px 10px; flex-shrink: 0; }

@@ -71,6 +71,9 @@ try {
       ?.textContent.includes("LIVE PREVIEW"),
   );
   assert.equal((await api("/pad/keymap")).keys[0].label, "LIVE PREVIEW");
+  await page.locator(".notice").waitFor();
+  await page.getByRole("button", { name: "Dismiss notification" }).click();
+  assert.equal(await page.locator(".notice").count(), 0);
   checks.push(
     "Key preview stays local until the actual keymap save; 14 keys and offline brand fonts",
   );
@@ -143,6 +146,9 @@ try {
         .querySelector('[aria-label="Install Market Pulse"]')
         .getAttribute("aria-checked") === "false",
   );
+  await page.locator(".notice").waitFor();
+  await page.locator(".notice").waitFor({ state: "hidden", timeout: 5000 });
+  checks.push("Action notifications can be closed and automatically dismiss within four seconds");
   checks.push(
     "All eight abilities are present; Market Pulse actually installs, binds and uninstalls through the real API",
   );
@@ -170,7 +176,9 @@ try {
   async function capture(name, width) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 812 });
     await page.goto(url + "#" + name);
+    await page.reload(); // A fresh app session: preceding verification actions cannot leak into captures.
     await ready(name);
+    assert.equal(await page.locator(".notice").count(), 0, "No action toast on clean load");
     await page.waitForTimeout(120);
     const layout = await page.evaluate(() => ({
       width: innerWidth,

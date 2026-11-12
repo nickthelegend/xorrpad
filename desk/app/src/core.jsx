@@ -141,9 +141,10 @@ export function Provider({ children }) {
       new URLSearchParams(location.search).get("token") || "",
     ),
     [revision, bump] = useState(0),
-    [message, notify] = useState(""),
+    [message, setMessage] = useState(null),
     [event, setEvent] = useState(null),
     [online, setOnline] = useState(false);
+  const notify = useCallback((text) => setMessage({ text, id: crypto.randomUUID() }), []);
   const api = useCallback(
     async (path, body, opts = {}) => {
       if (!token)
@@ -195,7 +196,7 @@ export function Provider({ children }) {
   }, [token]);
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(() => notify(""), 7000);
+    const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
   const refresh = () => bump((n) => n + 1);
@@ -224,7 +225,8 @@ export function Provider({ children }) {
       {children}
       {message && (
         <div className="notice" role="status">
-          {message}
+          <span>{message.text}</span>
+          <button type="button" aria-label="Dismiss notification" onClick={() => setMessage(null)}>Close</button>
         </div>
       )}
     </Desk.Provider>
