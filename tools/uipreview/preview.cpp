@@ -164,10 +164,13 @@ int main(int argc, char **argv) {
     p.agent = "momentum"; p.market = "NVDAx"; p.chain = "solana";
     p.price = 221.67f; p.verdict = "BUY: limits recalled from memory (max $100/trade); NYSE is closed and this trades anyway";
     p.hoursState = "AFTER"; p.marketOpen = false; p.nyTime = "17:44";
+    // Existing native/JS canonical conformance vector, never a live quote.
+    p.market="SOL";p.venue="Jupiter";p.signalSide="buy";p.signalSize="100";
+    p.signalPrice="150.5";p.signalFee="0.25";p.fingerprint="AgrJHn";
     p.hoursNote = "shut on the NYSE - this trades anyway";
     fillChart(ch, "NVDAx", 219.0f, 0.012f);
     ui::drawFrame(c, p, ch);
-    shot("04-confirm-buy", "a decision waiting on a human");
+    shot("04-confirm-buy", "canonical conformance vector layout, not a live quote");
   }
 
   // 5. stopped + memory wiped

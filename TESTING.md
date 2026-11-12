@@ -651,3 +651,58 @@ Secure Boot v2 and flash/NVS encryption are documented in
 [firmware/PRODUCTION.md](firmware/PRODUCTION.md), with permanent eFuse/key/recovery
 warnings. They are not enabled. No flash/upload, hardware reset, signing-key
 read, release signing operation, security configuration/eFuse change or push occurred.
+
+## Firmware v2 — S6 P1 presentation (2026-11-12)
+
+**Compiled, not yet flashed.** Firmware remains **2.0.0** on local branch
+`fw-v2`. P1 is split into local screen/sprite, accessibility/idle, LED-language
+and integration-hardening commits. Unrelated unfinished firmware work is
+preserved outside those commits. No upload, signing-key read, release signing,
+eFuse/security operation or push was performed.
+
+Nine new native cases exercise the actual presentation logic: the exact
+RGB565 palette, lossless bounded reply pagination (including clock wrap),
+idle boundaries/night clamps/wake, every four-cell left-handed permutation,
+LED priority/pulse/off phases, and confirmation visibility under all overlay
+states. All native tests passed:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Isolated S6 commit snapshot | 171 | 1,512 | all passed |
+| Complete working tree | 178 | 1,535 | all passed |
+
+Final full desk `npm test`: **163 tests, 153 passed, 10 explicit setup/provider
+skips, zero failures, zero cancelled**, **445.10 s**. The existing encrypted
+USB management test now verifies all four accessibility/night flags, brightness,
+and rejection of out-of-range brightness without changing the saved value.
+Real quote/provider, simulator, crypto, OTA, factory, voice and health tests
+remain enabled; no tests were deleted or weakened.
+
+All final normal/release Arduino CLI builds passed:
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Isolated S6 snapshot | 1,775,658 bytes | 1,773,486 bytes | 65,196 bytes | 65,116 bytes |
+| Complete working tree | 1,781,430 bytes | 1,779,282 bytes | 65,236 bytes | 65,156 bytes |
+
+Limits are **3,145,728 bytes per app slot** and **327,680 bytes static RAM**.
+Two runtime PSRAM sprites add **307,200 bytes**; audio/JSON/other runtime memory
+is additional. Arduino CLI **1.5.1**, ESP32 core **3.3.10**; exact FQBN,
+flags, source and output paths are in
+[firmware/README.md](firmware/README.md#v2-s6-p1-presentation-2026-11-12).
+
+`make -C tools/uipreview` and the preview executable passed, rendering sixteen
+frames of the same Adafruit GFX drawing code to `firmware/build/s6-ui/`.
+Visual review covered chart/status separation, the canonical signal conformance
+vector (explicitly not a live quote), the historical receipt, empty positions,
+reply wrapping/high contrast, listening, OTA, coded fixes and kill. The preview
+also asserts that pending/listening/update state cannot replace the killed
+screen. Palette values and visibility rules are covered by native logic tests.
+Diff whitespace checks pass.
+
+**Nick still needs to verify on the assembled board:** PSRAM allocation and
+flicker/tearing over SPI, QR scanning/BLE passkey visibility, PWM brightness
+and physical wake, two-/ten-minute idle transitions, contrast in ambient light,
+left-handed cap/wiring correspondence, audible amount timing/provider setup,
+LED colors/brightness, waveform and OTA/reboot behavior. Compilation, native
+logic and laptop rendering do not establish those physical results.

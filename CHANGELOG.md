@@ -6,6 +6,16 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S6 P1
+
+- All P1 TFT screens, two explicit PSRAM sprites and the xorr.finance RGB565
+  palette; live Market Pulse, real position rows/PnL, scrolling replies and
+  coded fixes preserve unknown values and display priority.
+- Persisted brightness/night/high-contrast/spoken-amount/left-handed settings,
+  two-minute dim and ten-minute blank, with consumed wake/dismiss gestures.
+- Cobalt idle breathing, lime pending pulses, mint receipt flashes, amber
+  errors and kill-first solid red status indications.
+
 ### Added — firmware 2.0.0, S5 release hardening
 
 - Compile out telnet in `XORR_RELEASE=1`, suppress application/SDK/portal logs,

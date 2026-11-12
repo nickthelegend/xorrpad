@@ -538,3 +538,48 @@ The isolated S5 snapshot uses the same FQBN/flags with source
 S1–S5 features; unrelated unfinished working-tree changes remain outside the
 S5 commits. Sizes, native/desk results and hardware limitations are recorded
 in [TESTING.md](../TESTING.md#firmware-v2--s5-release-and-final-builds-2026-11-12).
+
+## v2 S6 P1 presentation (2026-11-12)
+
+**Compiled, not yet flashed.** All ten P1 screen states are implemented: Market
+Pulse (including 24h change without candle history), paged positions/PnL,
+trusted signal, receipt/short explorer signature, waveform, scrolling agent
+reply, OTA progress, kill, pairing QR, and coded errors with a one-line fix.
+Two explicit RGB565 PSRAM sprites total **307,200 bytes**; allocation failure
+shows `DISPLAY_RAM / Enable OPI PSRAM; reboot` and does not report display health.
+Frames swap after the synchronous SPI blit. The six xorr.finance colors use
+RGB565 truncation; night is `0x0000` because all its channel values are below
+the panel's quantization step.
+
+Desk-set brightness (1–255), night mode, high contrast, spoken confirmation
+amounts and left-handed mode persist in NVS. Night caps brightness at 40;
+inactivity divides it by eight at two minutes and blanks at ten. Keys and
+knob events wake it, consuming the first gesture from a blank screen. Error
+and reply dismissal also consumes the gesture. KILL/REFUSE stay available.
+The left-handed permutation reverses movable occupied cells per matrix row;
+YES/NO/MIC/KILL and unused cells keep their measured positions. The keymap
+preview follows that same mapping. Confirmed receipts take priority over
+replies; all replies start on page one and scroll without dropping long words.
+
+The status LED breathes cobalt at idle, pulses lime for a pending signal,
+flashes mint only for a receipt, displays errors in amber and KILL in solid red.
+KILL overrides every other animation. Ordinary voice activity uses this same
+language. Factory mode retains its dedicated RGB inspection sequence.
+
+Exact compile-only commands (Arduino CLI 1.5.1, ESP32 core 3.3.10):
+
+```sh
+mkdir -p firmware/build/s6-tmp
+env TMPDIR="$PWD/firmware/build/s6-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/s6-working-normal" --output-dir firmware/build/s6-working-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/s6-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/s6-working-release" --output-dir firmware/build/s6-working-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+Isolated S6 builds use the same FQBN/flags with source
+`firmware/build/s6-snapshot/firmware/xorrpad`, build paths
+`firmware/build/s6-isolated-{normal,release}` and output paths
+`firmware/build/s6-isolated-{normal,release}-out`. This snapshot contains only
+committed S1–S6 work; unrelated unfinished changes remain outside these commits.
+Sizes, native/desk results and physical limitations are recorded in
+[TESTING.md](../TESTING.md). Layout QA runs `make -C tools/uipreview` followed by
+`./tools/uipreview/preview firmware/build/s6-ui 2`, rendering the actual GFX UI.
+Those layout fixtures do not represent new trades or hardware verification.

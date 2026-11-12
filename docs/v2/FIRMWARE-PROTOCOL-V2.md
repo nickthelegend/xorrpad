@@ -164,3 +164,48 @@ inactive slot, hashes writes, verifies length/hash before changing the boot
 partition, and leaves boot pending until display/keys/handshake pass within 60 s.
 The Connect screen verifies a selected manifest and starts background upload;
 status polling exposes progress. No enablement of silicon secure boot is implied.
+
+## P1 presentation and accessibility
+
+Authenticated `ready` and `config` carry `brightness` (integer 1–255),
+`night`, `highContrast`, `speakAmounts`, and `leftHanded` (booleans). Partial
+updates preserve omitted fields. The pad validates a complete candidate and
+persists only changed display settings in `xorrui/settings`; a failed write
+leaves the previous settings active and displays `UI_SETTINGS`. Factory reset
+erases these preferences. Night mode caps the backlight at 40/255. After
+120,000 ms without a key/knob event the backlight is divided by eight (minimum
+one); after 600,000 ms it is zero. A key/knob wakes it. The first gesture from
+a blank screen, or a key dismissing an error/reply, is consumed before trade
+input; KILL and REFUSE retain their immediate safety behavior. Left-handed
+mode reverses occupied action cells within each matrix row; holes and dedicated
+YES/NO/MIC/KILL stay fixed. The keymap preview follows the same mapping.
+
+With spoken amounts enabled, a fresh physical confirmation sends
+`speak_amount {signalId}` once for that displayed signal. The desk checks the
+signal ID against its displayed proposal before invoking its existing TTS
+path. Provider configuration stays on the desk. This is an accessibility
+announcement; the normal confirmation gate and hold requirement still apply.
+
+`pulse` carries the active market's real `price`, optional `change24h`, up to
+48 closes, optional book `unrealised`, `positions` (open count), and up to eight
+`positionDetails [{market,qty,pnl}]`. A row's `pnl` is null when its live price
+or remembered entry basis is unavailable. The TFT marks unavailable PnL with
+`--`; it never substitutes flat performance. Market Pulse and positions
+alternate every six seconds; lists longer than four rows page on later visits.
+Legacy HTTP retains the book/count display when detail rows are unavailable.
+
+`reply {text}` is bounded to 2,000 characters and scrolls eight wrapped lines
+at a time every six seconds, starting at arrival. Pending signals and receipts
+outrank replies; loss of link shows the offline warning. Error records carry
+`code` and a one-line `fix`. Local OTA acknowledgments drive the progress bar,
+including 100% until reboot after a successful end. Pairing QR rendering is
+suppressed whenever KILL, factory, update or error screens own the display.
+
+The TFT composes frames on two explicitly allocated 320×240 RGB565 PSRAM
+sprites (307,200 bytes total), blits synchronously, then swaps. Its palette is
+night `0000`, ink `f79d`, lime `cfa7`, mint `0ecf`, cobalt `2adf`, lavender
+`b53f`. High contrast uses white text against night, retaining written state
+labels as well as color. LED priority is KILL solid red, error amber,
+confirmation sweep, pending lime pulse, confirmed fill mint flash, then idle
+cobalt breathing. A fill flash includes a fully off phase; acknowledgments do
+not create fill indications.
