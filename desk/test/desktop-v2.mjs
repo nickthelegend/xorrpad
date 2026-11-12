@@ -173,6 +173,7 @@ try {
         /GeckoTerminal/,
       );
     }
+    if (name === "connect") assert.equal(await page.locator(".rings-film").evaluate(n => getComputedStyle(n).objectFit), "contain");
     if (name === "device")
       await page.locator(".physical-key:not([disabled])").first().waitFor();
   }

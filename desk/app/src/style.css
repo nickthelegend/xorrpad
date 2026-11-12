@@ -1415,10 +1415,14 @@ summary {
 }
 .rings-film {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  top: 7%;
+  left: 4%;
+  width: 92%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  mix-blend-mode: lighten;
+  mask-image: radial-gradient(closest-side, #000 55%, transparent);
   opacity: 0.72;
 }
 .pairing-copy {
