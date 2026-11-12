@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pro P1: local KiCad preparation, SES import and ground stitching.
+"""Local KiCad preparation, SES import and ground stitching for Pro/Core.
 
 Use KiCad's bundled Python. The official JAR is run separately by route-jar.py.
 Never contacts a service, orders, or changes a DRC severity/exclusion.
@@ -17,6 +17,7 @@ from shapely.ops import unary_union, polygonize
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / 'generated'
+SKU = 'pro'
 def v(x, y): return k.VECTOR2I(k.FromMM(x), k.FromMM(y))
 def lset(*ids):
     s = k.LSET()
@@ -45,7 +46,7 @@ def track(b, net, points, width=.1565, layer=k.F_Cu, locked=False):
         t.SetWidth(k.FromMM(width));t.SetLayer(layer);t.SetNet(b.FindNet(net));t.SetLocked(locked);b.Add(t)
 
 def prepare():
-    project=json.loads((OUT/'pro-placement.kicad_pro').read_text())
+    project=json.loads((OUT/f'{SKU}-placement.kicad_pro').read_text())
     rules=project['board']['design_settings']['rules']
     rules.update(min_clearance=.15,min_track_width=.15,min_via_diameter=.6,
                  min_through_hole_diameter=.3,min_via_annular_width=.15)
@@ -55,7 +56,7 @@ def prepare():
     project['net_settings']['classes'].append(dict(nc,name='USB',priority=0,
         track_width=.1565,diff_pair_width=.1565,diff_pair_gap=.1935))
     project['net_settings']['netclass_patterns']=[{'netclass':'USB','pattern':'USB_D*'}]
-    b=k.LoadBoard(str(OUT/'pro-placement.kicad_pcb'))
+    b=k.LoadBoard(str(OUT/f'{SKU}-placement.kicad_pcb'))
     b.SetCopperLayerCount(4)
     for f in b.GetFootprints():
         for z in f.Zones():
@@ -70,6 +71,11 @@ def prepare():
     limiter.SetPosition(v(180.5,148.5))
     diode=next(f for f in b.GetFootprints() if f.GetReference()=='D14')
     diode.SetPosition(v(179,173.5));diode.SetOrientationDegrees(90)
+    if SKU=='core':
+        # Open the protected USB corridor; all CAD switch centres stay fixed.
+        for ref,x,y in [('R1',162,147),('R10',162,143),('D10',162.5,154.3),('C27',168.075,136.475)]:
+            next(f for f in b.GetFootprints() if f.GetReference()==ref).SetPosition(v(x,y))
+        next(f for f in b.GetFootprints() if f.GetReference()=='D10').SetOrientationDegrees(90)
     track(b,'USB_DP',[(170.65,138.4625),(172.35,138.4625)],locked=True)
     track(b,'USB_DN',[(170.65,139.5375),(172.35,139.5375)],locked=True)
     track(b,'USB_DP',[(170.65,138.4625),(167,138.4625),(164,141.4625),
@@ -87,8 +93,8 @@ def prepare():
     for pos in [(177.8,139.25),(177.8,137.7),(173.6,137.7)]:
         t=k.PCB_VIA(b);t.SetPosition(v(*pos));t.SetWidth(k.FromMM(.6));t.SetDrill(k.FromMM(.3))
         t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(b.FindNet('USB_DP'));t.SetLocked(True);b.Add(t)
-    k.SaveBoard(str(OUT/'pro-route-input.kicad_pcb'),b)
-    path=OUT/'pro-route-input.kicad_pcb'
+    k.SaveBoard(str(OUT/f'{SKU}-route-input.kicad_pcb'),b)
+    path=OUT/f'{SKU}-route-input.kicad_pcb'
     text=path.read_text()
     # JLC04161H-3313 nominal stack; exact impedance requires fabricator review.
     stack='''
@@ -111,16 +117,16 @@ def prepare():
     path.write_text(text.replace('(setup','(setup'+stack,1))
     # pcbnew.SaveBoard also writes a project from in-memory defaults; set the
     # reviewable project AFTER saving the board, so CLI DRC uses these rules.
-    for name in ['pro-route-input','pro']:
+    for name in [f'{SKU}-route-input',SKU]:
         project['meta']['filename']=name+'.kicad_pro'
         (OUT/(name+'.kicad_pro')).write_text(json.dumps(project,indent=2)+'\n')
 
 def export():
-    b=k.LoadBoard(str(OUT/'pro-route-input.kicad_pcb'))
+    b=k.LoadBoard(str(OUT/f'{SKU}-route-input.kicad_pcb'))
     b.GetDesignSettings().m_MinClearance=k.FromMM(.15)
     b.GetDesignSettings().m_NetSettings.GetDefaultNetclass().SetClearance(k.FromMM(.15))
-    assert k.ExportSpecctraDSN(b,str(OUT/'pro.dsn'))
-    path=OUT/'pro.dsn'
+    assert k.ExportSpecctraDSN(b,str(OUT/f'{SKU}.dsn'))
+    path=OUT/f'{SKU}.dsn'
     text=path.read_text()
     # KiCad deliberately exports a quarter-clearance SMD exception. The brief
     # requires 0.15 mm everywhere, including SMD fanout.
@@ -132,17 +138,17 @@ def export():
     path.write_text(text)
 
 def import_session():
-    b=k.LoadBoard(str(OUT/'pro-route-input.kicad_pcb'))
-    assert k.ImportSpecctraSES(b,str(OUT/'pro.ses'))
+    b=k.LoadBoard(str(OUT/f'{SKU}-route-input.kicad_pcb'))
+    assert k.ImportSpecctraSES(b,str(OUT/f'{SKU}.ses'))
     zone(b,k.F_Cu,'GND','Top GND pour')
     zone(b,k.B_Cu,'GND','Bottom GND pour')
-    k.SaveBoard(str(OUT/'pro.kicad_pcb'),b)
-    project=json.loads((OUT/'pro-route-input.kicad_pro').read_text())
-    project['meta']['filename']='pro.kicad_pro'
-    (OUT/'pro.kicad_pro').write_text(json.dumps(project,indent=2)+'\n')
+    k.SaveBoard(str(OUT/f'{SKU}.kicad_pcb'),b)
+    project=json.loads((OUT/f'{SKU}-route-input.kicad_pro').read_text())
+    project['meta']['filename']=f'{SKU}.kicad_pro'
+    (OUT/f'{SKU}.kicad_pro').write_text(json.dumps(project,indent=2)+'\n')
 
 def stitch():
-    b=k.LoadBoard(str(OUT/'pro.kicad_pcb'))
+    b=k.LoadBoard(str(OUT/f'{SKU}.kicad_pcb'))
     ground=b.FindNet('GND').GetNetCode()
     def xy(p): return (k.ToMM(p.x),k.ToMM(p.y))
     edges=[LineString([xy(s.GetStart()),xy(s.GetEnd())]) for s in b.GetDrawings()
@@ -183,15 +189,15 @@ def stitch():
         via.SetDrill(k.FromMM(.3));via.SetViaType(k.VIATYPE_THROUGH)
         via.SetLayerPair(k.F_Cu,k.B_Cu);via.SetNetCode(ground);b.Add(via)
         placed.append((x,y))
-    project=(OUT/'pro.kicad_pro').read_text()
-    k.SaveBoard(str(OUT/'pro.kicad_pcb'),b)
-    (OUT/'pro.kicad_pro').write_text(project)
-    (OUT/'pro-stitching.json').write_text(json.dumps(dict(
+    project=(OUT/f'{SKU}.kicad_pro').read_text()
+    k.SaveBoard(str(OUT/f'{SKU}.kicad_pcb'),b)
+    (OUT/f'{SKU}.kicad_pro').write_text(project)
+    (OUT/f'{SKU}-stitching.json').write_text(json.dumps(dict(
         via_size_mm=.6,drill_mm=.3,grid_pitch_mm=5,added_count=len(placed),
         coordinates_mm=placed),indent=2)+'\n')
     print('Added ground stitching vias:',len(placed))
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('step',choices=['prepare','export','import','stitch'])
-    args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--sku',choices=['pro','core'],default='pro');p.add_argument('step',choices=['prepare','export','import','stitch'])
+    args=p.parse_args();SKU=args.sku
     {'prepare':prepare,'export':export,'import':import_session,'stitch':stitch}[args.step]()
