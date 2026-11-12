@@ -21,6 +21,8 @@ import { Agent } from './agent.mjs';
 import { Chats } from './chats.mjs';
 import { assemblePrompt, proposalSpeech } from './persona.mjs';
 import { PadLink } from "./padlink.mjs";
+import {OTA_PUBLIC_KEY} from "./firmware-release.mjs";
+import {verifyManifestSignature,verifyManifest} from "./pad-v2.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
@@ -237,7 +239,7 @@ export function createServer(mem) {
     if (!open && TOKEN) {
       const auth = req.headers.authorization || "";
       const given = auth.startsWith("Bearer ") ? auth.slice(7) : req.headers["x-pad-token"];
-      if (given !== TOKEN) return send(401, { error: "bad pad token" });
+      if(given!==TOKEN){if(url.pathname==='/padlink'&&req.headers['x-xorr-protocol']==='2')req.padV2Only=true;else return send(401,{error:"bad pad token"});}
     }
 
     if (url.pathname === '/padlink') {
@@ -373,6 +375,13 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
+      if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
+      if (url.pathname === '/pad/rearm') return send(200,srv.padlink.rearm(body.device));
+      if (url.pathname === '/pad/profiles') return send(200,req.method==='GET'?srv.padlink.profiles:srv.padlink.setProfiles(body.profiles));
+      if (url.pathname === '/pad/profile') return send(200,srv.padlink.selectProfile(body));
+      if (url.pathname === '/pad/manifest'){verifyManifestSignature(body.manifest,OTA_PUBLIC_KEY);return send(200,{ok:true,...body.manifest});}
+      if (url.pathname === '/pad/ota'){if(typeof body.image!=='string'||body.image.length>4194304)return send(400,{error:'Select an app.bin under 3 MB'});const image=Buffer.from(body.image,'base64');verifyManifest(body.manifest,image,OTA_PUBLIC_KEY);srv.padlink.update(body.device,body.manifest,image,OTA_PUBLIC_KEY).catch(error=>signals.publish({type:'ota_error',device:body.device,error:error.message}));return send(202,{ok:true,state:'uploading'});}
       if (url.pathname === '/pad/keymap') {
         try {return send(200,srv.padlink.setKeymap(body));} catch(e) {return send(400,{error:e.message});}
       }
@@ -934,6 +943,7 @@ export function createServer(mem) {
       // Disarming is one-way from the red key and from /panic. Re-arming is
       // its own deliberate act, so nobody re-arms by mashing KILL twice.
       if (url.pathname === "/arm" && req.method === "POST") {
+        if(srv.padlink.killed.size)return send(409,{error:"Clear the pad kill latch with a desk rearm request and an 800ms hold on the pad"});
         state.armed = true;
         note("ARMED — trading re-enabled");
         return send(200, { armed: true });
@@ -993,6 +1003,7 @@ export function createServer(mem) {
       // before any handler runs. What is left is genuinely an unknown path.
       return send(404, { error: "no such route" });
     } catch (e) {
+      if(url.pathname.startsWith("/pad/"))return send(400,{error:e.message});
       console.error("[route]", url.pathname, e.message);
       if (res.headersSent) return;
       // Distinguish "the trade failed" from "the chain is not answering": they
@@ -1019,7 +1030,7 @@ export function createServer(mem) {
   const refreshPadBrief=() => mem.recallBrief().then(b => {padBrief=b;}).catch(() => {padBrief=null;});
   refreshPadBrief();const padBriefTimer=setInterval(refreshPadBrief,5000);padBriefTimer.unref();
   srv.once('close',() => clearInterval(padBriefTimer));
-  srv.padlink = new PadLink({token:TOKEN,signals,voiceInput:async device => {
+  srv.padlink = new PadLink({token:TOKEN,signals,speak:speakReply,voiceInput:async device => {
     if(!(await credentials.get('deepgram')))return null;
     const live=await deepgram.transcribeLive({onTranscript:t => signals.publish({type:'transcript',device,...t})});
     return {write:pcm => live.write(pcm),abort:() => live.abort(),finish:async () => {
@@ -1085,7 +1096,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
     const selected = options.market || state.market;
     const market = ["long","short"].includes(id) ? {prices:{}} : await getMarket([selected]);
     const sig = { agent: state.agent, side: id.toUpperCase(), symbol: selected,
-                  kind:["long","short"].includes(id)?"perp":"spot",leverage:Number(options.leverage ?? 1),
+                  kind:["long","short"].includes(id)?"perp":"spot",leverage:Number(options.leverage ?? 1),slippageBps:Number(options.slippageBps ?? 50),
                   sizeUsd: state.sizeUsd, reason: `${id} pressed on the pad`, confidence: 1 };
     const proposal = await propose(sig,brief,{price:market.prices[selected]});
     const {verdict,routing} = proposal;
@@ -1243,6 +1254,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
+  '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
