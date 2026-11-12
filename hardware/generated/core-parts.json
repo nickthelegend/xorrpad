@@ -1,0 +1,1018 @@
+[
+  {
+    "ref": "U1",
+    "mpn": "ESP32-S3-WROOM-1-N16R8",
+    "lcsc": "C2913202",
+    "footprint": "RF_Module:ESP32-S3-WROOM-1",
+    "note": "",
+    "pins": {
+      "1": "GND",
+      "2": "3V3",
+      "3": "EN",
+      "10": "COL1",
+      "11": "COL0",
+      "12": "COL2",
+      "13": "USB_DN",
+      "14": "USB_DP",
+      "18": "ROW0",
+      "19": "ROW1",
+      "20": "ROW2",
+      "21": "ROW3",
+      "22": "COL3",
+      "23": "ENC_A",
+      "24": "ENC_B",
+      "25": "RGB_3V3",
+      "27": "BOOT",
+      "31": "ENC_SW",
+      "40": "GND",
+      "41": "GND"
+    }
+  },
+  {
+    "ref": "R1",
+    "mpn": "0603WAF1002T5E",
+    "lcsc": "C25804",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "EN"
+    }
+  },
+  {
+    "ref": "C1",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "EN",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "R2",
+    "mpn": "0603WAF1002T5E",
+    "lcsc": "C25804",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "BOOT"
+    }
+  },
+  {
+    "ref": "SW15",
+    "mpn": "TS-1088-AR02016",
+    "lcsc": "",
+    "footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+    "note": "",
+    "pins": {
+      "1": "BOOT",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "SW16",
+    "mpn": "TS-1088-AR02016",
+    "lcsc": "",
+    "footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+    "note": "",
+    "pins": {
+      "1": "EN",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "C2",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "C3",
+    "mpn": "GRM21BR61A226ME44L",
+    "lcsc": "C441864",
+    "footprint": "Capacitor_SMD:C_0805_2012Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "J1",
+    "mpn": "TYPE-C-31-M-12",
+    "lcsc": "C165948",
+    "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+    "note": "",
+    "pins": {
+      "A1": "GND",
+      "A4": "VBUS",
+      "A5": "CC1",
+      "A6": "USB_DP",
+      "A7": "USB_DN",
+      "A9": "VBUS",
+      "A12": "GND",
+      "B1": "GND",
+      "B4": "VBUS",
+      "B5": "CC2",
+      "B6": "USB_DP",
+      "B7": "USB_DN",
+      "B9": "VBUS",
+      "B12": "GND",
+      "SH": "GND"
+    }
+  },
+  {
+    "ref": "R3",
+    "mpn": "0603WAF5101T5E",
+    "lcsc": "C23186",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "CC1",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "R4",
+    "mpn": "0603WAF5101T5E",
+    "lcsc": "C23186",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "CC2",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "U2",
+    "mpn": "USBLC6-2SC6",
+    "lcsc": "C7519",
+    "footprint": "Package_TO_SOT_SMD:SOT-666",
+    "note": "",
+    "pins": {
+      "1": "USB_DP",
+      "2": "GND",
+      "3": "USB_DN",
+      "4": "USB_DN",
+      "5": "VBUS",
+      "6": "USB_DP"
+    }
+  },
+  {
+    "ref": "U8",
+    "mpn": "TPS2553DBVR",
+    "lcsc": "",
+    "footprint": "Package_TO_SOT_SMD:SOT-23-6",
+    "note": "USB advertised-current detection and ILIM tolerance design REQUIRED",
+    "pins": {
+      "1": "VBUS",
+      "2": "GND",
+      "3": "VBUS",
+      "4": "USB_FAULT",
+      "5": "ILIM",
+      "6": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "R5",
+    "mpn": "ILIM_VALUE_TBD",
+    "lcsc": "",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "ILIM",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "U3",
+    "mpn": "TPS62160DSGR",
+    "lcsc": "C324077",
+    "footprint": "Package_SON:Texas_DSG0008A_WSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm_ThermalVias",
+    "note": "",
+    "pins": {
+      "1": "GND",
+      "2": "5V_LIMITED",
+      "3": "5V_LIMITED",
+      "4": "GND",
+      "5": "FB",
+      "6": "3V3",
+      "7": "BUCK_SW",
+      "9": "GND"
+    }
+  },
+  {
+    "ref": "L1",
+    "mpn": "SWPA4026S2R2MT",
+    "lcsc": "",
+    "footprint": "Inductor_SMD:L_Sunlord_SWPA4026S",
+    "note": "",
+    "pins": {
+      "1": "BUCK_SW",
+      "2": "3V3"
+    }
+  },
+  {
+    "ref": "R6",
+    "mpn": "0603WAF6203T5E",
+    "lcsc": "",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "FB"
+    }
+  },
+  {
+    "ref": "R7",
+    "mpn": "0603WAF2003T5E",
+    "lcsc": "",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "FB",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "C4",
+    "mpn": "GRM21BR61A226ME44L",
+    "lcsc": "C441864",
+    "footprint": "Capacitor_SMD:C_0805_2012Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "C5",
+    "mpn": "GRM21BR61A226ME44L",
+    "lcsc": "C441864",
+    "footprint": "Capacitor_SMD:C_0805_2012Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "ENC1",
+    "mpn": "EC11E15244G1",
+    "lcsc": "C370970",
+    "footprint": "Rotary_Encoder:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm",
+    "note": "Assembler THT soldering; shaft/peg drawing must be matched to case",
+    "pins": {
+      "A": "ENC_A",
+      "B": "ENC_B",
+      "C": "GND",
+      "S1": "ENC_SW",
+      "S2": "GND"
+    }
+  },
+  {
+    "ref": "R8",
+    "mpn": "0603WAF1002T5E",
+    "lcsc": "C25804",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "ENC_A"
+    }
+  },
+  {
+    "ref": "R9",
+    "mpn": "0603WAF1002T5E",
+    "lcsc": "C25804",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "ENC_B"
+    }
+  },
+  {
+    "ref": "R10",
+    "mpn": "0603WAF1002T5E",
+    "lcsc": "C25804",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "3V3",
+      "2": "ENC_SW"
+    }
+  },
+  {
+    "ref": "SW1",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL2",
+      "2": "KEY1"
+    }
+  },
+  {
+    "ref": "D1",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW0",
+      "2": "KEY1"
+    }
+  },
+  {
+    "ref": "SW2",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL1",
+      "2": "KEY2"
+    }
+  },
+  {
+    "ref": "D2",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW0",
+      "2": "KEY2"
+    }
+  },
+  {
+    "ref": "SW3",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL0",
+      "2": "KEY3"
+    }
+  },
+  {
+    "ref": "D3",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW0",
+      "2": "KEY3"
+    }
+  },
+  {
+    "ref": "SW4",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL2",
+      "2": "KEY4"
+    }
+  },
+  {
+    "ref": "D4",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW1",
+      "2": "KEY4"
+    }
+  },
+  {
+    "ref": "SW5",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL1",
+      "2": "KEY5"
+    }
+  },
+  {
+    "ref": "D5",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW1",
+      "2": "KEY5"
+    }
+  },
+  {
+    "ref": "SW6",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL0",
+      "2": "KEY6"
+    }
+  },
+  {
+    "ref": "D6",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW1",
+      "2": "KEY6"
+    }
+  },
+  {
+    "ref": "SW7",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL3",
+      "2": "KEY7"
+    }
+  },
+  {
+    "ref": "D7",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW2",
+      "2": "KEY7"
+    }
+  },
+  {
+    "ref": "SW8",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL2",
+      "2": "KEY8"
+    }
+  },
+  {
+    "ref": "D8",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW2",
+      "2": "KEY8"
+    }
+  },
+  {
+    "ref": "SW9",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL2",
+      "2": "KEY9"
+    }
+  },
+  {
+    "ref": "D9",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW3",
+      "2": "KEY9"
+    }
+  },
+  {
+    "ref": "SW10",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL1",
+      "2": "KEY10"
+    }
+  },
+  {
+    "ref": "D10",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW2",
+      "2": "KEY10"
+    }
+  },
+  {
+    "ref": "SW11",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL0",
+      "2": "KEY11"
+    }
+  },
+  {
+    "ref": "D11",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW2",
+      "2": "KEY11"
+    }
+  },
+  {
+    "ref": "SW12",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL3",
+      "2": "KEY12"
+    }
+  },
+  {
+    "ref": "D12",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW3",
+      "2": "KEY12"
+    }
+  },
+  {
+    "ref": "SW13",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL1",
+      "2": "KEY13"
+    }
+  },
+  {
+    "ref": "D13",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW3",
+      "2": "KEY13"
+    }
+  },
+  {
+    "ref": "SW14",
+    "mpn": "CPG151101S11",
+    "lcsc": "C2803348",
+    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "note": "",
+    "pins": {
+      "1": "COL0",
+      "2": "KEY14"
+    }
+  },
+  {
+    "ref": "D14",
+    "mpn": "1N4148W",
+    "lcsc": "C81598",
+    "footprint": "Diode_SMD:D_SOD-123",
+    "note": "",
+    "pins": {
+      "1": "ROW3",
+      "2": "KEY14"
+    }
+  },
+  {
+    "ref": "U4",
+    "mpn": "SN74AHCT1G125DBVR",
+    "lcsc": "C7484",
+    "footprint": "Package_TO_SOT_SMD:SOT-23-5",
+    "note": "",
+    "pins": {
+      "1": "GND",
+      "2": "RGB_3V3",
+      "3": "GND",
+      "4": "RGB_5V",
+      "5": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "R11",
+    "mpn": "0603WAF0330T5E",
+    "lcsc": "",
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "RGB_5V",
+      "2": "RGB_IN"
+    }
+  },
+  {
+    "ref": "C6",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED1",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK1",
+      "2": "GND",
+      "3": "RGB_IN",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C20",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED2",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK2",
+      "2": "GND",
+      "3": "RGB_LINK1",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C21",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED3",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK3",
+      "2": "GND",
+      "3": "RGB_LINK2",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C22",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED4",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK4",
+      "2": "GND",
+      "3": "RGB_LINK3",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C23",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED5",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK5",
+      "2": "GND",
+      "3": "RGB_LINK4",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C24",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED6",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK6",
+      "2": "GND",
+      "3": "RGB_LINK5",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C25",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED7",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK7",
+      "2": "GND",
+      "3": "RGB_LINK6",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C26",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED8",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK8",
+      "2": "GND",
+      "3": "RGB_LINK7",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C27",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED9",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK9",
+      "2": "GND",
+      "3": "RGB_LINK8",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C28",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED10",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK10",
+      "2": "GND",
+      "3": "RGB_LINK9",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C29",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED11",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK11",
+      "2": "GND",
+      "3": "RGB_LINK10",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C30",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED12",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK12",
+      "2": "GND",
+      "3": "RGB_LINK11",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C31",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED13",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK13",
+      "2": "GND",
+      "3": "RGB_LINK12",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C32",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED14",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK14",
+      "2": "GND",
+      "3": "RGB_LINK13",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C33",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  },
+  {
+    "ref": "LED15",
+    "mpn": "WS2812B-2020-V6",
+    "lcsc": "C52917434",
+    "footprint": "LED_SMD:LED_WS2812B-2020_PLCC4_2.0x2.0mm",
+    "note": "",
+    "pins": {
+      "1": "RGB_LINK15",
+      "2": "GND",
+      "3": "RGB_LINK14",
+      "4": "5V_LIMITED"
+    }
+  },
+  {
+    "ref": "C34",
+    "mpn": "CC0603KRX7R9BB104",
+    "lcsc": "C14663",
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "note": "",
+    "pins": {
+      "1": "5V_LIMITED",
+      "2": "GND"
+    }
+  }
+]
