@@ -8,9 +8,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import net from "node:net";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
 import { PadSimulatorV2 } from "../../tools/padsim/v2.mjs";
+import { AbilityPadSimulator } from "../../tools/padsim/abilities.mjs";
+import { abilityText } from "../main/wasm-abilities.mjs";
 import { PadLink } from "../main/padlink.mjs";
 import { keypair, rawPublic } from "../main/pad-v2.mjs";
 import { OTA_PUBLIC_KEY } from "../main/firmware-release.mjs";
@@ -36,6 +39,8 @@ const routes = [
   ["/pad/profiles", "GET"],
   ["/pad/profile", "POST"],
   ["/pad/options", "GET"],
+  ["/pad/abilities", "GET"],
+  ["/pad/abilities", "POST"],
   ["/events", "GET"],
 ];
 const output = new URL("../../docs/screens/v3/", import.meta.url);
@@ -65,7 +70,7 @@ after(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-test("D1 built app references real routes; auth, methods and no-pad states are honest", async () => {
+test("D1/D2/D3 built app references real routes; auth, methods and no-pad states are honest", async () => {
   const assets = new URL("../app/dist/assets/", import.meta.url);
   const bundle = (
     await Promise.all(
@@ -103,6 +108,8 @@ test("D1 built app references real routes; auth, methods and no-pad states are h
     ["/pad/ota-channel", { device: "absent", channel: "stable" }],
     ["/pad/manifest", { manifest: {} }],
     ["/pad/ota", {}],
+    ["/pad/abilities", { device: "absent", action: "developer", developerPublicKey: "ab".repeat(32) }],
+    ["/pad/abilities", { device: "absent", action: "remove", slot: 0 }],
   ]) {
     const response = await fetch(origin + route, {
       method: "POST",
@@ -122,6 +129,9 @@ test("D1 built app references real routes; auth, methods and no-pad states are h
     "boolean",
   );
   assert.equal((await fetch(origin + "/classic")).status, 200);
+  const absent = await fetch(origin + "/pad/abilities?device=absent", { headers });
+  assert.ok(absent.status >= 400);
+  assert.equal((await absent.json()).error, "Setup required: select one paired, online, rearmed pad");
 });
 
 test(
@@ -603,3 +613,129 @@ test(
     }
   },
 );
+
+test("D3 Abilities trusts on pad, installs both signed SDK examples and removes slots", { timeout: 120000 }, async () => {
+  const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] });
+  const page = await browser.newPage({ reducedMotion: "reduce" });
+  const errors = [], requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("request", (r) => {
+    if (r.url().endsWith("/pad/abilities") && r.method() === "POST") requests.push(r.postDataJSON());
+  });
+  const pad = new AbilityPadSimulator({ device: "esp32-d3abcdef1234", serial: true });
+  let other;
+  const keys = generateKeyPairSync("ed25519");
+  const developer = rawPublic(keys.publicKey);
+  const area = page.locator(".on-pad-abilities");
+  async function bundle(id) {
+    const base = new URL("../../sdk/abilities/", import.meta.url);
+    const sample = JSON.parse(await readFile(new URL(`samples/${id}.json`, base), "utf8"));
+    const wasm = await readFile(new URL(`out/${id}.wasm`, base));
+    const manifest = { ...sample, abi: 1, sha256: createHash("sha256").update(wasm).digest("hex"), size: wasm.length,
+      developerPublicKey: developer, signature: "0".repeat(128) };
+    // Transient test-only signer. No existing private material is read or persisted.
+    manifest.signature = sign(null, Buffer.from(abilityText(manifest)), keys.privateKey).toString("hex");
+    return { manifest, wasm: wasm.toString("hex") };
+  }
+  const pulse = await bundle("market-pulse"), timer = await bundle("pomodoro");
+  const upload = async (slot, value) => area.getByLabel(`Signed bundle for slot ${slot} (.json)`).setInputFiles({
+    name: "sample.bundle.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(value)),
+  });
+  async function capture(state) {
+    await mkdir(output, { recursive: true });
+    for (const width of [1440, 375]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(async () => { window.scrollTo(0, 0); await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${state} ${width} overflow`);
+      for (const control of await area.locator("button, input, select, a.button").all()) {
+        const bounds = await control.boundingBox();
+        if (bounds) assert.ok(bounds.height >= 44, `${state}: tap target below 44px`);
+      }
+      await page.screenshot({ path: path.join(fileURLToPath(output), `abilities-${state}-${width}.png`), fullPage: true, animations: "disabled" });
+    }
+  }
+  try {
+    await page.goto(origin + "/?token=isolated-app-v3-test#abilities");
+    await area.getByRole("heading", { name: "No pad connected", exact: true }).waitFor();
+    await area.getByRole("link", { name: "Connect a pad", exact: true }).waitFor();
+    // The incumbent desktop catalog is still present, independent of pad trust.
+    await page.getByRole("heading", { name: "Find your next ability.", exact: true }).waitFor();
+    await capture("empty");
+    await pad.listen(8726);
+    pad.server.on("connection", (socket) => socket.setNoDelay(true));
+    const peer = server.padlink.attach(net.createConnection(8726, "127.0.0.1").setNoDelay(true), "usb");
+    await until(() => peer.candidate);
+    server.padlink.pair(pad.pairing);
+    await until(() => peer.verified && pad.verified);
+    await area.getByRole("heading", { name: "Slot 1 · Empty", exact: true }).waitFor();
+    assert.equal(await area.getByRole("button", { name: "Verify & install slot 1", exact: true }).isDisabled(), true);
+    await area.getByLabel("Developer public key", { exact: true }).fill(developer);
+    await area.getByRole("button", { name: "Review developer on pad", exact: true }).click();
+    await area.getByText("Developer review requested.", { exact: false }).waitFor();
+    assert.equal((await server.padlink.abilities(pad.device)).developerPublicKey, "");
+    await capture("review");
+    await assert.rejects(pad.approveDeveloper(799), /hold/);
+    await pad.approveDeveloper();
+    await area.getByRole("button", { name: "Refresh abilities", exact: true }).click();
+    await area.getByText(developer, { exact: true }).waitFor();
+    await upload(1, pulse);
+    await area.getByRole("button", { name: "Verify & install slot 1", exact: true }).click();
+    await area.getByRole("heading", { name: "Slot 1 · Market Pulse", exact: true }).waitFor();
+    await upload(2, timer);
+    await area.getByRole("button", { name: "Verify & install slot 2", exact: true }).click();
+    await area.getByRole("heading", { name: "Slot 2 · Pomodoro discipline", exact: true }).waitFor();
+    const installed = await server.padlink.abilities(pad.device);
+    assert.deepEqual(installed.slots.map((s) => s.running), [true, true]);
+    for (const [slot, caps] of [[1, pulse.manifest.capabilities], [2, timer.manifest.capabilities]]) {
+      const card = area.locator(".surface").filter({ has: page.getByRole("heading", { name: new RegExp(`^Slot ${slot} ·`) }) });
+      for (const cap of caps) await card.locator(".badge").getByText(cap, { exact: true }).first().waitFor();
+    }
+    await capture("installed");
+    await upload(1, { ...pulse, manifest: { ...pulse.manifest, signature: "0".repeat(128) } });
+    await area.getByRole("button", { name: "Verify & replace slot 1", exact: true }).click();
+    await area.getByText("Ability developer signature refused", { exact: true }).waitFor();
+    assert.equal((await server.padlink.abilities(pad.device)).slots[0].running, true);
+    await capture("error");
+    await upload(1, {});
+    await area.getByText("Choose a signed ability bundle", { exact: true }).waitFor();
+    assert.equal(await area.getByRole("button", { name: "Verify & replace slot 1", exact: true }).isDisabled(), true);
+    for (const slot of [1, 2]) {
+      await area.getByRole("button", { name: `Remove from slot ${slot}`, exact: true }).click();
+      await area.getByRole("heading", { name: `Slot ${slot} · Empty`, exact: true }).waitFor();
+    }
+    assert.deepEqual((await server.padlink.abilities(pad.device)).slots.map((s) => s.installed), [false, false]);
+    assert.ok(requests.every((r) => r.device === pad.device));
+    assert.deepEqual(requests.filter((r) => r.action === "install").map((r) => r.slot), [0, 1, 0]);
+
+    other = new AbilityPadSimulator({ device: "esp32-d3fedcba4321", serial: true });
+    await other.listen(8728);
+    const otherPeer = server.padlink.attach(net.createConnection(8728, "127.0.0.1"), "usb");
+    await until(() => otherPeer.candidate);
+    server.padlink.pair(other.pairing);
+    await until(() => otherPeer.verified && other.verified);
+    await area.getByRole("option", { name: other.device, exact: true }).waitFor({ state: "attached" });
+    await area.getByLabel("Ability pad", { exact: true }).selectOption(other.device);
+    await area.getByText("Setup required: trust your developer on the pad.", { exact: true }).waitFor();
+    assert.equal(await area.getByText(developer, { exact: true }).count(), 0);
+    assert.equal(await area.getByText("Choose a signed ability bundle", { exact: true }).count(), 0);
+    assert.equal(await area.getByLabel("Developer public key", { exact: true }).inputValue(), "");
+    otherPeer.close();
+    await other.close();
+    await area.getByRole("heading", { name: "Selected pad disconnected", exact: true }).waitFor();
+    assert.equal(await area.getByLabel("Developer public key", { exact: true }).count(), 0,
+      "Disconnect must never silently redirect writes to the other pad");
+    await area.getByLabel("Ability pad", { exact: true }).selectOption(pad.device);
+    await area.getByText(developer, { exact: true }).waitFor();
+    peer.close();
+    await pad.close();
+    await area.getByRole("heading", { name: "No pad connected", exact: true }).waitFor();
+    assert.equal(await area.getByText(developer, { exact: true }).count(), 0);
+    assert.equal(await area.getByLabel("Developer public key", { exact: true }).count(), 0);
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    await pad.close();
+    await other?.close();
+  }
+});

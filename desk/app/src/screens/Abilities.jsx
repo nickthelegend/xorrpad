@@ -4,6 +4,7 @@ import { Card } from "../brand/Card";
 import { Badge } from "../brand/Badge";
 import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
+import { OnPadAbilities } from "../components/OnPadAbilities";
 export function Abilities() {
   const d = useDesk(),
     list = useRead("/abilities"),
@@ -173,6 +174,7 @@ export function Abilities() {
           )}
         </>
       )}
+      <OnPadAbilities />
       {edit && (
         <Sheet title={"Install " + edit.name} onClose={() => setEdit(null)}>
           <p>{edit.description}</p>

@@ -6,6 +6,20 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D3, Abilities
+
+- Added an On-pad abilities section below the unchanged desktop catalog, using
+  `/pad/abilities` for developer public-key review, signed bundle installation
+  and removal in two independent slots. Developer trust still requires the
+  physical pad hold; the complete reported public key remains readable.
+- Capability pills and install examples use the actual Market Pulse and
+  Pomodoro SDK manifests. The section states “Abilities can never sign or
+  trade”, shows real empty/error states, and clears device-specific state on
+  selection or disconnect without redirecting writes to another pad.
+- Added authenticated route and encrypted native-interpreter padsim browser
+  coverage, plus inspected 1440/375 px screenshots. No desktop restyling,
+  automatic developer trust or bundled signing material.
+
 ### Added — Desktop v3 D2, Device
 
 - Existing Device surfaces now expose signed manifest/image OTA with optional

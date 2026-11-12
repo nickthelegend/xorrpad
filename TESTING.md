@@ -1618,3 +1618,52 @@ TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
 
 The tested application, server and test source files match the working tree
 byte for byte. Nothing was flashed or pushed.
+
+### D3 — Abilities
+
+The existing desktop ability catalog, install sheet and run controls are unchanged.
+A second On-pad abilities section uses `/desk/link` for device selection and
+`/pad/abilities` for the pad's developer key, two slot statuses, developer review,
+signed bundle installation and removal. Trust requires the physical YES hold;
+the UI never treats a review request as approval. Refresh reads the actual pad
+state. The exact safety line is “Abilities can never sign or trade”. Capability
+pills parse the firmware's comma-separated capabilities and the bundle preview's
+manifest array. SDK examples import the actual `market-pulse.json` and
+`pomodoro.json` manifests; users build and sign their bundles externally.
+
+The authenticated built-bundle regression covers both GET and POST, method
+restrictions and readable no-pad errors. The D3 browser regression connects real
+encrypted USB-CRC `AbilityPadSimulator` instances backed by the native embedded
+interpreter. It verifies no-pad and untrusted states, refusal of a 799 ms trust
+hold, an 800 ms approval, installation/running state for both signed SDK samples,
+capability pills, a verbatim signature-refusal error that retains the installed
+module, malformed bundle handling, independent slot removal, and two-device
+selection/disconnect behavior. Switching pads clears old previews and errors;
+a disconnected selection never silently targets the remaining pad. Test signing
+keys are transient process memory only, with no existing private material read
+or persisted. `/classic` remains reachable.
+
+Eight screenshots in `docs/screens/v3/` cover empty, developer review, installed
+and signature-error states at **1440 and 375 px** and were visually inspected.
+Browser assertions enforce no horizontal
+overflow and 44 px added controls with reduced motion enabled. Existing surfaces,
+fields, buttons, pills and empty-state artwork provide all styling; no new CSS,
+fonts, colors or libraries were added.
+
+The focused D3 route/browser run passes **2/2 tests**, zero failures or
+cancellations (32,939.67775 ms). `npm run build:app --prefix desk` passes.
+The complete suite runs alone in a disposable copy of the current source, using
+only public compiled firmware/WASM inputs, native helpers and shared dependencies.
+Existing environment, wallet and private-key files are excluded, following D1/D2.
+No tests are removed, weakened or excluded. Logs are retained at
+`firmware/build/desktop-v3-d3-{focused,build,desk}.log`.
+
+```sh
+TMPDIR="$PWD/../runtime" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+```
+
+Final complete run: **233 tests, 223 passed, 10 setup/provider skips, zero
+failures or cancellations**, 539,553.626167 ms. The disposable copy has its own
+Git metadata for the existing ignore-rule regression and all five public native
+drivers (abilities, attestation, crew, OTA and session). Changed application and
+test sources match the working tree byte for byte. Nothing was flashed or pushed.
