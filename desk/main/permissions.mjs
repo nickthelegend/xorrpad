@@ -10,13 +10,13 @@ export function appDataDir() {
 export const DEFAULT_POLICY = Object.freeze({
   autoAccept: { venues: {}, kinds: {} }, maxTradeUsd: 100, maxDayUsd: 300,
   maxLeverage: 10, maxOpenPositions: 10, marketAllowlist: null, marketDenylist: [],
-  venueAllowlist: null, cooldownSeconds: 0, quietHours: null, alwaysAskAboveUsd: 100,
+  venueAllowlist: null, cooldownSeconds: 0, lossCooldownSeconds: 0, quietHours: null, alwaysAskAboveUsd: 100,
 });
 export function validatePolicy(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('policy must be an object');
   for (const k of Object.keys(input)) if (!Object.hasOwn(DEFAULT_POLICY,k)) throw new Error(`unknown policy field: ${k}`);
   const p = structuredClone({ ...DEFAULT_POLICY, ...input });
-  for (const k of ['maxTradeUsd','maxDayUsd','maxLeverage','maxOpenPositions','cooldownSeconds','alwaysAskAboveUsd'])
+  for (const k of ['maxTradeUsd','maxDayUsd','maxLeverage','maxOpenPositions','cooldownSeconds','lossCooldownSeconds','alwaysAskAboveUsd'])
     if (!Number.isFinite(p[k]) || p[k] < 0) throw new Error(`${k} must be finite and nonnegative`);
   if (p.maxLeverage < 1 || !Number.isInteger(p.maxOpenPositions)) throw new Error('invalid leverage or open position cap');
   for (const k of ['marketAllowlist','marketDenylist','venueAllowlist'])
@@ -75,6 +75,12 @@ export function checkPolicy(signal, brief, policy, { now = Date.now(), reservedU
     if (a?.executed) last = Math.max(last, Date.parse(e.ts) || 0);
   }
   if (last && now - last < p.cooldownSeconds * 1000) return refuse('cooldown', 'trade cooldown is active');
+  if(p.lossCooldownSeconds>0) for(const e of brief?.journal_recent || []) {
+    let a=e.acted,f=e.forward;try{if(typeof a==='string')a=JSON.parse(a);if(typeof f==='string')f=JSON.parse(f);}catch{continue;}
+    const pnl=a?.realizedPnlUsd ?? a?.pnlUsd ?? f?.receipt?.realizedPnlUsd;
+    if(a?.executed && Number.isFinite(pnl) && pnl<0 && now-Date.parse(e.ts)>=0 && now-Date.parse(e.ts)<p.lossCooldownSeconds*1000)
+      return refuse('loss_cooldown','cooldown after a confirmed realized loss is active');
+  }
   if (p.quietHours) {
     const q = p.quietHours;
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone: q.timeZone || 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(now));

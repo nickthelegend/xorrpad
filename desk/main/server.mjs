@@ -1,3 +1,5 @@
+import { Abilities } from './abilities.mjs';
+import { regimeOf } from './strategies.mjs';
 import { Profiles } from './profiles.mjs';
 import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
@@ -142,7 +144,22 @@ export function createServer(mem) {
   const voiceChats=new Map();
   const permissions = new Permissions();
   const spotQuotes = new SpotQuotes();
-  let deskStatus;
+  let deskStatus, abilityStore, livePulse=null;
+  const abilityRequest=async(path,body)=>{
+    const r=await fetch(`http://127.0.0.1:${srv.address().port}`+path,{method:body===undefined?'GET':'POST',headers:{authorization:'Bearer '+TOKEN,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+    const data=await r.json();if(!r.ok||data.ok===false)throw Error(data.error||'Setup required: ability request');return data;
+  };
+  function abilities(){return abilityStore??=new Abilities({pad:srv.padlink,permissions,configured:async n=>n==='model'?!!agentSettings.read().model:(await credentials.masked(n)).configured,request:abilityRequest,
+    scan:async c=>{
+      const to=Math.floor(Date.now()/3600000)*3600,history=new History();const h=await history.get({symbol:c.market||'SOL',from:to-300*3600,to});
+      const daily=await history.get({symbol:'BTC',from:to-202*86400,to,resolution:'1D'});
+      const recent=daily.candles.slice(-200),ctx={symbol:c.market||'SOL',regime:regimeOf(h.candles),uptrend:recent.length===200&&recent.at(-1).close>recent.reduce((n,r)=>n+r.close,0)/200};
+      const fired=(c.strategy?[c.strategy]:Object.keys(BOOK)).map(name=>{if(!BOOK[name])throw Error('invalid BOOK strategy');return BOOK[name](h.candles,ctx);}).filter(Boolean);
+      if(!fired.length)return {signals:[],summary:'No setup in the real completed candles.',source:h.source,warnings:daily.warnings};
+      const f=fired[0],proposal=await propose({agent:f.strategy,kind:'perp',side:f.side==='SELL'?'SHORT':'LONG',symbol:c.market||'SOL',sizeUsd:state.sizeUsd,leverage:1,reason:f.rationale},await mem.recallBrief());
+      const entry=await signals.create(proposal);state.pending=pendingSignal(signals,entry,proposal);return {signal:entry,source:h.source};
+    },speak:speakReply,publish:e=>signals.publish(e),capture:()=>new Profiles(srv.padlink).capture()});}
+
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
     gate:async e => {
@@ -268,7 +285,7 @@ export function createServer(mem) {
     // answered 200 and quietly did a GET's work. Enforcing the table up front
     // means a handler cannot accept a verb the table does not list, and a new
     // route cannot reintroduce the hole by forgetting to check.
-    const allowedMethods = /^\/chats\/[^/]+$/.test(url.pathname) ? ['GET','POST','PATCH','DELETE'] : /^\/signals\/[^/]+\/(?:accept|refuse|sign)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
+    const allowedMethods = /^\/abilities(?:\/[^/]+(?:\/run)?)?$/.test(url.pathname) ? (url.pathname==='/abilities'?['GET']:['POST']) : /^\/chats\/[^/]+$/.test(url.pathname) ? ['GET','POST','PATCH','DELETE'] : /^\/signals\/[^/]+\/(?:accept|refuse|sign)$/.test(url.pathname) ? ['POST'] : /^\/(?:pm|perps|wallet)\/request\/[a-f0-9]{48}$/.test(url.pathname)
       ? ["GET", "POST"] : ROUTE_METHODS[url.pathname];
     if (allowedMethods && !allowedMethods.includes(req.method)) {
       res.setHeader("Allow", allowedMethods.join(", "));
@@ -383,6 +400,10 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if(url.pathname==='/abilities')return send(200,await abilities().list());
+      const abilityMatch=url.pathname.match(/^\/abilities\/([a-z]+)(\/run)?$/);
+      if(abilityMatch)return send(200,await (abilityMatch[2]?abilities().run(abilityMatch[1]):abilities().install(abilityMatch[1],body)));
+      if(url.pathname==='/agent/voice-test'){await speakReply('Your pad. Your rules. I am ready when you are.');return send(200,{spoken:true});}
       if (url.pathname === '/pad/keymap') {
         try {const map=srv.padlink.setKeymap(body);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
       }
@@ -992,6 +1013,7 @@ export function createServer(mem) {
         // Key ids are lowercase, but market symbols are not (cbBTC, EURC).
         // Resolve a symbol case-insensitively before flattening the rest.
         const raw = String(body.id || "");
+        if(raw.startsWith('ability:'))return send(200,await abilities().run(raw.slice(8)));
         const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","kill","mic"]);
         const asSymbol = !controls.has(raw.toLowerCase()) && (SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
           || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase()));
@@ -1035,9 +1057,14 @@ export function createServer(mem) {
       const transcript=await live.finish();
       await speakReply(await voiceAnswer(transcript,device));
     }};
-  },status:() => ({armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
+  },status:() => ({...livePulse,armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
   srv.padlink.bind(srv);
+  let seenDevices=new Set();
+  const abilityEvent=e=>{if(e.type!=='pad_link')return;const next=new Set(e.devices.map(d=>d.device));for(const id of next)if(!seenDevices.has(id)&&abilities().state().morning?.installed)abilities().run('morning').catch(error=>signals.publish({type:'ability_error',error:error.message}));seenDevices=next;};
+  signals.on('event',abilityEvent);
+  const pulseTimer=setInterval(async()=>{if(!abilities().state().pulse?.installed||!srv.padlink.peers.size)return;try{const price=await CHAIN.price(state.market);livePulse={price,priceAt:new Date().toISOString()};}catch{livePulse={price:null,priceAt:null};}},15000);pulseTimer.unref();
+  srv.on('close',()=>{clearInterval(pulseTimer);signals.off('event',abilityEvent);});
   return srv;
 }
 
@@ -1270,7 +1297,7 @@ const ROUTE_METHODS = {
   "/tick": ["POST"], "/size": ["POST"], "/memory/wipe": ["POST"], "/memory/seed": ["POST"],
   "/memory/decay": ["POST"], "/reflect/accept": ["POST"], "/reflect/reject": ["POST"],
   "/setup": ["GET", "POST"],
-  '/chats':['GET','POST'], '/agent/chat':['POST'], '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/keys':['POST'],
+  '/chats':['GET','POST'], '/agent/chat':['POST'], '/agent/settings':['GET','POST'], '/agent/models':['GET'], '/agent/voice-test':['POST'], '/agent/keys':['POST'],
 };
 
 export async function start() {
