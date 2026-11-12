@@ -697,3 +697,12 @@ Its native command is `firmware/build/v4-snapshot/firmware/test/run.sh` after
 installing/symlinking the pinned AssemblyScript dependency inside that snapshot.
 No firmware signing, private-key read, flashing, fuse operation or push is part
 of these commands. The firmware label remains 2.0.0 pending the full v3 release.
+
+## v3 V5 offline alerts
+
+See [V3-NOTES.md](V3-NOTES.md#v5--offline-price-alerts-2026-11-12) for the
+`/pad/price-alerts` API, one-shot semantics, pinned provider and hardware limits.
+Build with the same ESP32-S3 FQBN/SC-only flags as V4 above, using
+`firmware/build/v5-{normal,release}` build paths and `v5-{normal,release}-out`
+output directories. Native checks: `firmware/test/run.sh`; live pinned HTTPS:
+`node tools/padsim/price-alerts.mjs`. Compiled, not yet flashed.

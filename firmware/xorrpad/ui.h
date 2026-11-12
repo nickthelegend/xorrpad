@@ -415,6 +415,12 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   }
   if(pad.updating){text(c,12,20,3,WARN,"UPDATING");text(c,12,80,4,INK,(String(pad.otaProgress)+"%").c_str());c.drawRect(12,145,296,20,INK);c.fillRect(14,147,292*pad.otaProgress/100,16,UP);text(c,12,190,1,INK,"Keep USB power connected");return;}
   if(pad.errorCode.length()){text(c,12,18,3,WARN,"ACTION NEEDED");textClip(c,12,66,296,2,INK,pad.errorCode);textClip(c,12,104,296,1,INK,pad.errorFix);text(c,12,205,1,MUTE,"Key: dismiss / retry the action");return;}
+  if(pad.alertsOnly){
+    text(c,12,18,2,WARN,"DESK OFFLINE");
+    wrap(c,12,62,296,2,INK,"alerts only",2);
+    wrap(c,12,104,296,1,INK,"Desk offline · alerts only · nothing will trade",3);
+    wrap(c,12,156,296,2,UP,pad.alertNotice,3);return;
+  }
   if(pad.pairCode.length()){
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }

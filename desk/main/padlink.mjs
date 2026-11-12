@@ -1,3 +1,4 @@
+import {validatePriceAlerts} from "./price-alerts.mjs";
 import {verifyAbility} from "./abilities.mjs";
 import {assertSigningCluster} from "./session-wallet.mjs";
 import {prepareClearSign} from "./clear-sign.mjs";
@@ -613,6 +614,11 @@ export class PadLink extends EventEmitter {
       try{send();}catch(error){finish(error);}
     });
   }
+  priceAlerts(device,alerts) {
+    if(alerts!==undefined)alerts=validatePriceAlerts(alerts);
+    const p=this.sessionPeer(device),requestId=randomUUID();
+    return this.waitSession(p,{type:"price_alerts_state",requestId},()=>this.send(p,{type:"price_alerts",requestId,...(alerts===undefined?{}:{alerts})}));
+  }
   sessionStatus(device) {
     const p=this.sessionPeer(device),requestId=randomUUID();
     return this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_status",requestId}));
@@ -1124,10 +1130,10 @@ export class PadLink extends EventEmitter {
       this.signals?.publish({ type: "pad", device: p.device, message: m });
       return;
     }
-    if(m.type==="session_state" || m.type==="session_signature"){
+    if(m.type==="price_alerts_state" || m.type==="session_state" || m.type==="session_signature"){
       const pending=p.sessionRequest;
       if(!p.secure || !p.verified || !pending || pending.secure!==p.secure || pending.type!==m.type ||
-        (m.type==="session_state"?pending.requestId!==m.requestId:pending.signalId!==m.signalId || pending.messageHash!==m.messageHash) ||
+        (m.type!=="session_signature"?pending.requestId!==m.requestId:pending.signalId!==m.signalId || pending.messageHash!==m.messageHash) ||
         typeof m.ok!=="boolean")throw Error("unsolicited or stale pad signer response");
       if(m.type==="session_state" && m.ok){p.sessionState=m;}
       if(m.type==="session_signature" && m.ok && (!/^[0-9a-f]{128}$/.test(m.signature) || typeof m.publicKey!=="string"))throw Error("invalid pad signature");

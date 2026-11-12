@@ -21,6 +21,7 @@ struct PadPosition {
 };
 
 struct PadState {
+  bool alertsOnly=false;String alertNotice;uint32_t alertUntil=0;
   bool abilityReview=false;
   String abilityDeveloper,abilityWidget,abilityName;
   bool sessionPolicy=false;

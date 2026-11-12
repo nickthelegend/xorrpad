@@ -1042,3 +1042,23 @@ Actual hardware NVS power loss, PSRAM pressure, physical hold/TFT visibility,
 watchdog timing and chime latency remain unverified. The documented pinned
 interpreter needs a production security review; adversarial regressions are
 not a formal proof of resistance to every possible engine vulnerability.
+
+## Firmware v3 V5 — offline price alerts (2026-11-12)
+
+Compiled, not yet flashed. Staged-source native checks passed **248 cases / 2,375
+assertions**; working tree including pre-existing attestation changes passed
+**262 / 2,428**. Twelve new cases exercise bounded config, captured live Jupiter
+prices, one-shot persistence encoding, replay suppression, polling cadence,
+reconnect/failure cooldown and millis rollover. `node --test
+desk/test/price-alerts.test.mjs`: **2 passed**. Live keyless HTTPS with exactly the
+firmware Amazon root passed via `node tools/padsim/price-alerts.mjs`.
+
+Both configurations compile with FQBN
+`esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc`
+and the SC-only C/C++ flags documented in firmware/README.md. Isolated index
+snapshot `firmware/build/v5-snapshot`: normal **1,931,178 B flash / 67,572 B RAM**;
+release **1,928,982 / 67,492**. Working tree before the network-clock addition:
+normal **1,937,730 / 67,804**, release **1,935,622 / 67,732**. Final V5 combined
+validation is recorded below with the crew feature. No board flash or trade
+broadcast was performed by the new tests. Physical Wi-Fi, SNTP, NVS persistence,
+worker timing, TFT, LED and chime behavior require hardware verification.

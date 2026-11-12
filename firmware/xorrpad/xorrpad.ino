@@ -25,6 +25,7 @@
 #include "config.h"
 #include "settings.h"
 #include "clear-sign.h"
+#include "price-alerts.h"
 #include "abilities.h"
 #include "agents.h"
 #include "keymap.h"
@@ -93,6 +94,7 @@ xorr::KillSwitch killSwitch;
 PadLink::Transport rearmTransport = PadLink::NONE;
 ClearSigning clearSigning;
 Abilities abilities;
+PriceAlerts priceAlerts;
 
 bool persistKill(bool killed) {
   Preferences p;
@@ -136,6 +138,7 @@ inline void led(uint8_t r, uint8_t g, uint8_t b) {
 // One language, ordered by urgency. KILL always wins.
 void ledFromState() {
   uint32_t now=millis();
+  if(!killSwitch.killed && pad.alertsOnly && (int32_t)(pad.alertUntil-now)>0){led(0,100,40);return;}
   auto color=xorr::statusLed(now,killSwitch.killed,pad.errorCode.length(),
     pad.ok && pad.pending,(int32_t)(pad.receiptUntil-now)>0);
   led(color.r,color.g,color.b);
@@ -148,6 +151,8 @@ bool usbDebugAllowed() {
 }
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  JsonDocument alertResponse;
+  if(priceAlerts.message(d,padlink.secureReady(),alertResponse)){padlink.send(alertResponse);return;}
   JsonDocument abilityResponse;
   bool abilityIdle=health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length();
   if(abilities.message(d,padlink.connectionEpoch(),padlink.secureReady(),abilityIdle,pad,abilityResponse)){padlink.send(abilityResponse);screenDirty=true;screenHoldUntil=0;return;}
@@ -546,6 +551,7 @@ void setup() {
   padlink.begin(&settings,onPadMessage);
   if (factory.active) { WiFi.mode(WIFI_STA); return; }
   abilities.begin();
+  priceAlerts.begin();
   if (!XORR_RELEASE) Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();
@@ -701,12 +707,16 @@ void loop() {
     if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();pad = fresh;} else pad.ok = false;
     screenDirty = true;
   }
+  if(priceAlerts.tick(padlink.ready() || (padlink.legacy && pad.ok),WiFi.isConnected(),
+      !killSwitch.killed && !ota.busy && !recording && !pad.pending && !clearSigning.active,pad)){
+    accessibility.idle.wake(millis());audio.chime(xorr::Chime::Fill);screenDirty=true;
+  }
   ledFromState();
 
   // The display pod. The chart is hourly candles, so it is fetched once a
   // minute — or at once when the market in hand changes — while the screen
   // redraws after every poll so the price and the state stay live.
-  if (!recording && WiFi.isConnected() && !pad.pending && millis() >= nextChart) {
+  if (!recording && WiFi.isConnected() && !pad.alertsOnly && !pad.pending && millis() >= nextChart) {
     nextChart = millis() + CHART_POLL_MS;
     ChartState fresh;
     if (net.chart(fresh)) {

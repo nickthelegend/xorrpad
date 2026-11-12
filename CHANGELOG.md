@@ -6,6 +6,13 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V5 offline price alerts
+
+- Up to eight desk-configured, NVS-persisted one-shot price alerts; keyless
+  Jupiter Price v3 over pinned Amazon Root CA 1 HTTPS at 30-second minimum intervals.
+- Background bounded polling, offline-only TFT/LED/chime and no trade dispatch;
+  native parser/scheduler regressions and a live pinned-root smoke check.
+
 ### Added — firmware 3.0.0, V4 Abilities SDK
 
 - Embedded wasm3 with capability-only imports, instruction-dispatch fuel,

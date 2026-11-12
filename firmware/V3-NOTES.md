@@ -270,3 +270,33 @@ autonomous polling are outside this step; no offline input becomes a trade.
 Full working-tree and isolated staged-source build/test evidence is recorded
 in [TESTING.md](../TESTING.md). Existing unfinished attestation and other edits
 are deliberately excluded from the V4 commit.
+
+## V5 — Offline price alerts (2026-11-12)
+
+`GET/POST /pad/price-alerts` selects `device`; POST supplies `alerts`, up to eight
+`{id,mint,usd,above}` rules. The encrypted link sends rules to NVS. An empty list
+clears them; replacement explicitly rearms them. Fired state is persisted before
+TFT/LED/chime notification, so a reboot cannot refire an acknowledged trigger.
+Only the paired online pad can read/change its rules. No alert calls trade,
+signal, signing or key-event code. Link/OTA/kill state is rechecked when a worker
+result is consumed. Kill remains the highest-priority screen and LED.
+
+The worker calls `https://api.jup.ag/price/v3?ids=...` with the Amazon Root CA 1
+certificate in `certs.h`, certificate/hostname verification enabled, no redirects,
+a bounded 16 KiB response and connection/read deadlines. Attempts, including
+failed ones, are at least 30 seconds apart across desk reconnects and millis
+wraparound. A reboot resets the scheduling clock. Prices identify the exact mint
+and require positive finite USD and a positive block ID; repeated/older blocks
+cannot trigger twice. The first qualifying quote fires; these are one-shot
+level alerts, not edge-crossing orders. Jupiter prices describe last swaps, not
+a guaranteed current executable quote; HTTPS authenticates the provider rather
+than a signed oracle payload. No price is used to authorize a trade.
+
+[Jupiter's current API guide](https://developers.jup.ag/docs/price/index.md) documents
+keyless access. Live API and chain were verified for this step. Hermes now
+requires provider credentials, so the keyless Jupiter endpoint is used.
+`node tools/padsim/price-alerts.mjs --capture` produces the real native fixture
+without credentials; omit `--capture` for a live pinned-root smoke check.
+
+Compiled, not yet flashed. Wi-Fi/TLS clock establishment, worker memory pressure,
+NVS power failure and physical TFT/LED/chime behavior still need the board.
