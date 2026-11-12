@@ -706,3 +706,109 @@ and physical wake, two-/ten-minute idle transitions, contrast in ambient light,
 left-handed cap/wiring correspondence, audible amount timing/provider setup,
 LED colors/brightness, waveform and OTA/reboot behavior. Compilation, native
 logic and laptop rendering do not establish those physical results.
+
+
+## Firmware v2 — S7 end-to-end validation (2026-11-12)
+
+Firmware **2.0.0** on local branch `fw-v2`: **compiled, not yet flashed**.
+S7 adds one end-to-end case and strengthens the existing cases without removing
+or weakening any test. The test, P2 research and protocol/release documentation
+are separate local commits. Pre-existing unfinished firmware changes remain
+outside those commits. No push, flash, release signing, signing-key read,
+security provisioning or eFuse action was performed.
+
+The focused simulator run passes **7/7 tests**, zero skips/failures/cancelled,
+in **22.40 s**. Actual desk routes, fragmented TCP and serial CRC records use
+real X25519/Ed25519/ChaCha20-Poly1305. Wire observations verify encryption.
+A live devnet quote produces the matching signal fingerprint; the desk also
+rejects authenticated wrong-fingerprint and 799 ms confirmations. Releasing
+YES cancels the simulated hold. A separately chain-verified historical receipt
+traverses the encrypted link; **no new funded fill is claimed**.
+
+Kill persistence is read by a new simulator instance before reconnection;
+clearing the desk's remembered latch makes it relearn disarm from encrypted
+ready. Rearm still needs the desk plus fresh physical-hold simulation. Exact
+wire replay is rejected in both directions without applying the key/config
+again. The OTA case verifies the existing compiled signed public artifact,
+rejects missing/bad signatures and corrupt bytes, and completes the valid
+transfer. This artifact is 1,752,144 bytes, SHA-256
+`202fd32f33a6c0e6f7674c8603d808797e4326a2cacf978a1e13d8d13d7ca26e`;
+it is distinct from the final builds below. No signing key was needed or read.
+
+Native tests run the actual portable C++ logic and installed Crypto/Opus code:
+
+| Source | Cases | Assertions | Result |
+| --- | ---: | ---: | --- |
+| Committed firmware snapshot | 171 | 1,512 | all passed |
+| Complete working tree, preserving unfinished changes | 178 | 1,535 | all passed |
+
+All four Arduino CLI builds pass (CLI **1.5.1**, ESP32 core **3.3.10**):
+
+| Source | Normal flash | Release flash | Normal static RAM | Release static RAM |
+| --- | ---: | ---: | ---: | ---: |
+| Committed firmware snapshot | 1,775,658 | 1,773,486 | 65,196 | 65,116 |
+| Complete working tree | 1,781,430 | 1,779,282 | 65,236 | 65,156 |
+
+All sizes are bytes. Limits: **3,145,728 bytes per app slot**, **327,680 bytes
+static RAM**. Runtime PSRAM sprites, audio and JSON allocations are additional.
+Exact FQBN, flags, paths and commands are in
+[firmware/README.md](firmware/README.md#v2-s7-end-to-end-validation-2026-11-12).
+S7 changes no firmware runtime source; the committed-source snapshot excludes
+the eight firmware files already modified when S7 began.
+
+Full automated package run (all desk, keeper and site test files, sequential):
+
+```sh
+node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs
+```
+
+Final serial run exits **0** in **411.29 s**: **187 tests, 175 passed,
+12 explicit setup/provider skips, zero failures and zero cancelled**.
+
+| Suite | Tests | Passed | Skipped | Failed/cancelled |
+| --- | ---: | ---: | ---: | ---: |
+| Desk (includes all seven S7 cases) | 164 | 154 | 10 | 0 |
+| Keeper | 9 | 7 | 2 | 0 |
+| Site | 14 | 14 | 0 | 0 |
+| Total | 187 | 175 | 12 | 0 |
+
+Desk skips disclose unreachable Ollama, missing Anthropic/Deepgram/Electron
+setup, a Meteora RPC HTTP 429, missing keeper public metadata, and unfunded
+devnet/Phoenix accounts. Keeper skips disclose missing Hermes authorization and
+missing local keeper-key setup; no key generation is run.
+All S7 end-to-end cases pass without skips in the final run. The previously
+timed-out live book-strategy test passes in **68.03 s**. Final log:
+`firmware/build/s7-final-all.log`.
+
+Other checks: `npm run test:ui --prefix desk` passes **15 integration groups /
+54 screenshots**, zero issues/runtime errors. `npm run test:ui --prefix site`
+passes **2 viewport checks** (1440/375 px), zero runtime errors. Site build and
+format checks, shell/JavaScript syntax checks and `git diff --check` pass.
+`make -C tools/uipreview` and `tools/uipreview/preview firmware/build/s7-ui 2`
+pass, rendering **16 frames** with the real GFX drawing code. Generated browser
+artifacts are preserved under ignored `firmware/build/s7-browser-evidence/`;
+tracked v1 screenshot baselines are restored. Logs are `firmware/build/s7-*.log`.
+
+The final standalone `node desk/test/history-ui.mjs` run exits **0** with
+**3 checks / 18 captures**, zero errors/issues. It verifies all timeframe chips,
+real candle drawing, perpetual spot-reference disclosure and backtest charts
+at desktop/mobile sizes across the three themes. Final log:
+`firmware/build/s7-final-history-ui.log`.
+
+The initial run overlapped live-history browser checks with package tests.
+It finished **187 tests: 175 passed, 11 setup/provider skips, 1 cancelled by
+the existing 120-second live book-strategy timeout, zero assertion failures**
+(exit 1, 628.99 s). The initial history browser check also timed out waiting
+for live candles. Both initial logs are retained (`s7-all.log` and
+`s7-history-ui.log`); the final runs are serialized, with no timeout or test
+assertion changes.
+
+[Protocol v2](docs/v2/FIRMWARE-PROTOCOL-V2.md) documents the tested flow and
+[firmware/RESEARCH.md](firmware/RESEARCH.md) records P2 findings, checked against
+Espressif and LVGL primary documentation. Neither WakeNet nor LVGL was built.
+Physical USB/BLE security/latency, TFT/LED/audio behavior, button timing,
+actual NVS power-loss persistence, OTA partition writes/boot/rollback and phone
+interoperability still require Nick's assembled-board verification. Native
+logic, simulator disk persistence and laptop screenshots do not establish
+those hardware results. Standalone interactive/funding/stress diagnostics
+outside the automated suites are not invoked.
