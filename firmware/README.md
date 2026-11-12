@@ -799,3 +799,28 @@ Full totals and exact final test commands are in [TESTING.md](../TESTING.md).
 The regression runner uses loopback 8725–8727 and must run sequentially with
 the desk suite. Use an external-to-repository `TMPDIR` for attestation tests:
 the offline key-generation destination test intentionally rejects repo paths.
+
+
+## Final V3 attestation delivery
+
+Attestation source is now committed with the other V3 features. See
+[the certificate/provisioning protocol](../docs/v3/ATTESTATION.md) and
+[final V3 evidence](../TESTING.md). The actual Expo phone checkout is
+`/Volumes/Extreme SSD/Projects/xorr-solana`, branch `xorrpad-v3-attest`:
+`86984ed` implements the existing Pad screen's independent verification;
+`747277d` records 53 passing Pad tests, TypeScript and Android/Hermes export.
+
+Both phone and desk default to red **Unverified device** until the reviewed
+public factory authority and the unit's signed certificate are provisioned.
+No production root was fabricated to make the UI green. Phone challenges are
+BLE-only, fresh, time-bounded and consumed once. A certified identity signature
+is not a firmware measurement. Firmware remains **compiled, not yet flashed**;
+secure boot/flash encryption were not enabled, no key files were opened for
+release signing, no transaction was broadcast and nothing was pushed.
+
+Final clean committed-source builds: normal **1,947,646 B flash / 68,140 B static
+RAM**, release **1,945,410 B / 68,060 B**, both within the 3,145,728 B / 327,680 B
+limits. Clean native suite **268 cases / 2,658 assertions** passes. Complete desk
+suite: **208 passed / 9 setup skips / 0 failed**, with the legacy existing-private-
+key-file test explicitly excluded; V3 scenario runner **54/54**. See TESTING.md
+for commands, working-tree comparison and the unfunded broadcast limitation.

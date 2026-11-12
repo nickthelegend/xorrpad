@@ -6,6 +6,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, factory and XOR phone attestation
+
+- Factory-signed device certificates, offline external-path key/issuance tools,
+  physical USB factory provisioning and fresh connection proofs, verified by
+  the firmware, desk and actual XOR phone app.
+- Independent fresh phone-origin BLE challenges, local strict Ed25519 checking,
+  single-use/expiry/disconnect protection and genuine/unverified labels in the
+  existing Pad screens; v1 and encrypted v2 relay support remain.
+- Native/desk/phone verification parity and firmware 3.0.0 handshake/report
+  compatibility. Production trust roots remain deliberately unconfigured;
+  compiled, not yet flashed, with funding/hardware acceptance still explicit.
+
 ### Added — firmware 3.0.0, V7 validation and hardware research
 
 - Rev 2 research with exact secure-element, haptic knob, battery/charger and

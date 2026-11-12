@@ -1,3 +1,46 @@
+# Firmware 3.0.0 — attestation delivery completion
+
+**Compiled, not yet flashed.** Device attestation is now committed on `fw-v3`
+(`94111b3`); the actual XOR phone integration is committed on
+`xorr-solana:xorrpad-v3-attest` (`86984ed`, evidence `747277d`). The phone's
+existing Pad screens retain their styling and verify a fresh phone-origin BLE
+challenge locally, rather than trusting a desk verdict. See
+[the certificate/provisioning and phone wire contract](../docs/v3/ATTESTATION.md).
+
+The combined working native suite passes **275 cases / 2,681 assertions**;
+the clean committed-source native suite passes **268 / 2,658**. Earlier unrelated
+uncommitted edits are preserved and excluded from the feature commit; the phone passes
+**53/53 Pad tests**, including four comparisons with the actual native verifier.
+Phone TypeScript, real component screenshots and an Android/Hermes export pass.
+The complete V3 padsim runner passes **54/54**, including factory attestation
+pass/fail, blind-sign refusal, caps across simulated reboot, WASM escape refusal,
+and 2-of-2 crew approval. Its live devnet clear review and Ed25519 check pass.
+The complete desk suite passes **208 tests with 9 setup/provider skips**
+(217 reported, zero failures; legacy existing-key-file scenario excluded).
+Current normal/release working images use **1,952,106 / 1,949,962 bytes flash**
+and **68,196 / 68,124 bytes static RAM**. Full and isolated-source evidence is
+recorded in the final attestation section of [TESTING.md](../TESTING.md).
+
+All specified software components are now committed; full physical/product
+acceptance is still limited by the constraints below. Factory trust stores
+intentionally remain empty until reviewed public production roots are pinned in
+firmware, desk and phone and a per-unit certificate is provisioned. Consequently,
+unprovisioned devices correctly show red **Unverified device**. Identity
+attestation is not measured firmware attestation, silicon secure boot or
+protection against copied software-held keys. No existing private material,
+production signing key or `.env` was opened; no image was flashed or eFuse changed.
+
+A new devnet broadcast remains **BLOCKED** by missing funding. The latest live
+run's exact RAM-only signer was `Gkc1f2997WpgKDQFPiYz5WRKvfT3VijRMVyEX8mg32G2`,
+ATA `2Yfg9wZUqGKsjEB8Pv7Pq1Y2Hy91LACr5kwEkahgoKDw`, fingerprint `JDbw2s`.
+That key ceased to exist when the process exited: do not fund that old address.
+Run `node tools/padsim/v3.mjs --funding-wait=300` and fund its newly printed
+public signer/ATA while it is alive. The required physical BLE/provisioning,
+TFT/hold, NVS/power-cut and OTA rollback checks remain hardware work.
+
+Earlier V7 notes below are historical. Statements there about uncommitted
+attestation and absent phone integration have been superseded by this delivery.
+
 # Firmware 3.0.0 — V7 validation and hardware research
 
 **Compiled, not yet flashed.** V7 labels the firmware `3.0.0`, adds the

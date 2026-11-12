@@ -12,6 +12,7 @@ function frame(overrides = {}) {
 }
 test("factory verifies a real Ed25519 report, CRC, unit identity and optional public key pin", () => {
   assert.equal(verifyFactory(frame(), serial, pk).pass, true);
+  assert.equal(verifyFactory(frame({fw:"3.0.0"}), serial, pk).pass, true);
   assert.throws(() => verifyFactory(frame(), "esp32-000000000000"), /serial/);
   assert.throws(() => verifyFactory(frame(), serial, "0".repeat(64)), /signature/);
   assert.throws(() => verifyFactory(frame(), ""), /serial/);

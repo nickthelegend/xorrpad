@@ -1325,3 +1325,99 @@ checks also pass. The only new OTA-test change permits an explicit compiled
 image path; the complete final desk and both scenario runs use the corresponding
 new 3.0.0 image. Existing assertions are retained. No production image is signed,
 no flash/eFuse operation is performed, and nothing is pushed.
+
+## Firmware v3 — final factory and XOR phone attestation delivery (2026-11-12)
+
+Attestation is now committed on `fw-v3` as `94111b3`. The actual Expo app is on
+`xorrpad-v3-attest` in `/Volumes/Extreme SSD/Projects/xorr-solana`: `86984ed`
+implements verification in the existing Pad screen; `747277d` records evidence.
+The prior V7 references to missing committed attestation and phone integration
+are superseded by this section. Earlier unrelated working-tree edits were
+preserved and excluded from the attestation commit.
+
+| Verification | Result |
+| --- | --- |
+| Combined working native suite | 275 cases / 2,681 assertions, all pass |
+| Isolated committed-source native suite (`94111b3`) | 268 cases / 2,658 assertions, all pass |
+| Targeted desk attestation + factory | 19/19 pass |
+| Complete desk suite | 217 reported: 208 pass, 9 setup/provider skips, 0 failures/cancellations |
+| V3 padsim scenario runner | 54/54 pass, 0 test skips/failures |
+| Actual phone Pad suite | 53/53 pass, including 4 native-verifier cross-checks |
+| Phone TypeScript check | Pass |
+| Phone Android/Hermes export | Pass, `/tmp/xorr-pad-v3-attest-android` |
+| Phone real component screenshots | Updated unverified/BLE setup screens; existing design preserved |
+
+The phone suite's 53 tests include the existing Pad tests. Targeted desk/V3
+scenario tests overlap the full suite and are not added to a coverage total.
+The native difference comes from seven pre-existing uncommitted logic tests;
+the clean committed source meets the V3 minimum independently.
+
+Both unsigned build configurations compile. No release key was opened and no
+image was flashed. Flash maximum is 3,145,728 bytes; static RAM maximum is
+327,680 bytes (runtime PSRAM allocations are additional):
+
+| Source | Normal flash / static RAM | Release flash / static RAM |
+| --- | --- | --- |
+| Combined working tree | 1,952,106 B / 68,196 B | 1,949,962 B / 68,124 B |
+| Isolated commit `94111b3` | 1,947,646 B / 68,140 B | 1,945,410 B / 68,060 B |
+
+Native command: `firmware/test/run.sh`. The isolated verification used a detached
+worktree at `/tmp/xorrpad-v3-attest-source.D9Vzfu` with dependency symlinks; only
+committed source was built. Both builds used Arduino CLI/core/FQBN and the
+normal/release compiler properties recorded in the preceding V7 section, with
+`--jobs 3`, explicit `--build-path` and `--output-dir`. Final working artifacts
+are in `firmware/build/attestation-final-{normal,release}-out`; copied clean
+app images are in `firmware/build/attestation-isolated-{normal,release}-out`.
+
+Desk/firmware attestations verify real Ed25519 certificates and fresh proofs,
+foreign/absent authorities, changed fields, replayed challenges, identity
+substitution and strict schema. Encrypted padsims exercise firmware label 3.0.0
+over TCP and USB CRC. Phone tests use real process-memory Ed25519 signers and
+strict RFC8032 verification; four also invoke the production native driver with
+public inputs. Phone challenges are generated locally, expire in 10 seconds,
+are consumed once, are BLE-only and reset on disconnect. Desk verdict flags
+cannot promote phone trust. Production public root stores intentionally remain
+empty; no fake authority was installed to make the UI genuine.
+
+The phone commands used `EXPO_NO_DOTENV=1`; the dedicated Vitest config avoids
+loading `.env` and unrelated executor live warmup:
+
+```sh
+EXPO_NO_DOTENV=1 npm run test:pad -- --exclude '**/*.live.test.ts'
+EXPO_NO_DOTENV=1 npm run typecheck
+EXPO_NO_DOTENV=1 EXPO_PUBLIC_XORR_CHAIN=solana-devnet node node_modules/expo/bin/cli export --platform android --output-dir /tmp/xorr-pad-v3-attest-android
+EXPO_NO_DOTENV=1 node tools/pad-screenshots.mjs
+```
+
+`node tools/padsim/v3.mjs` passes clear-sign 4, pad-signer 5, attestation 14,
+abilities 5, offline alerts 2, crew 10 and OTA 14. The live path verifies devnet
+state and the native pad's real Ed25519 signature over exact SDK message bytes
+(fingerprint `JDbw2s`). New broadcast is **BLOCKED**, unfunded session signer
+`Gkc1f2997WpgKDQFPiYz5WRKvfT3VijRMVyEX8mg32G2`, ATA
+`2Yfg9wZUqGKsjEB8Pv7Pq1Y2Hy91LACr5kwEkahgoKDw`. That RAM-only key was discarded
+at process exit: do not fund that old address. Re-run with `--funding-wait=300`
+and fund the newly printed signer while it is alive. No new fill is claimed.
+
+**Compiled, not yet flashed.** Physical BLE/OS passkey flow, a genuinely
+provisioned certificate/phone connection, factory NVS persistence, TFT/holds,
+PSRAM/timing, power-loss behavior and actual OTA rollback still require the
+board. Factory public trust anchors and irreversible secure boot/flash
+provisioning remain operator work; no eFuse or existing private key was accessed.
+Final logs use `firmware/build/attestation-{final,isolated}-*.log`.
+
+
+Final complete desk run: **217 tests, 208 passed, 9 setup/provider skips, zero
+failures/cancellations**, 482,059.611334 ms. Command:
+
+```sh
+TASK_ATTEST_TMP=$(mktemp -d /tmp/xorrpad-v3-attest-tests.XXXXXX)
+TMPDIR="$TASK_ATTEST_TMP" XORR_OTA_TEST_IMAGE="$PWD/firmware/build/attestation-final-normal-out/xorrpad.ino.bin" node --test --test-concurrency=1 --test-skip-pattern='funded test wallet required' desk/test/*.test.mjs
+```
+
+The one CLI-excluded legacy funded-wallet scenario opens a pre-existing private
+key file and therefore remains excluded under the no-existing-key-access rule;
+it is not included in the runner's 217 reported tests. No test was removed or
+weakened. The V3 RAM-only signing/broadcast path supplies the explicit unfunded
+BLOCKED evidence above. Full output: `firmware/build/attestation-final-full-desk.log`.
+The signed firmware-3.0.0 factory-report regression also passes in the focused
+five-test factory rerun. All executed final checks have zero failures.
