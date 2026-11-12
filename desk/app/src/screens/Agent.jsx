@@ -4,6 +4,7 @@ import { Card } from "../brand/Card";
 import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
 import { PadSession } from "../components/PadSession";
+import { AgentWallet } from "../components/AgentWallet";
 const providers = [
   {
     id: "ollama",
@@ -346,6 +347,7 @@ export function Agent() {
                     : "Setup required: Deepgram API key and a connected pad."}
                 </p>
               </section>
+              <AgentWallet />
               <details className="wallet-settings">
                 <summary>Signing & session wallet</summary>
                 <p>

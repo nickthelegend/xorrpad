@@ -660,7 +660,14 @@ export class PadLink extends EventEmitter {
   }
   sessionStatus(device) {
     const p=this.sessionPeer(device),requestId=randomUUID();
-    return this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_status",requestId}));
+    // The wallet card and session-policy controls read the same public state.
+    // Share only an in-flight status read; policy/signature requests stay exclusive.
+    if(p.sessionStatusRead?.secure===p.secure)return p.sessionStatusRead.promise;
+    const read={secure:p.secure};
+    read.promise=this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_status",requestId}))
+      .finally(()=>{if(p.sessionStatusRead===read)delete p.sessionStatusRead;});
+    p.sessionStatusRead=read;
+    return read.promise;
   }
   configureSession(device,policy) {
     const p=this.sessionPeer(device),requestId=randomUUID();
