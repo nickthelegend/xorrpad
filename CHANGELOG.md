@@ -6,6 +6,16 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V6 OTA channels
+
+- Per-pad stable/beta opt-in saved in NVS, signed channel/percentage rollout
+  metadata, and deterministic device-ID cohorts checked by desk and firmware.
+- Streaming signed COPY/ADD patches tied to the previous app version/hash;
+  independent patch and final-image verification, inactive-slot writes and
+  existing boot health-check rollback. Full-image and v2 bootstrap paths remain.
+- Connect channel controls and optional delta uploads; real compiled-image,
+  native, encrypted padsim, HTTP authorization and desktop/mobile regressions.
+
 ### Added — firmware 3.0.0, V5 multi-pad co-sign
 
 - Persistent desk threshold/quorum policies with distinct paired crew identities;

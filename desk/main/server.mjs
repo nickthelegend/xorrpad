@@ -1,3 +1,9 @@
+function decodeOtaPatch(data) {
+  if(typeof data !== 'string' || !data.length || data.length > 4194304) throw Error('Select a valid delta.bin under 3 MB');
+  const bytes=Buffer.from(data,'base64');
+  if(bytes.toString('base64')!==data) throw Error('Select a valid base64 delta.bin');
+  return bytes;
+}
 import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
 /**
@@ -395,8 +401,9 @@ export function createServer(mem) {
       if (url.pathname === '/pad/rearm') return send(200,srv.padlink.rearm(body.device));
       if (url.pathname === '/pad/profiles') return send(200,req.method==='GET'?srv.padlink.profiles:srv.padlink.setProfiles(body.profiles));
       if (url.pathname === '/pad/profile') return send(200,srv.padlink.selectProfile(body));
+      if (url.pathname === '/pad/ota-channel') return send(200,await srv.padlink.otaChannel(req.method==='GET'?url.searchParams.get('device'):body.device,req.method==='GET'?undefined:body.channel));
       if (url.pathname === '/pad/manifest'){verifyManifestSignature(body.manifest,OTA_PUBLIC_KEY);return send(200,{ok:true,...body.manifest});}
-      if (url.pathname === '/pad/ota'){if(typeof body.image!=='string'||body.image.length>4194304)return send(400,{error:'Select an app.bin under 3 MB'});const image=Buffer.from(body.image,'base64');verifyManifest(body.manifest,image,OTA_PUBLIC_KEY);srv.padlink.update(body.device,body.manifest,image,OTA_PUBLIC_KEY).catch(error=>signals.publish({type:'ota_error',device:body.device,error:error.message}));return send(202,{ok:true,state:'uploading'});}
+      if (url.pathname === '/pad/ota'){if(typeof body.image!=='string'||body.image.length>4194304)return send(400,{error:'Select an app.bin under 3 MB'});const image=Buffer.from(body.image,'base64');verifyManifest(body.manifest,image,OTA_PUBLIC_KEY);srv.padlink.update(body.device,body.manifest,image,OTA_PUBLIC_KEY,body.patch===undefined?undefined:decodeOtaPatch(body.patch)).catch(error=>signals.publish({type:'ota_error',device:body.device,error:error.message}));return send(202,{ok:true,state:'uploading'});}
       if (url.pathname === '/pad/keymap') {
         try {return send(200,srv.padlink.setKeymap(body));} catch(e) {return send(400,{error:e.message});}
       }
@@ -1285,7 +1292,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],

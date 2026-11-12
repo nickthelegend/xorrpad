@@ -727,3 +727,36 @@ TMPDIR="$PWD/firmware/build/v5-tmp" arduino-cli compile --jobs 3 --build-path "$
 The isolated index snapshot uses `firmware/build/v5-final-snapshot/firmware/xorrpad`
 as its sketch and `v5-isolated-{normal,release}` paths with the same flags.
 See TESTING.md for sizes. Compiled, not yet flashed.
+
+
+## V6 — OTA channels and signed delta patches
+
+See [the OTA protocol](../docs/v3/OTA-PROTOCOL.md) for signed manifest fields,
+per-pad beta opt-in, SHA-256 modulo-100 rollout, patch encoding, release variables
+and the legacy full-image bootstrap for older pads. The desk checks the full app
+and patch before sending the smaller payload; the pad independently checks the
+base, patch and reconstructed app before selecting the inactive slot for boot.
+
+Exact normal/release working-tree commands (compiled, not yet flashed):
+
+```sh
+mkdir -p firmware/build/v6-tmp
+TMPDIR="$PWD/firmware/build/v6-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v6-normal" --output-dir firmware/build/v6-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/v6-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v6-release" --output-dir firmware/build/v6-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+firmware/test/run.sh
+node --test desk/test/ota.test.mjs
+npm test --prefix desk
+node desk/test/ota-ui.mjs
+```
+
+OTA tests consume the pre-existing signed public app artifact and the freshly
+compiled `v6-normal-out/xorrpad.ino.bin`; they generate Ed25519 signers in memory.
+The isolated candidate in `firmware/build/v6-snapshot` excludes unfinished
+attestation changes. Its identical FQBN/flags use source
+`firmware/build/v6-snapshot/firmware/xorrpad`, build paths
+`v6-isolated-{normal,release}` and output paths
+`v6-isolated-{normal,release}-out`. Its native runner is
+`firmware/build/v6-snapshot/firmware/test/run.sh`. Public CA/keymap headers and
+installed dependencies are reused; no secret files are loaded. Results and
+physical-board limits are recorded in TESTING.md. No signing, flash, fuse or
+push commands are part of V6 verification.

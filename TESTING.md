@@ -1117,3 +1117,73 @@ came from the index. Real Wi-Fi behavior, worker/watchdog latency, NVS power-los
 persistence, TFT review readability, physical holds, LED and chimes still need
 the board. The crew threshold is enforced by the coordinating desk; this is not
 an on-chain multisig or protection from a desk that disables its own policy.
+
+
+## Firmware v3 — V6 OTA channels and delta updates (2026-11-12)
+
+**Compiled, not yet flashed.** One local feature commit on `fw-v3`; no push,
+release signing, private-key-file access, flashing or eFuse operations.
+Pre-existing unfinished attestation changes remain outside the V6 commit.
+
+| Verification | Result |
+| --- | --- |
+| Working tree: `firmware/test/run.sh` | 273/273 cases, 2,676 assertions, no failures |
+| Isolated candidate native runner | 259/259 cases, 2,623 assertions, no failures |
+| `node --test desk/test/ota.test.mjs` | 14/14 passed, no skips |
+| Isolated OTA tests, split into pure/native and encrypted link groups | 10 + 4 passed, no failures |
+| `npm test --prefix desk` | 218 total: 208 passed, 10 setup skips, zero failures |
+| `node desk/test/ota-ui.mjs` (working tree and isolated candidate) | HTTP auth/method/invalid-channel checks, encrypted channel read/save, persistence, manifest verification, 1440px/390px layouts, no page errors/overflow |
+| Impeccable detector on Connect module | No findings |
+| `git diff --cached --check` | Passed |
+
+The full desk suite's existing setup skips were unreachable local Ollama,
+unset Anthropic/Deepgram environment credentials, absent Electron safeStorage
+binary, a Meteora RPC rate limit, missing keeper metadata, and unfunded or
+unregistered devnet/Phoenix test owners. No test was deleted or weakened. The
+live reads that were available ran against real providers. The OTA regressions
+use real compiled ESP32 binaries and transient in-memory Ed25519 signers; no
+private signing-key file is loaded and no new transaction is broadcast by them.
+
+Six added native cases cover deterministic rollout hashing/channel boundaries,
+all streaming chunk splits, truncation/trailing/opcode/bounds failures, base-read
+and target-write failure, and malformed manifest fields. Shared C++/JavaScript
+cases independently reject either signature, altered signed metadata, wrong base
+hash/version, corrupted patches, validly signed malformed patches, and wrong
+reconstructed-image hashes. Encrypted padsim covers per-pad beta opt-in across
+reboot, rollout/beta/base refusals at the pad, final patch/image checks, reduced
+transfer bytes and full-image fallback. Legacy v2-envelope bootstrap is tested.
+
+| ESP32-S3 build | Program bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Working normal | 1,950,590 | 68,188 |
+| Working release | 1,948,426 | 68,116 |
+| Isolated normal | 1,940,918 | 67,932 |
+| Isolated release | 1,938,802 | 67,852 |
+
+Against the pre-existing 1,752,144-byte signed app artifact, the new working
+app.bin is 1,950,736 bytes and its patch is 1,319,963 bytes (32% smaller).
+The isolated app.bin is 1,941,072 bytes and its patch is 1,299,788 bytes
+(33% smaller). These are actual file/transfer lengths; Arduino's program-storage
+counts above measure occupied sketch bytes and differ slightly from bin length.
+
+Exact FQBN and working compile commands are in [firmware/README.md](firmware/README.md#v6--ota-channels-and-signed-delta-patches).
+The isolated candidate in ignored `firmware/build/v6-snapshot` contains HEAD
+plus only the V6 changes, preserving the prior OpenSSL-native compatibility path.
+The same FQBN/flags use source `firmware/build/v6-snapshot/firmware/xorrpad`,
+build paths `firmware/build/v6-isolated-{normal,release}` and output directories
+`firmware/build/v6-isolated-{normal,release}-out`. Public compile headers,
+installed node dependencies and compiled app artifacts were reused. Its native
+command is `firmware/build/v6-snapshot/firmware/test/run.sh`. Its OTA command is
+`node --test firmware/build/v6-snapshot/desk/test/ota.test.mjs`, run in two
+nonoverlapping name groups to avoid shared test-port contention. The isolated
+browser command sets `SIBYL_BRIDGE` to the existing `desk/memory/sibyl_bridge.py`
+and `SIBYL_PY` to the installed `.venv/bin/python`, then runs
+`node firmware/build/v6-snapshot/desk/test/ota-ui.mjs`.
+
+Logs are ignored `firmware/build/v6-{native,desk,ota-final,ui}.log` and
+`v6-isolated-{native,normal,release,ota,ota-link,ui}.log`; browser captures are
+`firmware/build/v6-ui/{desktop,mobile}.png`. The browser tested the actual HTTP
+application and paired encrypted padsim, without replacing protocol endpoints.
+Physical BLE throughput, NVS power-loss behavior, inactive-slot flash failure,
+TFT progress and pending-verify rollback still require the board. Deterministic
+rollout is staging rather than version-freshness/anti-rollback enforcement.

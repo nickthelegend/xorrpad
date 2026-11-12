@@ -185,7 +185,7 @@ void onPadMessage(JsonVariantConst d) {
     if(!padlink.secureReady()) return;
     bool ok=ota.message(d);
     pad.updating=ota.busy || (ok && type=="ota_end");pad.otaProgress=ota.progress;
-    JsonDocument result;result["type"]="ota_result";result["id"]=d["id"];result["ok"]=ok;result["error"]=ota.error;padlink.send(result);
+    JsonDocument result;result["type"]="ota_result";result["id"]=d["id"];result["ok"]=ok;result["error"]=ota.error;result["channel"]=ota.selectedChannel();padlink.send(result);
     if(!ok){pad.errorCode="OTA_REFUSED";pad.errorFix=ota.error;}
     else if(type=="ota_end")rebootAt=millis()+1500;
     screenHoldUntil=0;screenDirty=true;return;

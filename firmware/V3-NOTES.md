@@ -333,3 +333,37 @@ Final counts/sizes and the isolated source verification are in TESTING.md.
 Physical display, holds, Wi-Fi and NVS still require hardware; compiled, not
 yet flashed. Existing unfinished attestation work is excluded from both V5
 feature commits.
+
+
+## V6 — OTA channels and signed delta updates (2026-11-12)
+
+Item 7 adds stable/beta selection saved on each pad, deterministic SHA-256
+rollout buckets, signed release/channel/rollout metadata, and smaller COPY/ADD
+downloads over the existing encrypted transport. Connect can read/save the
+selected pad's channel and upload an optional delta beside its manifest and
+full image. The desk verifies the final image and both signatures before sending;
+the pad independently verifies its installed base, patch and reconstructed image,
+rechecking both signatures before boot selection. The inactive slot is the only
+write target. Existing full-image delivery and health-check rollback remain.
+
+See [the manifest, patch format, API and bootstrap path](../docs/v3/OTA-PROTOCOL.md).
+The patcher uses a bounded streaming buffer and checks every copy/literal range,
+exact output length and terminal opcode. Different bases fail closed; mismatched
+previous versions select a full transfer. The release generator emits deltas
+only when smaller, using an in-memory signer interface for tests. The offline
+signing CLI adds channel/rollout/base options and a v2-envelope bootstrap option.
+The normal firmware label remains 2.0.0 pending the complete v3 release.
+
+Tests use real compiled ESP32 binaries and transient Ed25519 signers generated
+in memory. Shared native/desk cases cover both signatures independently, signed
+but malformed patches, base/version mismatches, corruption, final image hashes,
+rollout boundaries and beta refusal. Encrypted padsim cases cover persistent
+opt-in, reduced transfer size, independent pad refusals and full-image fallback.
+Browser checks cover authenticated HTTP controls and desktop/mobile Connect.
+Exact counts, commands and both working-tree/isolated image sizes are in TESTING.md.
+
+Compiled, not yet flashed. Physical BLE throughput, power-loss recovery, NVS
+persistence, display/progress and rollback still need the board. Percentage
+rollout is staging, not anti-rollback protection. No private-key files were read
+or releases signed during verification. Pre-existing unfinished attestation
+changes are preserved outside the V6 commit.

@@ -1,3 +1,4 @@
+import {otaEligible, verifyPatch} from "./ota.mjs";
 import {verifyCrewApproval} from "./crew.mjs";
 import {validatePriceAlerts} from "./price-alerts.mjs";
 import {verifyAbility} from "./abilities.mjs";
@@ -761,8 +762,31 @@ export class PadLink extends EventEmitter {
       await exchange({type:"ability_end"});return exchange({type:"ability_status"});
     }finally{p.abilityBusy=false;}
   }
-  async update(device, manifest, image, publicKey) {
+  async otaChannel(device, channel) {
+    if (channel !== undefined && !['stable','beta'].includes(channel)) throw Error('Choose stable or beta');
+    const p = this.sessionPeer(device);
+    if (p.updating || p.abilityBusy || p.clearReview || p.sessionRequest) throw Error('Pad is busy');
+    const result = await this.otaRequest(p, {type: channel === undefined ? 'ota_status' : 'ota_channel', channel});
+    p.otaChannel = result.channel;
+    return result;
+  }
+  otaRequest(p, message) {
+    const id = randomUUID(), secure = p.secure;
+    return new Promise((resolve,reject) => {
+      const finish = (error, value) => { clearTimeout(timer); this.off('ota', done); error ? reject(error) : resolve(value); };
+      const timer = setTimeout(() => finish(Error('OTA response timeout')), 15000);
+      const done = e => {
+        if(e.peer !== p || e.message.id !== id) return;
+        if(p.secure !== secure || !p.verified || this.preferred(p.device) !== p) return finish(Error('OTA connection changed'));
+        e.message.ok ? finish(null,e.message) : finish(Error(e.message.error || 'OTA refused'));
+      };
+      this.on('ota',done);
+      try { this.send(p,{...message,id}); } catch(error) { finish(error); }
+    });
+  }
+  async update(device, manifest, image, publicKey, patch) {
     verifyManifest(manifest, image, publicKey);
+    if (patch) verifyPatch(manifest, patch, publicKey);
     const p = [...this.peers]
       .filter((p) => p.device === device && p.secure && p.verified)
       .sort(
@@ -771,44 +795,35 @@ export class PadLink extends EventEmitter {
           ["usb", "ble", "wifi"].indexOf(b.name),
       )[0];
     if (!p) throw Error("secure device connection required");
-    if (p.updating) throw Error("update already running");
+    if (p.updating || p.abilityBusy || p.clearReview || p.sessionRequest) throw Error("Pad is busy");
+    const secure = p.secure;
+    if (manifest.channel !== undefined) {
+      const status = await this.otaChannel(device);
+      if (!otaEligible(manifest, device, status.channel)) throw Error('OTA channel or rollout excludes this pad');
+    }
+    const delta = !!(patch && manifest.delta && p.firmware === manifest.delta.fromVersion);
+    const payload = delta ? patch : image;
+    if(p.updating || p.abilityBusy || p.clearReview || p.sessionRequest || p.secure !== secure || this.preferred(device) !== p) throw Error('OTA connection changed');
     p.updating = true;
     p.otaStatus = {
       version: manifest.version,
       progress: 0,
       state: "uploading",
     };
-    const exchange = async (message) => {
-      const id = randomUUID();
-      const wait = new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          this.off("ota", done);
-          reject(Error("OTA response timeout"));
-        }, 15000);
-        const done = (e) => {
-          if (e.peer === p && e.message.id === id) {
-            clearTimeout(timer);
-            this.off("ota", done);
-            e.message.ok
-              ? resolve(e.message)
-              : reject(Error(e.message.error || "OTA refused"));
-          }
-        };
-        this.on("ota", done);
-      });
-      this.send(p, { ...message, id });
-      return wait;
+    const exchange = message => {
+      if(p.secure !== secure || !p.verified || this.preferred(device) !== p) throw Error('OTA connection changed');
+      return this.otaRequest(p,message);
     };
     try {
-      await exchange({ type: "ota_begin", manifest });
-      for (let offset = 0; offset < image.length; offset += 512) {
+      await exchange({ type: "ota_begin", manifest, delta });
+      for (let offset = 0; offset < payload.length; offset += 512) {
         await exchange({
           type: "ota_chunk",
           offset,
-          data: image.subarray(offset, offset + 512).toString("base64"),
+          data: payload.subarray(offset, offset + 512).toString("base64"),
         });
         p.otaStatus.progress = Math.floor(
-          (Math.min(image.length, offset + 512) * 100) / image.length,
+          (Math.min(payload.length, offset + 512) * 100) / payload.length,
         );
       }
       await exchange({ type: "ota_end" });

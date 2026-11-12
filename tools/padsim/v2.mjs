@@ -1,3 +1,4 @@
+import {otaEligible, verifyPatch, applyDelta} from "../../desk/main/ota.mjs";
 /** Stateful v2 protocol endpoint, with real cryptography and disk-backed kill state. */
 import { PadSimulator } from "./index.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -31,8 +32,11 @@ export class PadSimulatorV2 extends PadSimulator {
     this.threshold = 100;
     this.holding = null;
     this.ota = null;
+    this.otaChannel = "stable";
     try {
-      this.killed = JSON.parse(readFileSync(stateFile, "utf8")).killed === true;
+      const saved=JSON.parse(readFileSync(stateFile, "utf8"));
+      this.killed = saved.killed === true;
+      this.otaChannel = saved.otaChannel === 'beta' ? 'beta' : 'stable';
     } catch (e) {
       if (stateFile && e.code !== "ENOENT") throw e;
     }
@@ -289,34 +293,49 @@ export class PadSimulatorV2 extends PadSimulator {
   }
   persist() {
     if (this.stateFile)
-      writeFileSync(this.stateFile, JSON.stringify({ killed: this.killed }), {
+      writeFileSync(this.stateFile, JSON.stringify({ killed: this.killed, otaChannel:this.otaChannel }), {
         mode: 0o600,
       });
   }
   update(m) {
     try {
+      if (m.type === 'ota_status' || m.type === 'ota_channel') {
+        if(this.ota) throw Error('OTA busy');
+        if(m.type === 'ota_channel') {
+          if(!['stable','beta'].includes(m.channel)) throw Error('OTA channel');
+          this.otaChannel=m.channel; this.persist();
+        }
+        this.send({type:'ota_result',id:m.id,ok:true,channel:this.otaChannel}); return;
+      }
       if (m.type === "ota_begin") {
+        if(this.ota) throw Error('OTA busy');
         // OTA public key is provisioned as part of the simulated board, never accepted from the sender.
         if (!this.otaPublicKey) throw Error("OTA public key missing");
         const { verifyManifestSignature } = this.crypto;
         verifyManifestSignature(m.manifest, this.otaPublicKey);
-        this.ota = { manifest: m.manifest, chunks: [], offset: 0 };
+        if(!otaEligible(m.manifest,this.device,this.otaChannel)) throw Error('OTA channel or rollout');
+        if(m.delta && (!m.manifest.delta || !this.installedImage || this.firmware!==m.manifest.delta.fromVersion ||
+          this.installedImage.length!==m.manifest.delta.baseSize || sha(this.installedImage).toString('hex')!==m.manifest.delta.baseSha256)) throw Error('OTA base mismatch');
+        this.ota = { manifest: m.manifest, delta:!!m.delta, chunks: [], offset: 0 };
       } else if (m.type === "ota_chunk") {
         if (!this.ota || m.offset !== this.ota.offset) throw Error("OTA order");
         const b = Buffer.from(m.data, "base64");
         if (
           !b.length ||
           b.length > 512 ||
-          this.ota.offset + b.length > this.ota.manifest.size
+          this.ota.offset + b.length > (this.ota.delta ? this.ota.manifest.delta.size : this.ota.manifest.size)
         )
           throw Error("OTA size");
         this.ota.chunks.push(b);
         this.ota.offset += b.length;
       } else if (m.type === "ota_end") {
         if (!this.ota) throw Error("OTA state");
-        const image = Buffer.concat(this.ota.chunks);
+        const payload = Buffer.concat(this.ota.chunks);
+        if(this.ota.delta) verifyPatch(this.ota.manifest,payload,this.otaPublicKey);
+        const image = this.ota.delta ? applyDelta(this.installedImage,payload,this.ota.manifest.size) : payload;
         verifyManifest(this.ota.manifest, image, this.otaPublicKey);
         this.installedHash = sha(image).toString("hex");
+        this.installedImage=image; this.firmware=this.ota.manifest.version;
         this.ota = null;
       }
       this.send({ type: "ota_result", id: m.id, ok: true });

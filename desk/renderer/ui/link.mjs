@@ -40,7 +40,7 @@ export async function mount({ el, api, subscribe, signal }) {
           "",
         )}<p class="hint">Above the threshold, hold YES for 800 ms. Legacy links use the v1 pad token and do not provide v2 encryption. USB debug and blind signing are off by default. Blind signing requires reviewing every page and a 3.8-second hold.</p><button>Save pad settings</button></form>`,
     )}
-    </div><div class="stack">${panel("Signed firmware update", `<form id="firmware-update" class="panel-body"><p>Select the release manifest and matching app image. The desk and pad both verify the signature.</p><label>Paired pad<select name="device" id="update-device" required></select></label><label>manifest.json<input name="manifest" type="file" accept=".json,application/json" required></label><div id="manifest-detail" role="status"></div><label>app.bin<input name="image" type="file" accept=".bin,application/octet-stream" required></label><button id="install-update" class="primary" disabled>Verify & install update</button><p class="hint">Keep USB power connected. Progress appears on the TFT and in device status. A failed boot health check rolls back within 60 seconds.</p><div id="update-feedback" role="status"></div></form>`)}
+    </div><div class="stack">${panel("Signed firmware update", `<form id="firmware-update" class="panel-body"><p>Select the release manifest and matching app image. The desk and pad both verify the signature.</p><label>Paired pad<select name="device" id="update-device" required></select></label><label>Update channel<select name="channel"><option value="stable">Stable</option><option value="beta">Beta · early releases</option></select></label><div class="actions"><button type="button" id="read-ota-channel">Read pad channel</button><button type="button" id="save-ota-channel">Save channel on pad</button></div><p class="hint" id="ota-channel-status" role="status">Pads start on stable. Beta requires opting in on each pad.</p><label>manifest.json<input name="manifest" type="file" accept=".json,application/json" required></label><div id="manifest-detail" role="status"></div><label>app.bin<input name="image" type="file" accept=".bin,application/octet-stream" required></label><label>delta.bin (optional, smaller download)<input name="patch" type="file" accept=".bin,application/octet-stream"></label><button id="install-update" class="primary" disabled>Verify & install update</button><p class="hint">Keep USB power connected. Progress appears on the TFT and in device status. A failed boot health check rolls back within 60 seconds.</p><div id="update-feedback" role="status"></div></form>`)}
     ${panel("Profiles & layers", `<form id="profiles" class="panel-body"><p>Save up to eight profiles. Each keeps separate Spot, Perps and Predict keymaps.</p><label>Target pad<select name="device" id="profile-device"></select></label><p class="hint device-hint">Connect and pair a v2 pad to install updates or use a profile. Profiles can be saved while disconnected.</p><label>Profile<select name="profile" id="profile-select"></select></label><label>Layer<select name="layer"><option value="0">Spot</option><option value="1">Perps</option><option value="2">Predict</option></select></label><label>Profile name<input name="name" maxlength="20" placeholder="Scalper, Swing, Predictor…"></label><div class="actions"><button name="save" value="save">Save current keys to layer</button><button id="activate-profile" name="activate" value="activate" disabled>Use on pad</button></div><p class="hint">Program keys on the Pad screen, then save them into a profile layer. Bind profile:next or layer:next to cycle on the pad.</p></form>`)}
     <div id="crew-panel"></div>
     ${panel("Connection guide", `<div class="panel-body"><h3>USB-C</h3><p>Use a data cable with the native USB port. Pair with the TFT code and QR before trading.</p><h3>BLE</h3><p>Use the optional desk Bluetooth adapter or XOR phone relay. LE Secure Connections protects Bluetooth; v2 frames are also encrypted. Voice uses 16 kHz mono Opus.</p><h3>Wi-Fi</h3><p>Use the captive portal to set Wi-Fi and the reachable desk URL. The ESP32 does not join Tailscale itself; use LAN or the configured HTTPS Funnel.</p><p>Links expire after 15 seconds. Offline inputs never queue trades. Hold KILL for 2 seconds to latch trading off across reboot.</p><button id="reconnect-desk">Change desk connection</button></div>`)}
@@ -153,6 +153,16 @@ export async function mount({ el, api, subscribe, signal }) {
       notice("Pad settings saved.");
     });
   };
+  for (const [id, save] of [['read-ota-channel',false],['save-ota-channel',true]]) {
+    $('#'+id,el).onclick = e => action(e.currentTarget,async()=>{
+      const form=$('#firmware-update',el),device=form.elements.device.value;
+      if(!device) throw Error('Connect and pair a pad first');
+      const result=await api('/pad/ota-channel'+(save?'':'?device='+encodeURIComponent(device)),save?{device,channel:form.elements.channel.value}:undefined);
+      form.elements.channel.value=result.channel;
+      $('#ota-channel-status',el).textContent=`Pad channel: ${result.channel}${save?' · saved on this pad':''}`;
+    });
+  }
+  $('#update-device',el).onchange=()=>{$('#ota-channel-status',el).textContent='Read this pad’s channel before choosing a release.';};
   let manifest;
   $("#firmware-update", el).elements.manifest.onchange = async (e) => {
     manifest = undefined;
@@ -161,7 +171,7 @@ export async function mount({ el, api, subscribe, signal }) {
       const checked = await api("/pad/manifest", { manifest: m });
       manifest = m;
       $("#manifest-detail", el).innerHTML =
-        `<p>Verified firmware <strong>${esc(checked.version)}</strong> · ${esc(checked.size)} bytes</p><p>${esc(checked.notes)}</p><p class="hint">Minimum desk ${esc(checked.minDeskVersion)}</p>`;
+        `<p>Verified firmware <strong>${esc(checked.version)}</strong> · ${esc(checked.size)} bytes</p><p>${esc(checked.notes)}</p><p class="hint">${esc(checked.channel || "stable")} · rollout ${esc(checked.rolloutPercent ?? 100)}% · minimum desk ${esc(checked.minDeskVersion)}${checked.delta ? " · signed delta available" : ""}</p>`;
     } catch (e) {
       $("#manifest-detail", el).innerHTML = error(e);
     }
@@ -177,10 +187,19 @@ export async function mount({ el, api, subscribe, signal }) {
       let binary = "";
       for (let i = 0; i < bytes.length; i += 16384)
         binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
+      const patchFile=e.target.elements.patch.files[0];
+      let patch;
+      if(patchFile) {
+        if(!manifest.delta || patchFile.size!==manifest.delta.size) throw Error('Select the delta.bin matching this manifest');
+        const data=new Uint8Array(await patchFile.arrayBuffer()); let encoded='';
+        for(let i=0;i<data.length;i+=16384) encoded+=String.fromCharCode(...data.subarray(i,i+16384));
+        patch=btoa(encoded);
+      }
       await api("/pad/ota", {
         device: e.target.elements.device.value,
         manifest,
         image: btoa(binary),
+        ...(patch ? {patch} : {}),
       });
       $("#update-feedback", el).textContent =
         "Update started. Follow progress in device status and on the TFT.";

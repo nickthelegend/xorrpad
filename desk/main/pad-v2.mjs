@@ -1,3 +1,4 @@
+import {deltaText, patchText} from "./ota.mjs";
 /** Portable protocol v2 primitives. Also consumed by the phone relay and padsim. */
 import {
   createHash,
@@ -228,11 +229,19 @@ export class SecureSession {
   }
 }
 export function manifestText(m) {
-  return `xorrpad-ota-v2\n${m.version}\n${m.sha256}\n${m.size}\n${m.minDeskVersion}\n${m.notes}`;
+  const text = `${m.channel === undefined ? 'xorrpad-ota-v2' : 'xorrpad-ota-v3'}\n${m.version}\n${m.sha256}\n${m.size}\n${m.minDeskVersion}\n${m.notes}`;
+  return m.channel === undefined ? text : `${text}\n${m.channel}\n${m.rolloutPercent}\n${m.delta === undefined ? 'none' : deltaText(m.delta) + '\n' + m.delta.signature}`;
 }
 export function verifyManifestSignature(m, pk) {
   if (
-    m?.version !== "2.0.0" ||
+    !m || (m.channel === undefined ? (m.version !== '2.0.0' || m.rolloutPercent !== undefined || m.delta !== undefined) :
+      (typeof m.version !== 'string' || m.version.length > 48 || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(m.version) ||
+       !['stable','beta'].includes(m.channel) || !Number.isInteger(m.rolloutPercent) || m.rolloutPercent < 0 || m.rolloutPercent > 100)) ||
+    (m.delta !== undefined && (!m.delta || m.delta.format !== 'xorr-delta-v1' ||
+      typeof m.delta.fromVersion !== 'string' || m.delta.fromVersion.length > 48 || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(m.delta.fromVersion) ||
+      !Number.isInteger(m.delta.baseSize) || m.delta.baseSize <= 0 || m.delta.baseSize > 0x300000 ||
+      !Number.isInteger(m.delta.size) || m.delta.size <= 0 || m.delta.size >= m.size ||
+      !/^[0-9a-f]{64}$/.test(m.delta.baseSha256) || !/^[0-9a-f]{64}$/.test(m.delta.sha256) || !/^[0-9a-f]{128}$/.test(m.delta.signature))) ||
     m.minDeskVersion !== "1.0.0" ||
     !Number.isInteger(m.size) ||
     m.size <= 0 ||
@@ -253,6 +262,8 @@ export function verifyManifestSignature(m, pk) {
     )
   )
     throw Error("OTA signature mismatch");
+  if (m.delta && !verify(null, Buffer.from(patchText(m)), publicKey(pk, 'ed25519'), Buffer.from(m.delta.signature,'hex')))
+    throw Error('OTA patch signature mismatch');
   return true;
 }
 export function verifyManifest(m, image, pk) {
