@@ -64,3 +64,22 @@ test('panic refuses every waiting/accepted entry and queue requires positive bou
  try {await q.create(proposal()); const e = await q.create(proposal()); await q.accept(e.id); await q.cancelAll(); assert.ok(q.list().every(e => e.state === 'refused'));}
  finally {q.close();}
 });
+
+test('trusted confirmation binds the displayed quote through the acceptance gate',async () => {
+ const quoted = {...proposal(),routing:{best:{venue:'jupiter',effectivePrice:150,fees:{usd:0.25}}}};
+ let changed = false;
+ const q = new SignalQueue({gate:e => changed ? {...e.proposal,routing:{best:{...e.proposal.routing.best,effectivePrice:151}}} : e.proposal});
+ try {
+  const same = await q.create(quoted);
+  assert.equal(typeof same.fingerprint,'string');
+  await assert.rejects(q.accept(same.id,'wrong!'),/fingerprint changed/);
+  assert.equal(q.get(same.id).state,'awaiting');
+  assert.equal((await q.accept(same.id,same.fingerprint)).state,'accepted');
+  const stale = await q.create(quoted);
+  changed = true;
+  const refused = await q.accept(stale.id,stale.fingerprint);
+  assert.equal(refused.state,'refused');
+  assert.equal(refused.ruleId,'signals.quote_changed');
+  assert.equal(q.get(stale.id).fingerprint,stale.fingerprint);
+ } finally {q.close();}
+});

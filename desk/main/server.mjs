@@ -398,7 +398,9 @@ export function createServer(mem) {
         try {
           const [ ,id,action] = signalAction;
           if (action === 'sign') return send(200,await executor.completePhone(id,body));
-          const answered = await signals[action](id);
+          const answered = action === 'accept'
+            ? await signals.accept(id,body.fingerprint)
+            : await signals.refuse(id);
           return send(200,action === 'accept' && answered.state === 'accepted'
             ? {...answered,execution:await executor.execute(id)} : answered);
         }
