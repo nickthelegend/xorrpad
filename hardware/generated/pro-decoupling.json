@@ -1,0 +1,50 @@
+[
+  {
+    "capacitor": "C2",
+    "IC": "U1",
+    "power_pin": "2",
+    "pad_distance_mm": 2.992
+  },
+  {
+    "capacitor": "C3",
+    "IC": "U1",
+    "power_pin": "2",
+    "pad_distance_mm": 6.075
+  },
+  {
+    "capacitor": "C6",
+    "IC": "U4",
+    "power_pin": "5",
+    "pad_distance_mm": 2.145
+  },
+  {
+    "capacitor": "C7",
+    "IC": "U5",
+    "power_pin": "5",
+    "pad_distance_mm": 2.145
+  },
+  {
+    "capacitor": "C8",
+    "IC": "U6",
+    "power_pin": "7",
+    "pad_distance_mm": 2.145
+  },
+  {
+    "capacitor": "C9",
+    "IC": "U6",
+    "power_pin": "7",
+    "pad_distance_mm": 3.147
+  },
+  {
+    "capacitor": "C10",
+    "IC": "J3",
+    "power_pin": "40",
+    "pad_distance_mm": 2.145
+  },
+  {
+    "capacitor": "C11",
+    "IC": "J3",
+    "power_pin": "42",
+    "pad_distance_mm": 2.942
+  }
+]

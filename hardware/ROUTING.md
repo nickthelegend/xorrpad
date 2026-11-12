@@ -11,3 +11,9 @@
 - Subsequent results record JAR/input hashes, Java version, command, timing, session and exact process PID. Timeouts terminate that child by PID and fail visibly. The former native runner remains available only to reproduce the baseline failure.
 
 No order, vendor upload, transaction or push occurred.
+
+## Placement pass, step 2
+
+The real KiCad placement-only scan now reports **0 violations** for each SKU, with 207 Pro / 197 Core unconnected items still to route. No DRC severities were relaxed. References moved to fabrication layers, the encoder shaft (7.5, 2.5 mm from its footprint origin) is aligned to the CAD knob centre, and genuine socket pads follow Kailh KH-PS1607-10 page 9. The production footprint selects **3-pin MX switches**; five-pin locating holes were omitted to free the module corridor. Use the Gateron 3-pin option or Kailh Box 3-pin switches. KILL is rotated 180 degrees, preserving its physical centre and logical cell. The antenna end aligns to the board edge; its original keepout remains. Module/buck thermal drills were enlarged to 0.3 mm rather than relaxing the rule.
+
+Raw placement-only reports and measured bypass-pad distances are in generated/*-placement-v2-drc.json and *-decoupling.json. Board notches clear the existing corner bosses; support and vertical component-pocket compatibility remain for the mechanical check. FPC land pattern remains explicitly provisional and requires manufacturer approval.

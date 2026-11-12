@@ -133,7 +133,7 @@ for ref,n in zip(["R8","R9","R10"],["ENC_A","ENC_B","ENC_SW"]):
 # 4x4 logical matrix: 14 populated cells, two reserved. One diode per socket.
 cells = [(0,2),(0,1),(0,0),(1,2),(1,1),(1,0),(2,3),(2,2),(3,2),(2,1),(2,0),(3,3),(3,1),(3,0)]
 for i,(r,c) in enumerate(cells,1):
-    sw = part("Switch","SW_Push",f"SW{i}","CPG151101S11","C2803348","Xorrpad:Kailh_MX_Socket-compat")
+    sw = part("Switch","SW_Push",f"SW{i}","CPG151101S11","C2803348","Xorrpad:Kailh_CPG151101S11")
     wire(sw,{1:f"COL{c}",2:f"KEY{i}"})
     # KiCad Device:D pad1=K, pad2=A. Columns pull up; selected row sinks.
     two("Device","D",f"D{i}","1N4148W","C81598",f"ROW{r}",f"KEY{i}","Diode_SMD:D_SOD-123")

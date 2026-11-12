@@ -2,7 +2,7 @@
   (version "D")
   (design
     (source "circuit.py")
-    (date "11/12/2026 11:12 AM")
+    (date "11/12/2026 12:36 PM")
     (tool "SKiDL (3.0.0)")
     (sheet
       (number 1)
@@ -59,7 +59,7 @@
         (field
           (name "SKiDL Tag") "C1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -85,7 +85,7 @@
         (field
           (name "SKiDL Tag") "C2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -111,7 +111,7 @@
         (field
           (name "SKiDL Tag") "C20")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -137,7 +137,7 @@
         (field
           (name "SKiDL Tag") "C21")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -163,7 +163,7 @@
         (field
           (name "SKiDL Tag") "C22")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -189,7 +189,7 @@
         (field
           (name "SKiDL Tag") "C23")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -215,7 +215,7 @@
         (field
           (name "SKiDL Tag") "C24")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -241,7 +241,7 @@
         (field
           (name "SKiDL Tag") "C25")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -267,7 +267,7 @@
         (field
           (name "SKiDL Tag") "C26")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -293,7 +293,7 @@
         (field
           (name "SKiDL Tag") "C27")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -319,7 +319,7 @@
         (field
           (name "SKiDL Tag") "C28")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -345,7 +345,7 @@
         (field
           (name "SKiDL Tag") "C29")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -371,7 +371,7 @@
         (field
           (name "SKiDL Tag") "C3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -397,7 +397,7 @@
         (field
           (name "SKiDL Tag") "C30")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -423,7 +423,7 @@
         (field
           (name "SKiDL Tag") "C31")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -449,7 +449,7 @@
         (field
           (name "SKiDL Tag") "C32")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -475,7 +475,7 @@
         (field
           (name "SKiDL Tag") "C33")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -501,7 +501,7 @@
         (field
           (name "SKiDL Tag") "C34")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -527,7 +527,7 @@
         (field
           (name "SKiDL Tag") "C4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -553,7 +553,7 @@
         (field
           (name "SKiDL Tag") "C5")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -579,7 +579,7 @@
         (field
           (name "SKiDL Tag") "C6")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "C"))
@@ -605,7 +605,7 @@
         (field
           (name "SKiDL Tag") "D1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -631,7 +631,7 @@
         (field
           (name "SKiDL Tag") "D10")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -657,7 +657,7 @@
         (field
           (name "SKiDL Tag") "D11")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -683,7 +683,7 @@
         (field
           (name "SKiDL Tag") "D12")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -709,7 +709,7 @@
         (field
           (name "SKiDL Tag") "D13")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -735,7 +735,7 @@
         (field
           (name "SKiDL Tag") "D14")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -761,7 +761,7 @@
         (field
           (name "SKiDL Tag") "D2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -787,7 +787,7 @@
         (field
           (name "SKiDL Tag") "D3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -813,7 +813,7 @@
         (field
           (name "SKiDL Tag") "D4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -839,7 +839,7 @@
         (field
           (name "SKiDL Tag") "D5")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -865,7 +865,7 @@
         (field
           (name "SKiDL Tag") "D6")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -891,7 +891,7 @@
         (field
           (name "SKiDL Tag") "D7")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -917,7 +917,7 @@
         (field
           (name "SKiDL Tag") "D8")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -943,7 +943,7 @@
         (field
           (name "SKiDL Tag") "D9")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "D"))
@@ -969,7 +969,7 @@
         (field
           (name "SKiDL Tag") "ENC1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "RotaryEncoder_Switch"))
@@ -995,7 +995,7 @@
         (field
           (name "SKiDL Tag") "J1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Connector.kicad_sym")
         (part "USB_C_Receptacle_USB2.0_16P"))
@@ -1021,7 +1021,7 @@
         (field
           (name "SKiDL Tag") "L1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "L"))
@@ -1047,7 +1047,7 @@
         (field
           (name "SKiDL Tag") "LED1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1073,7 +1073,7 @@
         (field
           (name "SKiDL Tag") "LED10")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1099,7 +1099,7 @@
         (field
           (name "SKiDL Tag") "LED11")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1125,7 +1125,7 @@
         (field
           (name "SKiDL Tag") "LED12")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1151,7 +1151,7 @@
         (field
           (name "SKiDL Tag") "LED13")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1177,7 +1177,7 @@
         (field
           (name "SKiDL Tag") "LED14")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1203,7 +1203,7 @@
         (field
           (name "SKiDL Tag") "LED15")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1229,7 +1229,7 @@
         (field
           (name "SKiDL Tag") "LED2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1255,7 +1255,7 @@
         (field
           (name "SKiDL Tag") "LED3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1281,7 +1281,7 @@
         (field
           (name "SKiDL Tag") "LED4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1307,7 +1307,7 @@
         (field
           (name "SKiDL Tag") "LED5")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1333,7 +1333,7 @@
         (field
           (name "SKiDL Tag") "LED6")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1359,7 +1359,7 @@
         (field
           (name "SKiDL Tag") "LED7")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1385,7 +1385,7 @@
         (field
           (name "SKiDL Tag") "LED8")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1411,7 +1411,7 @@
         (field
           (name "SKiDL Tag") "LED9")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/LED.kicad_sym")
         (part "WS2812B-2020"))
@@ -1437,7 +1437,7 @@
         (field
           (name "SKiDL Tag") "R1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1463,7 +1463,7 @@
         (field
           (name "SKiDL Tag") "R10")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1489,7 +1489,7 @@
         (field
           (name "SKiDL Tag") "R11")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1515,7 +1515,7 @@
         (field
           (name "SKiDL Tag") "R2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1541,7 +1541,7 @@
         (field
           (name "SKiDL Tag") "R3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1567,7 +1567,7 @@
         (field
           (name "SKiDL Tag") "R4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1593,7 +1593,7 @@
         (field
           (name "SKiDL Tag") "R5")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1619,7 +1619,7 @@
         (field
           (name "SKiDL Tag") "R6")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1645,7 +1645,7 @@
         (field
           (name "SKiDL Tag") "R7")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1671,7 +1671,7 @@
         (field
           (name "SKiDL Tag") "R8")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1697,7 +1697,7 @@
         (field
           (name "SKiDL Tag") "R9")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Device.kicad_sym")
         (part "R"))
@@ -1710,20 +1710,20 @@
       (ref "SW1")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1736,20 +1736,20 @@
       (ref "SW10")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW10")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1762,20 +1762,20 @@
       (ref "SW11")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW11")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1788,20 +1788,20 @@
       (ref "SW12")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW12")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1814,20 +1814,20 @@
       (ref "SW13")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW13")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1840,20 +1840,20 @@
       (ref "SW14")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW14")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1879,7 +1879,7 @@
         (field
           (name "SKiDL Tag") "SW15")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1905,7 +1905,7 @@
         (field
           (name "SKiDL Tag") "SW16")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1918,20 +1918,20 @@
       (ref "SW2")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1944,20 +1944,20 @@
       (ref "SW3")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1970,20 +1970,20 @@
       (ref "SW4")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -1996,20 +1996,20 @@
       (ref "SW5")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW5")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -2022,20 +2022,20 @@
       (ref "SW6")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW6")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -2048,20 +2048,20 @@
       (ref "SW7")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW7")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -2074,20 +2074,20 @@
       (ref "SW8")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW8")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -2100,20 +2100,20 @@
       (ref "SW9")
       (value "CPG151101S11")
       (description "Push button switch, generic, two pins")
-      (footprint "Xorrpad:Kailh_MX_Socket-compat")
+      (footprint "Xorrpad:Kailh_CPG151101S11")
       (fields
         (field
           (name "LCSC") "C2803348")
         (field
           (name "Description") "Push button switch, generic, two pins")
         (field
-          (name "Footprint") "Xorrpad:Kailh_MX_Socket-compat")
+          (name "Footprint") "Xorrpad:Kailh_CPG151101S11")
         (field
           (name "Datasheet"))
         (field
           (name "SKiDL Tag") "SW9")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Switch.kicad_sym")
         (part "SW_Push"))
@@ -2139,7 +2139,7 @@
         (field
           (name "SKiDL Tag") "U1")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/RF_Module.kicad_sym")
         (part "ESP32-S3-WROOM-1"))
@@ -2165,7 +2165,7 @@
         (field
           (name "SKiDL Tag") "U2")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Power_Protection.kicad_sym")
         (part "USBLC6-2SC6"))
@@ -2191,7 +2191,7 @@
         (field
           (name "SKiDL Tag") "U3")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/Regulator_Switching.kicad_sym")
         (part "TPS62160DSG"))
@@ -2217,7 +2217,7 @@
         (field
           (name "SKiDL Tag") "U4")
         (field
-          (name "SKiDL Line") "circuit.py:31"))
+          (name "SKiDL Line") "circuit.py:33"))
       (libsource
         (lib "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols/74xGxx.kicad_sym")
         (part "74AHCT1G125"))
@@ -2243,7 +2243,7 @@
         (field
           (name "SKiDL Tag") "U8")
         (field
-          (name "SKiDL Line") "circuit.py:44"))
+          (name "SKiDL Line") "circuit.py:46"))
       (libsource
         (lib "NO_LIB")
         (part "TPS2553DBVR"))

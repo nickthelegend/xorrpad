@@ -327,7 +327,7 @@
     "ref": "SW1",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL2",
@@ -349,7 +349,7 @@
     "ref": "SW2",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL1",
@@ -371,7 +371,7 @@
     "ref": "SW3",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL0",
@@ -393,7 +393,7 @@
     "ref": "SW4",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL2",
@@ -415,7 +415,7 @@
     "ref": "SW5",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL1",
@@ -437,7 +437,7 @@
     "ref": "SW6",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL0",
@@ -459,7 +459,7 @@
     "ref": "SW7",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL3",
@@ -481,7 +481,7 @@
     "ref": "SW8",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL2",
@@ -503,7 +503,7 @@
     "ref": "SW9",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL2",
@@ -525,7 +525,7 @@
     "ref": "SW10",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL1",
@@ -547,7 +547,7 @@
     "ref": "SW11",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL0",
@@ -569,7 +569,7 @@
     "ref": "SW12",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL3",
@@ -591,7 +591,7 @@
     "ref": "SW13",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL1",
@@ -613,7 +613,7 @@
     "ref": "SW14",
     "mpn": "CPG151101S11",
     "lcsc": "C2803348",
-    "footprint": "Xorrpad:Kailh_MX_Socket-compat",
+    "footprint": "Xorrpad:Kailh_CPG151101S11",
     "note": "",
     "pins": {
       "1": "COL0",

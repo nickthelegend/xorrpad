@@ -1,0 +1,20 @@
+[
+  {
+    "capacitor": "C2",
+    "IC": "U1",
+    "power_pin": "2",
+    "pad_distance_mm": 2.992
+  },
+  {
+    "capacitor": "C3",
+    "IC": "U1",
+    "power_pin": "2",
+    "pad_distance_mm": 7.011
+  },
+  {
+    "capacitor": "C6",
+    "IC": "U4",
+    "power_pin": "5",
+    "pad_distance_mm": 2.145
+  }
+]

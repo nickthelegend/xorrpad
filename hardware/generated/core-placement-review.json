@@ -1,0 +1,9 @@
+{
+  "fixed_parts_needing_review": [
+    "ENC1",
+    "J1"
+  ],
+  "key_centres_source": "cad/partlib.py",
+  "module_antenna_edge_y_mm": 184,
+  "board_edge_y_mm": 184
+}
