@@ -36,6 +36,8 @@
 #include "net.h"
 #include "provision.h"
 #include "display.h"
+#include "presentation.h"
+#include "ota.h"
 #include "logic/kill-switch.h"
 #include "profiles.h"
 #include "knob.h"
@@ -57,6 +59,8 @@ Provision  provision;
 Settings   settings;
 PadLink    padlink;
 Health health;
+Ota ota;
+uint32_t rebootAt=0;
 Profiles profiles;
 Knob knob;
 xorr::KnobControl knobControl;
@@ -153,7 +157,18 @@ void onPadMessage(JsonVariantConst d) {
     if (usbDebugAllowed()) onTelnetCommand(d["command"] | "");
     return;
   }
+  presentationMessage(d,pad,chartNow);
   String type=d["type"] | "";
+  if(type.startsWith("ota_")) {
+    if(!padlink.secureReady()) return;
+    bool ok=ota.message(d);
+    pad.updating=ota.busy || (ok && type=="ota_end");pad.otaProgress=ota.progress;
+    JsonDocument result;result["type"]="ota_result";result["id"]=d["id"];result["ok"]=ok;result["error"]=ota.error;padlink.send(result);
+    if(!ok){pad.errorCode="OTA_REFUSED";pad.errorFix=ota.error;}
+    else if(type=="ota_end")rebootAt=millis()+1500;
+    screenHoldUntil=0;screenDirty=true;return;
+  }
+  if(type=="error")audio.chime(xorr::Chime::Error);
   if(type=="crash_saved") health.crashSaved(d);
   else if (type == "kill_sync") { latchKill(); }
   else if (type == "profiles" || type == "profile_map" || type == "profile_select") {
@@ -475,6 +490,7 @@ void setup() {
   killSwitch.restore(readable?safety.getUChar("killed",0):1,readable);
   if(safetyOK)safety.end();
   showKillState();
+  ota.begin();
   loadKeymap();
   profiles.begin();
   knob.begin();
@@ -585,6 +601,8 @@ void loop() {
   }
 
   health.tick(padlink);
+  ota.health(health.displayUp,health.keysScanned,padlink.secureReady());
+  if(rebootAt && (int32_t)(millis()-rebootAt)>=0 && padlink.idle())ESP.restart();
   padlink.killed = killSwitch.killed;
   provision.poll();padlink.tick();
   if(killSwitch.killDue(millis()))latchKill();

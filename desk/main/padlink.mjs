@@ -443,6 +443,7 @@ export class PadLink extends EventEmitter {
         closes: chart.closes?.slice(-48) || [],
         unrealised: pad.unrealised,
         positions: pad.positions,
+        positionDetails: pad.positionDetails,
         chainOk: pad.chainOk,
         spentToday: pad.spentToday,
         dayLimit: pad.dayLimit,

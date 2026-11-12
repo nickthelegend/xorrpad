@@ -6,6 +6,7 @@
 #include "config.h"
 #include "padstate.h"
 #include "ui.h"
+#include <esp_heap_caps.h>
 #include <qrcode.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,6 +22,15 @@
 // Every frame is composed on a PSRAM canvas and sent in one blit, so a redraw
 // never flickers or shows half a frame.
 // ─────────────────────────────────────────────────────────────────────────────
+class PsramSprite : public GFXcanvas16 {
+public:
+  PsramSprite() : GFXcanvas16(ui::W, ui::H, false) {
+    buffer = static_cast<uint16_t*>(heap_caps_calloc(ui::W * ui::H, sizeof(uint16_t),
+                                                   MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    buffer_owned = true;
+  }
+};
+
 class Display {
 public:
   static constexpr int W = ui::W, H = ui::H;
@@ -32,11 +42,18 @@ public:
     _tft = new Adafruit_ILI9341(_spi, TFT_DC, TFT_CS, TFT_RST);
     _tft->begin(TFT_SPI_HZ);
     _tft->setRotation(_rotation);
-    _canvas = new GFXcanvas16(W, H);              // 154 KB — lands in PSRAM
-    _ok = _canvas && _canvas->getBuffer();
-    if (_ok) testCard(); else _tft->fillScreen(ILI9341_RED);
+    _canvas = new PsramSprite();
+    _back = new PsramSprite(); // Two explicit 153,600-byte PSRAM sprites.
+    _ok = _canvas && _back && _canvas->getBuffer() && _back->getBuffer() && esp_ptr_external_ram(_canvas->getBuffer()) && esp_ptr_external_ram(_back->getBuffer());
+    if (_ok) testCard();
+    else {
+      delete _canvas; delete _back; _canvas = _back = nullptr;
+      _tft->fillScreen(ILI9341_BLACK); _tft->setTextColor(ILI9341_WHITE);
+      _tft->setCursor(12, 30); _tft->setTextSize(2); _tft->println("DISPLAY_RAM");
+      _tft->setCursor(12, 62); _tft->setTextSize(1); _tft->println("Enable OPI PSRAM; reboot");
+    }
     if (TFT_BLK >= 0) digitalWrite(TFT_BLK, HIGH);
-    if (!XORR_RELEASE) Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
+    Serial.printf("display: ILI9341 %dx%d over SPI at %u MHz, rotation %u, canvas %s\n",
                   W, H, (unsigned)(TFT_SPI_HZ / 1000000), _rotation, _ok ? "ok" : "FAILED");
     return _ok;
   }
@@ -51,17 +68,17 @@ public:
     if (!_ok) return;
     const uint32_t t0 = millis();
     ui::drawFrame(*_canvas, pad, ch);
-    if(pad.pairCode.length()&&!pad.factory){
+    if(pad.pairCode.length()&&!pad.killed&&!pad.factory&&!pad.updating&&!pad.errorCode.length()){
       if(_qrText!=pad.pairQr){_qrText=pad.pairQr;esp_qrcode_config_t cfg={.display_func=[](esp_qrcode_handle_t qr){_qrSize=esp_qrcode_get_size(qr);if(_qrSize>53){_qrSize=0;return;}for(int y=0;y<_qrSize;y++)for(int x=0;x<_qrSize;x++)_qrData[y*53+x]=esp_qrcode_get_module(qr,x,y);},.max_qrcode_version=9,.qrcode_ecc_level=ESP_QRCODE_ECC_LOW};if(esp_qrcode_generate(&cfg,pad.pairQr.c_str())!=ESP_OK)_qrSize=0;}
       if(_qrSize){_canvas->fillRect(133,24,183,183,0xffff);for(int y=0;y<_qrSize;y++)for(int x=0;x<_qrSize;x++)if(_qrData[y*53+x])_canvas->fillRect(145+x*3,36+y*3,3,3,0);}
     }
-
     blit();
     _frameMs = millis() - t0;
     _frames++;
     _chartN = (ch.ok && ch.symbol == pad.market) ? ch.n : 0;
   }
 
+  void brightness(int value){if(TFT_BLK>=0)analogWrite(TFT_BLK,value);}
   // Landscape only — the pod lays the panel on its side; 1 and 3 are its two ways round.
   bool rotate(uint8_t r) {
     if (!_ok || (r != 1 && r != 3)) return false;
@@ -82,11 +99,15 @@ private:
   inline static bool _qrData[53*53]={};inline static int _qrSize=0;String _qrText;
   SPIClass *_spi = nullptr;
   Adafruit_ILI9341 *_tft = nullptr;
-  GFXcanvas16 *_canvas = nullptr;
+  GFXcanvas16 *_canvas = nullptr,*_back=nullptr;
   bool _ok = false;
   uint8_t _rotation = TFT_ROTATION;
   uint16_t _chartN = 0;
   uint32_t _frames = 0, _frameMs = 0;
 
-  void blit() { _tft->drawRGBBitmap(0, 0, _canvas->getBuffer(), W, H); }
+  void blit() {
+    // The SPI write is synchronous; swap only after the complete frame is sent.
+    _tft->drawRGBBitmap(0, 0, _canvas->getBuffer(), W, H);
+    std::swap(_canvas, _back);
+  }
 };

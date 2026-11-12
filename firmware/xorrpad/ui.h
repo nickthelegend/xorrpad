@@ -2,6 +2,7 @@
 #include <Adafruit_GFX.h>
 #include "padstate.h"
 #include "config.h"
+#include "logic/presentation.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ui.h — every pixel the pad draws, and nothing that knows about hardware.
@@ -32,13 +33,10 @@ namespace ui {
 
 constexpr int W = 320, H = 240;
 
-// The desk app's palette (DESIGN.md), in RGB565.
-static constexpr uint16_t BG = 0x0000, INK = 0xFFFF, MUTE = 0x8C71, GRID = 0x2124;
-static constexpr uint16_t UP = 0x2ECF, DOWN = 0xFA27, WARN = 0xEE29;   // #2BD87A #FF453A #E8C64A
-static constexpr uint16_t UP_DIM = 0x09E4, DOWN_DIM = 0x3882;          // ~22% of up / down
-static constexpr uint16_t BLUE = 0x0C3F;                               // #0A84FF
-static constexpr uint16_t SOL  = 0x9A3F;                               // #9945FF, Solana violet
-static constexpr uint16_t DIMWARN = 0x2140;                            // banner fill behind WARN
+// xorr.finance palette, truncated to the TFT's RGB565 channels.
+static constexpr uint16_t BG=xorr::night, INK=xorr::ink, MUTE=0x8c71, GRID=0x2124;
+static constexpr uint16_t UP=xorr::mint, WARN=xorr::lime, BLUE=xorr::cobalt, SOL=xorr::lavender;
+static constexpr uint16_t DOWN=0xfa27, UP_DIM=0x0143, DOWN_DIM=0x3882;
 
 static constexpr int BANNER_H = 34;            // the hours bar owns the bottom
 
@@ -48,8 +46,9 @@ static constexpr int BANNER_H = 34;            // the hours bar owns the bottom
 static int tw(uint8_t size, const char *s) { return (int)strlen(s) * 6 * size; }
 static int th(uint8_t size) { return 8 * size; }
 
+static bool highContrastTheme=false;
 static void text(GFXcanvas16 &c, int x, int y, uint8_t size, uint16_t col, const char *s) {
-  c.setTextSize(size); c.setTextColor(col); c.setCursor(x, y); c.print(s);
+  c.setTextSize(size); c.setTextColor(highContrastTheme&&(col==MUTE||col==GRID)?0xffff:col); c.setCursor(x, y); c.print(s);
 }
 static void textR(GFXcanvas16 &c, int right, int y, uint8_t size, uint16_t col, const char *s) {
   text(c, right - tw(size, s), y, size, col, s);
@@ -229,7 +228,7 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   else                   right = pill(c, right, 10, "ARMED", UP) - 6;
   if (pad.chain.length()) {
     String ch2 = pad.chain; ch2.toUpperCase();
-    right = pill(c, right, 10, ch2.c_str(), pad.chain == "solana" ? SOL : BLUE) - 6;
+    right = pill(c, right, 34, ch2.c_str(), pad.chain == "solana" ? SOL : BLUE) - 6;
   }
 
   // subtitle — the agent holding the baton, and what it can spend
@@ -239,32 +238,24 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
     sub += " of $";  sub += pad.dayLimit; sub += " today";
   }
   if (!pad.remembers) sub = "memory wiped — running on fallback limits";
-  textClip(c, 12, 40, W - 24, 1, pad.remembers ? MUTE : WARN, sub);
+  textClip(c, 12, 40, pad.chain.length() ? 190 : W - 24, 1, pad.remembers ? MUTE : WARN, sub);
 
   // price — the chart's close when it is for this market, else /pad's
   const bool fresh = ch.ok && ch.symbol == pad.market;
   const float px = (fresh && ch.price > 0) ? ch.price : pad.price;
   char buf[40];
   fmtPrice(buf, sizeof buf, px);
-  const uint8_t psize = strlen(buf) <= 7 ? 5 : 4;
+  const uint8_t psize = strlen(buf) <= 9 ? 5 : 3;
   text(c, 12, 56, psize, px > 0 ? INK : MUTE, buf);
 
-  // 24h move, and unrealised P&L under it
-  int ry = 58;
-  if (fresh && ch.hasChange) {
-    snprintf(buf, sizeof buf, "%+.2f%%", ch.change24h);
-    textR(c, W - 12, ry, 2, ch.change24h >= 0 ? UP : DOWN, buf);
-    textR(c, W - 12, ry + 20, 1, MUTE, "24h");
-    ry += 36;
-  }
-  if (pad.hasPnl) {
-    snprintf(buf, sizeof buf, "%+.2f", pad.unrealised);
-    textR(c, W - 12, ry, 1, pad.unrealised >= 0 ? UP : DOWN, buf);
-    textR(c, W - 12, ry + 12, 1, GRID, "unreal.");
-  }
+  // Market Pulse keeps the signed 24h change visible without a chart.
+  text(c, 12, 100, 1, BLUE, "MARKET PULSE");
+  if (fresh && ch.hasChange) snprintf(buf, sizeof buf, "%+.2f%% 24h", ch.change24h);
+  else snprintf(buf, sizeof buf, "24h --");
+  textR(c, W - 12, 100, 1, fresh && ch.hasChange ? (ch.change24h >= 0 ? UP : DOWN) : MUTE, buf);
 
   // chart — a line with the area under it, green if it ends above where it began
-  const int X0 = 12, X1 = W - 12, Y0 = 118, Y1 = H - BANNER_H - 16;
+  const int X0 = 12, X1 = W - 12, Y0 = 118, Y1 = H - BANNER_H - 30;
   c.drawFastHLine(X0, Y1, X1 - X0, GRID);
   if (fresh && ch.n >= 2 && ch.hi > ch.lo) {
     const bool rising = ch.closes[ch.n - 1] >= ch.closes[0];
@@ -304,48 +295,22 @@ void drawHome(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
  * presses ✓. So the ask is the whole screen, not a pill in a corner.
  */
 void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
-  const bool sell = pad.verdict.startsWith("SELL") || pad.verdict.indexOf("SELL") >= 0;
-  const uint16_t accent = sell ? DOWN : UP;
+  (void)ch;
+  textClip(c,12,10,296,2,WARN,"CHECK / "+pad.signalSide);
+  if(!pad.fingerprint.length()) textClip(c,12,148,296,1,MUTE,pad.verdict);
+  wrap(c,12,36,296,1,INK,pad.market,2);
+  wrap(c,12,64,296,1,INK,"VENUE "+pad.venue,2);
+  textClip(c,12,92,296,1,INK,"SIZE $"+pad.signalSize);
+  textClip(c,12,110,296,1,INK,"PRICE $"+pad.signalPrice);
+  textClip(c,12,128,296,1,INK,"FEE $"+pad.signalFee);
+  if(pad.fingerprint.length()) text(c,12,148,1,MUTE,"COMPARE WITH DESK + PHONE");
+  text(c,12,161,2,WARN,pad.fingerprint.c_str());
+  int32_t left=(int32_t)(pad.signalDeadline-millis());String seconds=String(left>0?(left+999)/1000:0)+"s";textR(c,308,161,2,INK,seconds.c_str());
+  c.drawRoundRect(12,182,142,30,6,UP);text(c,20,192,1,UP,pad.holdRequired?"HOLD YES 800ms":"TAP YES");
+  c.drawRoundRect(166,182,142,30,6,DOWN);text(c,182,192,1,DOWN,"NO / REFUSE");
+  if(pad.holdRequired){for(int a=0;a<int(pad.holdProgress*360);a+=8){float rad=a*0.01745329252f;int x=137+10*sinf(rad),y=197-10*cosf(rad);c.fillCircle(x,y,1,WARN);}}
+  textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
 
-  c.fillRect(0, 0, W, 4, accent);
-  pillSolid(c, W - 12, 12, "CONFIRM", accent, BG);
-  if(pad.signalId.length()){
-    char countdown[24];int32_t left=(int32_t)(pad.signalDeadline-millis());
-    snprintf(countdown,sizeof countdown,"%lds left",(long)(left>0?(left+999)/1000:0));
-    textR(c,W-12,38,2,WARN,countdown);
-  }
-  if(pad.autoAccept)pillSolid(c,W-12,66,"AUTO",WARN,BG);
-
-  // the ask, as large as it goes
-  text(c, 12, 14, 3, accent, sell ? "SELL" : "BUY");
-  text(c, 12, 46, 4, INK, pad.market.length() ? pad.market.c_str() : "--");
-
-  char buf[48];
-  const float px = (ch.ok && ch.symbol == pad.market && ch.price > 0) ? ch.price : pad.price;
-  if (pad.dayLimit > 0 || px > 0) {
-    if (px > 0) {
-      char p[24]; fmtPrice(p, sizeof p, px);
-      snprintf(buf, sizeof buf, "at %s", p);
-      text(c, 12, 86, 2, MUTE, buf);
-    }
-  }
-
-  // why it is being asked at all — the gate's own words, wrapped
-  const int wy = 108;
-  text(c, 12, wy, 1, GRID, "WHY");
-  String why = pad.verdict.length() ? pad.verdict : String("the desk proposed this");
-  wrap(c, 12, wy + 14, W - 24, 1, MUTE, ascii(why), 3);
-
-  // the two targets, mirroring the green and red keys under the operator's hand
-  const int by = H - BANNER_H - 44;
-  c.drawRoundRect(12, by, 130, 34, 8, UP);
-  c.drawLine(24,by+17,30,by+24,UP);c.drawLine(30,by+24,42,by+9,UP);
-  text(c, 55, by + 9, 2, UP, "YES");
-  c.drawRoundRect(W - 12 - 130, by, 130, 34, 8, DOWN);
-  c.drawLine(188,by+10,204,by+24,DOWN);c.drawLine(204,by+10,188,by+24,DOWN);
-  text(c, 220, by + 9, 2, DOWN, "NO");
-
-  drawHoursBanner(c, pad);
 }
 
 /**
@@ -354,6 +319,7 @@ void drawConfirm(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
  * up the slant. Wrong way round? `rot 3` (or `rot 1`) on telnet.
  */
 static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
+  highContrastTheme=false;
   c.fillScreen(BG);
   const uint16_t bars[6] = {UP, DOWN, WARN, SOL, INK, MUTE};
   for (int i = 0; i < 6; i++) c.fillRect(i * W / 6, 0, W / 6 + 1, 8, bars[i]);
@@ -377,12 +343,37 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
   banner(c, WARN, "CONNECTING", "joining wifi, then the desk");
 }
 
+static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
+  c.fillScreen(BG);
+    text(c,12,10,2,INK,"POSITIONS");
+    char line[64];
+    if(pad.hasPnl) snprintf(line,sizeof line,"Book PnL $%+.2f",pad.unrealised);
+    else snprintf(line,sizeof line,"Book PnL -- / price or basis missing");
+    text(c,12,38,1,pad.hasPnl?(pad.unrealised>=0?UP:DOWN):MUTE,line);
+    if(!pad.positionCount) text(c,12,85,2,MUTE,"No open positions");
+    else if(!pad.positionN) text(c,12,85,1,MUTE,"Position details unavailable");
+    size_t pages=std::max(size_t(1),(size_t(pad.positionN)+3)/4);
+    (void)pages;
+    size_t page=(now/12000)%pages;
+    for(size_t i=page*4;i<pad.positionN && i<(page+1)*4;++i) {
+      const auto &position=pad.positions[i]; int y=65+int(i%4)*30;
+      textClip(c,12,y,140,1,INK,position.market);
+      if(position.hasPnl) snprintf(line,sizeof line,"$%+.2f",position.pnl);
+      else snprintf(line,sizeof line,"PnL --");
+      textR(c,308,y,1,position.hasPnl?(position.pnl>=0?UP:DOWN):MUTE,line);
+      snprintf(line,sizeof line,"Qty %.6g",position.qty);text(c,12,y+12,1,MUTE,line);
+    }
+    snprintf(line,sizeof line,"%d open / %u shown",pad.positionCount,unsigned(pad.positionN));
+    banner(c,BLUE,"PORTFOLIO",line);
+}
+
 /**
  * One frame. Which screen to show is a property of the state, not a mode the
  * firmware keeps: a pending decision outranks everything, and an unreachable
  * desk outranks a stale price.
  */
 static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
+  highContrastTheme=pad.highContrast;
   c.fillScreen(BG);
   c.setTextWrap(false);
   if (pad.factory) {
@@ -400,30 +391,39 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     }
     return;
   }
-  if (pad.killed) {
-    text(c,12,20,4,DOWN,"KILLED");
-    wrap(c,12,72,296,2,INK,"Trading is latched off",2);
-    wrap(c,12,130,296,1,INK,pad.rearmRequested
-      ? "Desk requested rearm. Hold YES for 800ms."
-      : "Request rearm from the desk, then hold YES on this pad.",4);
-    c.fillRect(12,190,(int)(296*pad.rearmProgress),8,WARN);
-    if(pad.pairCode.length()) text(c,12,220,1,INK,(String("PAIR CODE ")+pad.pairCode).c_str());
-    return;
+  if(pad.killed){
+    text(c,12,20,4,DOWN,"KILLED");wrap(c,12,72,296,2,INK,"Trading is latched off",2);
+    wrap(c,12,130,296,1,INK,pad.rearmRequested?"Desk requested rearm. Hold YES for 800ms.":"Request rearm from the desk, then hold YES on this pad.",4);
+    c.fillRect(12,190,(int)(296*pad.rearmProgress),8,WARN);if(pad.pairCode.length())text(c,12,220,1,INK,(String("PAIR CODE ")+pad.pairCode).c_str());return;
   }
+  if(pad.updating){text(c,12,20,3,WARN,"UPDATING");text(c,12,80,4,INK,(String(pad.otaProgress)+"%").c_str());c.drawRect(12,145,296,20,INK);c.fillRect(14,147,292*pad.otaProgress/100,16,UP);text(c,12,190,1,INK,"Keep USB power connected");return;}
+  if(pad.errorCode.length()){text(c,12,18,3,WARN,"ACTION NEEDED");textClip(c,12,66,296,2,INK,pad.errorCode);textClip(c,12,104,296,1,INK,pad.errorFix);text(c,12,205,1,MUTE,"Key: dismiss / retry the action");return;}
   if(pad.pairCode.length()){
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
-  if(pad.listening) {
-    text(c,12,20,3,SOL,"LISTENING");
-    for(int i=0;i<32;++i) {int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}
-    text(c,12,204,1,INK,"Release MIC or knob to send");return;
-  }
+  if(pad.pending&&pad.ok){drawConfirm(c,pad,ch);return;}
+  if(pad.listening){text(c,12,20,3,SOL,"LISTENING");for(int i=0;i<32;i++){int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}text(c,12,204,1,INK,"Release MIC or knob to send");return;}
   if (!pad.ok)          drawOffline(c);
   else if(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0) {
-    text(c,12,14,3,UP,"RECEIPT");text(c,12,50,1,MUTE,"CONFIRMED SIGNATURE");
+    text(c,12,14,3,UP,"RECEIPT");text(c,12,50,1,MUTE,"CONFIRMED SIGNATURE");text(c,12,178,1,UP,(pad.receiptSignature.substring(0,8)+"..."+pad.receiptSignature.substring(pad.receiptSignature.length()-8,pad.receiptSignature.length())).c_str());
     wrap(c,12,68,W-24,1,INK,pad.receiptSignature,4);
     wrap(c,12,124,W-24,1,MUTE,pad.receiptExplorer,4);
-    banner(c,UP,"CONFIRMED","receipt from the desk");
+    banner(c,UP,"CONFIRMED","confirmed / explorer short sig");
+  }
+  else if (pad.reply.length()) {
+    text(c,12,12,2,SOL,"AGENT REPLY");
+    String body=ascii(pad.reply);
+    auto lines=xorr::replyLines(body.c_str());
+    size_t page=xorr::replyPage(millis(),pad.replyAt,lines.size());
+    for(size_t i=page*8;i<lines.size() && i<(page+1)*8;++i)
+      text(c,12,44+int(i%8)*18,2,INK,lines[i].c_str());
+    char counter[40]; snprintf(counter,sizeof counter,"%u/%u - scrolls every 6s",unsigned(page+1),unsigned(xorr::replyPages(lines.size())));
+    text(c,12,205,1,MUTE,counter);
+    textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
+    return;
+  }
+  else if (pad.positionCount >= 0 && (millis()/6000)%2 == 1) {
+    drawPositions(c,pad,millis());
   }
   else if (pad.pending) drawConfirm(c, pad, ch);
   else if((int32_t)(pad.keymapUntil-millis())>0){
@@ -438,7 +438,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   if(!pad.pending && (int32_t)(pad.labelUntil-millis())>0) {
     c.fillRect(0,H-76,W,36,BG);textClip(c,12,H-64,W-24,2,INK,pad.lastKeyLabel);
   }
-  textClip(c,12,H-44,210,1,MUTE,pad.profile+" / "+pad.layer);
+  if(!pad.pending)textClip(c,12,H-44,210,1,pad.highContrast?INK:MUTE,pad.profile+" / "+pad.layer);
   if(pad.link.length())textR(c,W-12,H-44,1,MUTE,pad.link.c_str());
 }
 

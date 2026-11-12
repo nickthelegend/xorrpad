@@ -212,6 +212,29 @@ int main(int argc, char **argv) {
     ui::drawFrame(c,p,ch);shot("10-receipt","historical devnet receipt layout, not a new trade");
   }
 
+  // P1 layout-only states. They contain no invented live quote or fill.
+  {
+    PadState p; ChartState ch; p.ok=true;
+    p.reply="The pad keeps every character in an agent reply, including the last line. Replies scroll in eight-line pages every six seconds. A receipt or pending signal takes priority. Press a key to return to Market Pulse.";
+    ui::drawFrame(c,p,ch);shot("11-agent-reply","layout text, first reply page");
+    p.highContrast=true;
+    ui::drawFrame(c,p,ch);shot("12-high-contrast","same reply with white text on night");
+    p.reply="";p.positionCount=0;
+    ui::drawPositions(c,p,0);shot("13-positions-empty","truthful empty portfolio");
+    p.positionCount=-1;p.listening=true;
+    ui::drawFrame(c,p,ch);shot("14-listening","quiet microphone waveform");
+    p.listening=false;p.updating=true;p.otaProgress=0;
+    ui::drawFrame(c,p,ch);shot("15-ota","update progress at start");
+    p.updating=false;p.errorCode="DISPLAY_RAM";p.errorFix="Enable OPI PSRAM; reboot";
+    ui::drawFrame(c,p,ch);shot("16-error","error code and one-line fix");
+    p.errorCode="";p.killed=true;p.pairCode="------";
+    ui::drawFrame(c,p,ch);shot("17-killed","latched kill instructions");
+    std::vector<uint16_t> killed(c.getBuffer(),c.getBuffer()+ui::W*ui::H);
+    p.pending=p.updating=p.listening=true;
+    ui::drawFrame(c,p,ch);
+    if(!std::equal(killed.begin(),killed.end(),c.getBuffer())) return 2;
+  }
+
   printf("\n%d frames -> %s/ (at %dx)\n", made, dir, scale);
   return made ? 0 : 1;
 }

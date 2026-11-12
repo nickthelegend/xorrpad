@@ -645,10 +645,16 @@ export function createServer(mem) {
         // remembered entry there is no cost basis, and the field is null rather
         // than a zero the pad would render as "flat".
         let unrealised = null, basis = 0, open = 0, held = 0, priced = 0;
+        const positionDetails = [];
         for (const [sym, pos] of Object.entries(brief?.positions || {})) {
           if (!(pos.qty > 0)) continue;
           held++;
           const p = sym === "USDC" ? 1 : px[sym];
+          if (positionDetails.length < 8) positionDetails.push({
+            market: sym, qty: pos.qty,
+            pnl: Number.isFinite(p) && p > 0 && pos.avg_entry_usd > 0
+              ? Math.round(pos.qty * (p - pos.avg_entry_usd) * 100) / 100 : null,
+          });
           if (p == null) continue;
           priced++;
           open  += pos.qty * p;
@@ -672,7 +678,8 @@ export function createServer(mem) {
           verdict: state.pending?.verdict?.action || null,
           chainOk,
           remembers: !!brief?.limits,
-          positions: Object.keys(brief?.positions || {}).length,
+          positions: held,
+          positionDetails,
           rules: (brief?.rules || []).length,
           spentToday: Number.isFinite(brief?.spent_today) ? brief.spent_today : null,
           dayLimit: brief?.limits?.max_day_usd ?? null,
