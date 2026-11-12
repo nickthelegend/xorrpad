@@ -1,6 +1,7 @@
 # Firmware protocol v2
 
-Firmware 2.0.0; desk 1.0.0 or later. NDJSON records remain at most 4096 bytes.
+Firmware **2.0.0**, minimum desk **1.0.0**. Status: **compiled, not yet flashed**.
+NDJSON records remain at most 4096 bytes.
 The same records travel over USB CDC, Nordic UART BLE or HTTP/WebSocket relay.
 The desk retains v1 support. A v2 pad accepts the static-token v1 fallback only
 after a paired desk enables **legacy v1 link**; this persists in NVS.
@@ -209,3 +210,30 @@ labels as well as color. LED priority is KILL solid red, error amber,
 confirmation sweep, pending lime pulse, confirmed fill mint flash, then idle
 cobalt breathing. A fill flash includes a fully off phase; acknowledgments do
 not create fill indications.
+## S7 end-to-end verification
+
+Run `firmware/test/run.sh` and `npm test --prefix desk`. The focused command is
+`node --test --test-concurrency=1 desk/test/pad-v2*.test.mjs`.
+[Padsim](../../tools/padsim/README.md) connects to the actual desk over fragmented
+loopback TCP, including CRC-protected serial framing. It uses real X25519,
+Ed25519 and ChaCha20-Poly1305, observes the encrypted wire records, and checks:
+
+- Live devnet proposal → encrypted signal → identical queue/display fingerprint
+  → released-hold cancellation → 800 ms hold → desk gate. Independent desk
+  checks reject an encrypted wrong fingerprint and a 799 ms hold.
+- A separately verified historical devnet receipt traverses that encrypted
+  connection. This proves receipt delivery, not a new trade or funded fill.
+- A compiled image with the pinned release signature transfers successfully;
+  missing/bad signatures and image corruption are rejected. No signing key is
+  read by these tests. The pre-existing signed artifacts must be present at
+  `firmware/build/artifacts/{app.bin,manifest.json}`; see the simulator README.
+- A new simulator instance loads the killed state from disk before connection.
+  Clearing the desk's remembered latch proves encrypted ready restores it from
+  the pad. Rearm still requires the desk and a fresh physical-hold simulation.
+- Replaying actual authenticated wire bytes in either direction does not apply
+  an input or configuration twice; the serial case also checks CRC framing.
+
+Live-provider failures retain explicit dependency skips; see
+[TESTING.md](../../TESTING.md) for totals. The phone relay, physical BLE/USB,
+actual NVS power-loss persistence, flashed OTA and bootloader rollback still
+require hardware verification. P2 remains [research only](../../firmware/RESEARCH.md).

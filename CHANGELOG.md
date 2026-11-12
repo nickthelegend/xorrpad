@@ -6,6 +6,17 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S7 validation and research
+
+- End-to-end padsim checks of encrypted wire records, live signal fingerprints,
+  desk rejection of short holds/wrong fingerprints, released-hold cancellation,
+  verified historical receipt delivery, signed OTA and corrupt-image rejection.
+- Bidirectional authenticated replay rejection and kill persistence loaded by a
+  new simulator before the desk relearns the latch; existing v1 tests retained.
+- Protocol/reproduction documentation and P2 findings on custom WakeNet training
+  costs and LVGL migration. Both remain research only. Firmware is 2.0.0,
+  compiled, not yet flashed; hardware/phone/bootloader verification is pending.
+
 ### Added — firmware 2.0.0, S6 P1
 
 - All P1 TFT screens, two explicit PSRAM sprites and the xorr.finance RGB565

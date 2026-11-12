@@ -583,3 +583,38 @@ Sizes, native/desk results and physical limitations are recorded in
 [TESTING.md](../TESTING.md). Layout QA runs `make -C tools/uipreview` followed by
 `./tools/uipreview/preview firmware/build/s6-ui 2`, rendering the actual GFX UI.
 Those layout fixtures do not represent new trades or hardware verification.
+
+
+## v2 S7 end-to-end validation (2026-11-12)
+
+Firmware stays **2.0.0**, **compiled, not yet flashed**. The focused padsim
+command is `node --test --test-concurrency=1 desk/test/pad-v2*.test.mjs`.
+[Protocol v2](../docs/v2/FIRMWARE-PROTOCOL-V2.md) and the
+[simulator README](../tools/padsim/README.md) describe the wire format, live
+quote/historical receipt distinction and signed public artifact prerequisite.
+[P2 research](RESEARCH.md) evaluates WakeNet and LVGL; neither is implemented.
+
+Arduino CLI 1.5.1 / ESP32 core 3.3.10, from repository root:
+
+```sh
+mkdir -p firmware/build/s7-tmp
+env TMPDIR="$PWD/firmware/build/s7-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/s7-working-normal" --output-dir firmware/build/s7-working-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/s7-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/s7-working-release" --output-dir firmware/build/s7-working-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+The isolated committed-source builds use identical FQBN/flags, source
+`firmware/build/s7-snapshot/firmware/xorrpad` (exported with `git archive HEAD
+firmware/xorrpad firmware/test`), build paths `s7-committed-normal` /
+`s7-committed-release`, and output directories with `-out` appended. S7 changes
+no firmware runtime source; this snapshot excludes the pre-existing unfinished
+firmware edits. Its native command is
+`firmware/build/s7-snapshot/firmware/test/run.sh`; the full working-tree command
+is `firmware/test/run.sh`.
+
+All sizes, final suite totals and hardware limitations are recorded in
+[TESTING.md](../TESTING.md#firmware-v2--s7-end-to-end-validation-2026-11-12).
+Logs and build products are under ignored `firmware/build/s7-*`. No final image
+was signed or flashed. OTA tests verify the pre-existing signed public image
+(SHA-256 `202fd32f33a6c0e6f7674c8603d808797e4326a2cacf978a1e13d8d13d7ca26e`,
+1,752,144 bytes), not the new normal/release images. No signing key is needed
+or opened for that verification.
