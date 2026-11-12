@@ -148,7 +148,9 @@ try {
   );
   await page.locator(".notice").waitFor();
   await page.locator(".notice").waitFor({ state: "hidden", timeout: 5000 });
-  checks.push("Action notifications can be closed and automatically dismiss within four seconds");
+  checks.push(
+    "Action notifications can be closed and automatically dismiss within four seconds",
+  );
   checks.push(
     "All eight abilities are present; Market Pulse actually installs, binds and uninstalls through the real API",
   );
@@ -160,20 +162,50 @@ try {
     markets: "#price-candles",
     activity: ".activity-filters",
   };
-  const headlines = {device: "Your edge, at your fingertips.", abilities: "Small additions. Entirely yours.", agent: "A voice that knows your rules.", connect: "Good things take one cable."};
+  const headlines = {
+    device: "Your edge, at your fingertips.",
+    abilities: "Small additions. Entirely yours.",
+    agent: "A voice that knows your rules.",
+    connect: "Good things take one cable.",
+  };
   async function ready(name) {
     await page.locator(names[name]).first().waitFor({ timeout: 120000 });
     await page.evaluate(() => document.fonts.ready);
-    if (headlines[name]) assert.equal(await page.locator("h1").innerText(), headlines[name]);
-    assert.ok(await page.locator("h1").evaluate(h => [h,...h.querySelectorAll("*")].every(n => Number(getComputedStyle(n).opacity) === 1 && ["none", "blur(0px)"].includes(getComputedStyle(n).filter))), "Entire headline is revealed");
+    if (headlines[name])
+      assert.equal(await page.locator("h1").innerText(), headlines[name]);
+    assert.ok(
+      await page
+        .locator("h1")
+        .evaluate((h) =>
+          [h, ...h.querySelectorAll("*")].every(
+            (n) =>
+              Number(getComputedStyle(n).opacity) === 1 &&
+              ["none", "blur(0px)"].includes(getComputedStyle(n).filter),
+          ),
+        ),
+      "Entire headline is revealed",
+    );
     if (name === "markets") {
       await page.locator("#price-candles:visible").waitFor({ timeout: 120000 });
+      await page.waitForFunction(
+        () =>
+          !document
+            .querySelector(".venue-strip")
+            ?.textContent.includes("Reading venues"),
+        { timeout: 130000 },
+      );
       assert.match(
         await page.locator("#history-source").innerText(),
         /GeckoTerminal/,
       );
     }
-    if (name === "connect") assert.equal(await page.locator(".rings-film").evaluate(n => getComputedStyle(n).objectFit), "contain");
+    if (name === "connect")
+      assert.equal(
+        await page
+          .locator(".rings-film")
+          .evaluate((n) => getComputedStyle(n).objectFit),
+        "contain",
+      );
     if (name === "device")
       await page.locator(".physical-key:not([disabled])").first().waitFor();
   }
@@ -182,12 +214,41 @@ try {
     await page.goto(url + "#" + name);
     await page.reload(); // A fresh app session: preceding verification actions cannot leak into captures.
     await ready(name);
-    assert.equal(await page.locator(".notice").count(), 0, "No action toast on clean load");
+    assert.equal(
+      await page.locator(".notice").count(),
+      0,
+      "No action toast on clean load",
+    );
     await page.waitForTimeout(120);
     const layout = await page.evaluate(() => ({
       width: innerWidth,
       scroll: document.documentElement.scrollWidth,
     }));
+    if (width === 375) {
+      const nav = await page
+        .locator("nav[aria-label='Main navigation']")
+        .evaluate((n) => ({
+          position: getComputedStyle(n).position,
+          top: n.getBoundingClientRect().top,
+          bottom: n.getBoundingClientRect().bottom,
+        }));
+      assert.equal(nav.position, "fixed");
+      assert.ok(
+        nav.top > 650 && nav.bottom <= 812,
+        "Mobile navigation is a reachable bottom bar",
+      );
+      if (name === "device")
+        assert.ok(
+          await page.locator(".premium-pad").evaluate((n) => {
+            const r = n.getBoundingClientRect();
+            const nav = document
+              .querySelector("nav[aria-label='Main navigation']")
+              .getBoundingClientRect();
+            return r.left >= 0 && r.right <= innerWidth && r.bottom <= nav.top;
+          }),
+          "Device fits 375px",
+        );
+    }
     if (layout.scroll > width)
       issues.push(name + "/" + width + " overflow " + layout.scroll);
     await page.evaluate(() => {
@@ -206,18 +267,40 @@ try {
   await ready("device");
   await page.keyboard.press("Meta+k");
   await page.getByRole("dialog", { name: "Command palette" }).waitFor();
-  const commandSearch = page.getByRole("combobox", {name: "Search screens and actions"});
-  for (const command of ["Device", "Abilities", "Connect", "Agent", "Markets", "Activity", "signal decisions", "Disarm", "permission policy", "real-history backtest"]) {
+  const commandSearch = page.getByRole("combobox", {
+    name: "Search screens and actions",
+  });
+  for (const command of [
+    "Device",
+    "Abilities",
+    "Connect",
+    "Agent",
+    "Markets",
+    "Activity",
+    "signal decisions",
+    "Disarm",
+    "permission policy",
+    "real-history backtest",
+  ]) {
     await commandSearch.fill(command);
-    assert.ok(await page.getByRole("option").count(), "Search finds " + command);
+    assert.ok(
+      await page.getByRole("option").count(),
+      "Search finds " + command,
+    );
   }
   await commandSearch.fill("Open");
   await page.keyboard.press("ArrowDown");
-  assert.equal(await commandSearch.getAttribute("aria-activedescendant"), "command-1");
+  assert.equal(
+    await commandSearch.getAttribute("aria-activedescendant"),
+    "command-1",
+  );
   await page.keyboard.press("ArrowUp");
-  assert.equal(await commandSearch.getAttribute("aria-activedescendant"), "command-0");
+  assert.equal(
+    await commandSearch.getAttribute("aria-activedescendant"),
+    "command-0",
+  );
   await page.keyboard.press("Tab");
-  assert.ok(await commandSearch.evaluate(e => e === document.activeElement));
+  assert.ok(await commandSearch.evaluate((e) => e === document.activeElement));
   await page.screenshot({ path: path.join(output, "palette-1440.png") });
   screenshots.push({
     name: "palette",
@@ -229,11 +312,16 @@ try {
   await page.keyboard.press("Enter");
   await page.locator(".activity-filters").waitFor();
   assert.equal(new URL(page.url()).hash, "#activity");
-  checks.push("Command palette searches all six screens and four actions, moves with arrows, contains Tab and opens Activity with Enter");
+  checks.push(
+    "Command palette searches all six screens and four actions, moves with arrows, contains Tab and opens Activity with Enter",
+  );
   await page.keyboard.press("Control+k");
   await page.getByRole("dialog", { name: "Command palette" }).waitFor();
   await page.keyboard.press("Escape");
-  assert.equal(await page.getByRole("dialog", { name: "Command palette" }).count(), 0);
+  assert.equal(
+    await page.getByRole("dialog", { name: "Command palette" }).count(),
+    0,
+  );
   await page.locator(".skip").focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.evaluate(() => document.activeElement.id), "main");
