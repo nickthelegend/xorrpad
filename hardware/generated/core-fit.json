@@ -17,6 +17,36 @@
     0.8976442808211234,
     0.8976433449153982
   ],
+  "plate_tower_diameter_mm": 7.6,
+  "plate_tower_z_mm": [
+    37.5,
+    40.2
+  ],
+  "plate_tower_xy_gaps_mm": [
+    0.5976433449154381,
+    0.5976433369625277,
+    0.59764428082117,
+    0.5976433449154381
+  ],
+  "plate_screw_centres_mm": [
+    [
+      -39.0,
+      -39.0
+    ],
+    [
+      -39.0,
+      39.0
+    ],
+    [
+      39.0,
+      -39.0
+    ],
+    [
+      39.0,
+      39.0
+    ]
+  ],
+  "plate_screw_through_diameter_mm": 3.4,
   "inside_plate_skirt_xy": true,
   "minimum_skirt_gap_mm": 0.49999999999999994,
   "existing_cage_xy_overlap_mm2": 52.800000000000054,
@@ -30,6 +60,36 @@
   ],
   "usb_side_window_half_width_mm": 13.0,
   "mounting_hole_count": 0,
-  "fpc": "Not populated on Core",
+  "key_centres_checked": 14,
+  "key_centre_discrepancies": [],
+  "fpc": {
+    "populated": false,
+    "pod_model": "2.8\" ILI9341 SPI (MSP2807), 320x240, resistive touch",
+    "pod_right_wall_x_mm": 45.0,
+    "pod_opening_yz_bounds_mm": [
+      50.2,
+      16.25,
+      64.2,
+      24.25
+    ],
+    "pod_opening_bounding_diagonal_mm": 16.1245154965971,
+    "tray_side_window_y_mm": [
+      -13.0,
+      13.0
+    ],
+    "tray_side_window_z_mm": [
+      17.0,
+      23.5
+    ],
+    "note": "Existing pod is for a headered MSP2807, not the proposed bare ER-TFT028-4 FPC panel.",
+    "disposition": "Not applicable: Core has no FPC connector or display population."
+  },
+  "source_sha256": {
+    "hardware/generated/core.kicad_pcb": "89b4da836ceef82f816fba33b40be36cd8e2f535badfad1ea3bdba8cb9555eae",
+    "cad/partlib.py": "7b3c66355a3667e98d5a9b7d13da4c0d48cfbfff4f24474811776a821438cc14",
+    "cad/part_tray.py": "9babec87282383a119b3576ede564e163f6c0560aed270f64516fc067b67d1d0",
+    "cad/part_plate.py": "3844627a6751460613552b380d1684489a90e961cc0f13c14b29da5d05285b28",
+    "cad/part_display.py": "86b619020f596bfb14ced5f8df36b5a073da92402d23ef995c64fbf097bd0719"
+  },
   "conclusion": "Outline clears walls/bosses; new PCB supports and component/connector Z review required. Existing cage intersects a PCB at the prototype board Z; do not order."
 }
