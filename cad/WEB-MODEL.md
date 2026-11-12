@@ -4,7 +4,7 @@ Run `python3 -m venv cad/.venv`, then `cad/.venv/bin/pip install -r cad/requirem
 `npm ci --prefix tools/render3d`; `cad/.venv/bin/python cad/assembly.py`;
 `cad/.venv/bin/python cad/export_web_glb.py`; `node tools/render3d/validate.mjs`.
 
-Both 1.4 MB GLBs pass Khronos gltf-validator with zero errors and zero warnings;
+Both sub-2 MB GLBs pass Khronos gltf-validator with zero errors and zero warnings;
 see WEB-MODEL-VALIDATION.json. Meshopt compression is applied last, after WebP
 texture compression, so the CLI cannot inadvertently decode the final mesh.
 Both EXT_meshopt_compression and EXT_texture_webp are present.
@@ -29,3 +29,6 @@ is a separate emissive UV-mapped mesh under the node named screen; its glass
 lies in the display pod's actual active-area plane. Viewers replace its placeholder
 texture with live firmware pixels. Assembled/exploded files share the geometry;
 exploded group offsets preserve assembly.py's lifts and lift the display 65 mm.
+
+The finishing pass adds geometry-derived vertex AO, a baked contact footprint,
+and KHR_materials_clearcoat. See models/QUALITY.json and tools/render3d/README.md.

@@ -1,0 +1,55 @@
+{
+  "geometry": "Original positions/triangles retained; meshopt requantization only",
+  "materials": {
+    "enclosure": {
+      "roughness": 0.45,
+      "clearcoat": 0.3
+    },
+    "caps": {
+      "roughness": 0.35,
+      "clearcoat": 0.12
+    },
+    "screen": {
+      "roughness": 0.12,
+      "clearcoat": 0.4
+    }
+  },
+  "reports": [
+    {
+      "file": "xorrpad.glb",
+      "triangles": 83274,
+      "rays": 994048,
+      "cachedVertices": 125560,
+      "bounds": {
+        "min": [
+          -45.00128936767578,
+          7.105427357601002e-15,
+          -102.36833190917969
+        ],
+        "max": [
+          45.00128936767578,
+          90.89020538330078,
+          45
+        ]
+      }
+    },
+    {
+      "file": "xorrpad-exploded.glb",
+      "triangles": 83274,
+      "rays": 994048,
+      "cachedVertices": 125560,
+      "bounds": {
+        "min": [
+          -45.001285552978516,
+          0.0028992583975195885,
+          -102.36832427978516
+        ],
+        "max": [
+          45.001285552978516,
+          155.89019775390625,
+          45
+        ]
+      }
+    }
+  ]
+}

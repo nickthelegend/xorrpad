@@ -1,7 +1,7 @@
 [
   {
     "file": "xorrpad.glb",
-    "bytes": 1402352,
+    "bytes": 1877048,
     "validatorVersion": "2.0.0-dev.3.10",
     "issues": {
       "numErrors": 0,
@@ -21,7 +21,7 @@
   },
   {
     "file": "xorrpad-exploded.glb",
-    "bytes": 1402360,
+    "bytes": 1869680,
     "validatorVersion": "2.0.0-dev.3.10",
     "issues": {
       "numErrors": 0,

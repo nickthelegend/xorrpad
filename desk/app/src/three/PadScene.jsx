@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, Lightformer } from "@react-three/drei";
+import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
+import { useGLTF, useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import { STUDIO, configureStudio, prepareProduct } from "./studio-quality.mjs";
 import { drawFirmware } from "./screen.mjs";
 function Model(p) {
   const { scene } = useGLTF("/desktop/models/xorrpad.glb", false, true),
@@ -18,6 +19,7 @@ function Model(p) {
         n.receiveShadow = true;
       }
     });
+    prepareProduct(s);
     return s;
   }, [scene]);
   const originals = useMemo(
@@ -73,7 +75,7 @@ function Model(p) {
       if (n.isMesh && n.material.name === "Screen") {
         n.material.emissiveMap = texture;
         n.material.emissive.set("#fff");
-        n.material.emissiveIntensity = 0.75;
+        n.material.emissiveIntensity = 0.7;
       }
     });
     p.onReady();
@@ -201,6 +203,31 @@ function Model(p) {
     </group>
   );
 }
+function StudioEnvironment() {
+  const { gl, scene } = useThree();
+  useEffect(() => configureStudio(gl, scene), [gl, scene]);
+  return null;
+}
+function BakedGround() {
+  const meta = useLoader(THREE.FileLoader, "/desktop/models/AO.json", (l) =>
+      l.setResponseType("json"),
+    ),
+    texture = useTexture("/desktop/models/contact-ao.png");
+  return (
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[meta.plane.center[0], -0.1, meta.plane.center[1]]}
+    >
+      <planeGeometry args={[meta.plane.width, meta.plane.depth]} />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        opacity={0.75}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
 export default function PadScene(p) {
   return (
     <Canvas
@@ -210,62 +237,38 @@ export default function PadScene(p) {
       camera={{ position: [170, 155, 230], fov: 34, near: 1, far: 1200 }}
       gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
       shadows
-      onCreated={({ camera, gl }) => {
-        camera.lookAt(0, 43, -10);
-        gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.15;
-      }}
+      onCreated={({ camera }) => camera.lookAt(0, 43, -10)}
     >
-      <hemisphereLight args={["#f3f0e8", "#111126", 2]} />
-      <directionalLight
-        position={[60, 210, 160]}
-        intensity={3}
-        color="#f3f0e8"
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-150}
-        shadow-camera-right={150}
-        shadow-camera-top={150}
-        shadow-camera-bottom={-150}
-        shadow-camera-far={700}
-        shadow-bias={-0.0004}
-      />
-      <directionalLight
-        position={[-160, 100, -100]}
-        intensity={2.2}
-        color="#2f5bff"
-      />
-      <directionalLight
-        position={[130, 140, -160]}
-        intensity={2}
-        color="#b7a6ff"
-      />
-      <directionalLight
-        position={[-90, 60, 120]}
-        intensity={0.65}
-        color="#c8f53c"
-      />
-      <Environment resolution={64}>
-        <Lightformer
-          intensity={1}
-          scale={[200, 200, 1]}
-          position={[0, 200, 0]}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-        <Lightformer
-          intensity={0.5}
-          scale={[150, 150, 1]}
-          position={[0, 60, -200]}
-        />
-      </Environment>
+      <StudioEnvironment />
+      <hemisphereLight args={["#f3f0e8", "#111126", 0.22]} />
+      {Object.entries(STUDIO)
+        .filter(([name, v]) => v?.position)
+        .map(([name, l]) => (
+          <directionalLight
+            key={name}
+            position={l.position}
+            color={l.color}
+            intensity={l.intensity}
+            castShadow={name === "key"}
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-left={-150}
+            shadow-camera-right={150}
+            shadow-camera-top={150}
+            shadow-camera-bottom={-150}
+            shadow-camera-far={700}
+            shadow-bias={-0.0001}
+            shadow-radius={4}
+          />
+        ))}
       <Model {...p} />
+      <BakedGround />
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.2, 0]}
         receiveShadow
       >
         <planeGeometry args={[1000, 1000]} />
-        <shadowMaterial transparent opacity={0.36} />
+        <shadowMaterial transparent opacity={0.18} />
       </mesh>
     </Canvas>
   );

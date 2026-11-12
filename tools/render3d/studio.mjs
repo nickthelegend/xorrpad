@@ -1,7 +1,12 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { Reflector } from "three/addons/objects/Reflector.js";
+import {
+  STUDIO,
+  configureStudio,
+  prepareProduct,
+} from "/shared/studio-quality.mjs";
 const scene = new THREE.Scene(),
   camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 1, 1200);
 const renderer = new THREE.WebGLRenderer({
@@ -11,49 +16,53 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(1);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.append(renderer.domElement);
-const pmrem = new THREE.PMREMGenerator(renderer);
-const room = new RoomEnvironment();
-const env = pmrem.fromScene(room, 0.04);
-scene.environment = env.texture;
-scene.environmentIntensity = 0.45;
-room.dispose();
-pmrem.dispose();
-scene.add(new THREE.HemisphereLight("#f3f0e8", "#111126", 2));
-function light(color, intensity, pos) {
-  const l = new THREE.DirectionalLight(color, intensity);
-  l.position.set(...pos);
-  scene.add(l);
-  return l;
+configureStudio(renderer, scene);
+scene.add(new THREE.HemisphereLight("#f3f0e8", "#111126", 0.22));
+for (const [name, l] of Object.entries(STUDIO)) {
+  if (!l?.position) continue;
+  const light = new THREE.DirectionalLight(l.color, l.intensity);
+  light.position.set(...l.position);
+  if (name === "key") {
+    light.castShadow = true;
+    light.shadow.mapSize.set(2048, 2048);
+    Object.assign(light.shadow.camera, {
+      left: -200,
+      right: 200,
+      top: 200,
+      bottom: -200,
+      near: 1,
+      far: 700,
+    });
+    light.shadow.bias = -0.0001;
+    light.shadow.radius = 4;
+  }
+  scene.add(light);
 }
-const key = light("#f3f0e8", 3, [60, 210, 160]);
-key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-Object.assign(key.shadow.camera, {
-  left: -200,
-  right: 200,
-  top: 200,
-  bottom: -200,
-  near: 1,
-  far: 700,
-});
-key.shadow.bias = -0.0004;
-light("#2f5bff", 2.2, [-160, 100, -100]);
-light("#b7a6ff", 2, [130, 140, -160]);
-light("#c8f53c", 0.65, [-90, 60, 120]);
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(1500, 1500),
-  new THREE.ShadowMaterial({ opacity: 0.36 }),
+  new THREE.ShadowMaterial({ opacity: 0.18 }),
 );
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.2;
 floor.receiveShadow = true;
 scene.add(floor);
+const reflectiveFloor = new Reflector(new THREE.PlaneGeometry(1500, 1500), {
+  color: 0x030304,
+  textureWidth: 768,
+  textureHeight: 768,
+  multisample: 0,
+  clipBias: 0.003,
+});
+reflectiveFloor.rotation.x = -Math.PI / 2;
+reflectiveFloor.position.y = -0.35;
+reflectiveFloor.material.fragmentShader =
+  reflectiveFloor.material.fragmentShader.replace(
+    "blendOverlay( base.rgb, color )",
+    "mix( color, base.rgb, 0.075 )",
+  );
+reflectiveFloor.visible = false;
+scene.add(reflectiveFloor);
 const root = new THREE.Group();
 scene.add(root);
 let model;
@@ -62,20 +71,31 @@ window.ready = (async () => {
   const g = await loader.loadAsync("/models/xorrpad.glb");
   model = g.scene;
   model.rotation.x = -Math.PI / 2;
-  model.traverse((n) => {
-    if (n.isMesh) {
-      n.castShadow = true;
-      n.receiveShadow = true;
-    }
-  });
+  prepareProduct(model);
   root.add(model);
+  const ao = await (await fetch("/models/AO.json")).json(),
+    aoTexture = await new THREE.TextureLoader().loadAsync(
+      "/models/contact-ao.png",
+    );
+  const contact = new THREE.Mesh(
+    new THREE.PlaneGeometry(ao.plane.width, ao.plane.depth),
+    new THREE.MeshBasicMaterial({
+      map: aoTexture,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+    }),
+  );
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.set(ao.plane.center[0], -0.1, ao.plane.center[1]);
+  root.add(contact);
   let screenTexture;
   const applyScreen = () =>
     model.traverse((n) => {
       if (n.isMesh && n.material.name === "Screen") {
         n.material.emissiveMap = screenTexture;
         n.material.emissive.set("#ffffff");
-        n.material.emissiveIntensity = 0.75;
+        n.material.emissiveIntensity = 0.7;
       }
     });
   try {
@@ -128,10 +148,12 @@ window.ready = (async () => {
           n.receiveShadow = true;
         }
       });
+      prepareProduct(model);
       root.add(model);
       applyScreen();
     }
     root.rotation.y = angle;
+    reflectiveFloor.visible = dark && view === "hero";
     renderer.setClearColor("#030304", dark ? 1 : 0);
     scene.background = dark ? new THREE.Color("#030304") : null;
     const p =

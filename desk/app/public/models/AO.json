@@ -1,0 +1,12 @@
+{
+  "source": "Baked from actual CAD triangle BVH: eight cosine hemisphere rays per unique vertex/normal, 9 mm occlusion distance, 16% maximum darkening. Ground alpha is the actual nearest underside distance, blurred for soft contact.",
+  "plane": {
+    "width": 118.00257873535156,
+    "depth": 175.3683319091797,
+    "center": [
+      0,
+      -28.684165954589844
+    ]
+  },
+  "texture": "contact-ao.png"
+}

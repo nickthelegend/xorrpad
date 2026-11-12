@@ -86,3 +86,4 @@ if __name__=='__main__':
  with tempfile.TemporaryDirectory(prefix='xorr-cad-') as d:
   for exploded in [False,True]: export(exploded,Path(d))
  export_layout()
+ subprocess.run(["node",str(ROOT/"tools/render3d/bake-quality.mjs")],check=True)

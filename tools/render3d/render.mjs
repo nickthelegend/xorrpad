@@ -20,6 +20,9 @@ const server = createServer(async (req, res) => {
     if (p.startsWith("/vendor/")) {
       base = resolve(here, "node_modules");
       name = p.slice(8);
+    } else if (p.startsWith("/shared/")) {
+      base = resolve(repo, "desk/app/src/three");
+      name = p.slice(8);
     } else if (p.startsWith("/models/") || p.startsWith("/firmware-screen"))
       base = resolve(repo, "desk/app/public");
     const file = resolve(base, name);

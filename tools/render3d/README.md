@@ -24,3 +24,15 @@ installed Arduino Adafruit_GFX_Library and can be set explicitly. The generated
 The renderer closes its own browser and server and removes only its temporary
 frame directory in a finally block. ffmpeg processes exit synchronously and
 must succeed before the provenance file is written.
+
+## Finishing-pass studio rig
+
+Both the renderer and desktop import the same offline `studio-quality.mjs` rig:
+ACES Filmic, sRGB output, PMREM RoomEnvironment, a soft top-left key, fill and
+cobalt/lavender rims. The actual CAD BVH bakes eight hemisphere rays per unique
+vertex/normal (16% maximum AO, 9 mm radius) plus a blurred underside contact
+texture. No geometry is replaced. Clearcoat lives in the GLBs: enclosure .45
+roughness / .3 clearcoat, caps .35 roughness, screen .12 roughness / .4 clearcoat.
+Only the enclosure's existing blue is deepened. Hero dark shots have a subtle
+7.5% planar reflection; transparent/technical stills retain a transparent ground.
+`cad/export_web_glb.py` now invokes the quality baker after mesh export.
