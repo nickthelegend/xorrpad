@@ -1,3 +1,4 @@
+import {assertSigningCluster} from "./session-wallet.mjs";
 import {prepareClearSign} from "./clear-sign.mjs";
 /** v1/v2 NDJSON bridge. All trade inputs use the authenticated/gated API. */
 import OpusScript from "opusscript";
@@ -248,6 +249,7 @@ export class PadLink extends EventEmitter {
           secure: !!p.secure,
           ota: p.otaStatus,
           telemetry: p.telemetry,
+          sessionSigner: p.sessionState,
           profile: p.profileState,
           killed: this.killed.has(p.device),
           lastSeen: new Date(p.last).toISOString(),
@@ -308,6 +310,7 @@ export class PadLink extends EventEmitter {
   }
   remove(p) {
     if (this.peers.delete(p)) {
+      p.sessionRequest?.reject(Error("pad disconnected during signing"));
       this.signals?.publish({ type: "pad_link", ...this.snapshot() });
       for (const s of p.streams.values()) s.live?.abort();
       p.streams.clear();
@@ -593,11 +596,47 @@ export class PadLink extends EventEmitter {
       });
     }
   }
+  sessionPeer(device) {
+    for(const p of this.peers)if(p.clearReview && Date.now()>=p.clearReview.expiresAt)p.clearReview=null;
+    const candidates=[...this.peers].filter(p=>p.secure && p.verified && this.preferred(p.device)===p && !this.killed.has(p.device) && Date.now()-p.last<15000 && (!device || p.device===device));
+    if(candidates.length!==1)throw Error("Setup required: select one paired, online, rearmed pad");
+    return candidates[0];
+  }
+  waitSession(p, expected, send) {
+    if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>finish(Error("pad signing timed out; debit may remain reserved")),120000);
+      timer.unref();
+      const finish=(error,value)=>{clearTimeout(timer);if(p.sessionRequest?.finish===finish)p.sessionRequest=null;error?reject(error):resolve(value);};
+      p.sessionRequest={...expected,secure:p.secure,finish,reject:error=>finish(error)};
+      try{send();}catch(error){finish(error);}
+    });
+  }
+  sessionStatus(device) {
+    const p=this.sessionPeer(device),requestId=randomUUID();
+    return this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_status",requestId}));
+  }
+  configureSession(device,policy) {
+    const p=this.sessionPeer(device),requestId=randomUUID();
+    return this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_policy",requestId,policy}));
+  }
+  async signSession(device,input) {
+    assertSigningCluster(input.cluster);
+    const p=this.sessionPeer(device),secure=p.secure;
+    if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
+    const prepared=await prepareClearSign({...input,sign:true});
+    if(this.sessionPeer(p.device)!==p || p.secure!==secure)throw Error("pad connection changed");
+    if(prepared.frames.length+(p.sendQueue?.length||0)>128)throw Error("pad busy");
+    return this.waitSession(p,{type:"session_signature",signalId:input.signalId,messageHash:prepared.messageHash},()=>{
+      for(const frame of prepared.frames)this.send(p,frame);
+    });
+  }
   async clearSign(device, input) {
-    const p=[...this.peers].find(p=>p.device===device && p.secure && p.verified && this.preferred(device)===p);
-    if(!p || this.killed.has(device))throw Error("Setup required: paired, online, rearmed pad");
-    const secure=p.secure, prepared=await prepareClearSign(input);
-    if(!this.peers.has(p) || p.secure!==secure || this.killed.has(device))throw Error("pad connection changed during review preparation");
+    const p=this.sessionPeer(device),secure=p.secure;
+    if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
+    const prepared=await prepareClearSign({...input,sign:false});
+    if(this.sessionPeer(p.device)!==p || p.secure!==secure)throw Error("pad connection changed during review preparation");
+    if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
     if(prepared.frames.length+(p.sendQueue?.length||0)>128)throw Error("pad busy; retry clear signing");
     p.clearReviewSession=secure;
     p.clearReview={id:input.signalId,fingerprint:prepared.fingerprint,messageHash:prepared.messageHash,expiresAt:Date.now()+prepared.request.remainingMs};
@@ -1012,7 +1051,7 @@ export class PadLink extends EventEmitter {
   }
   async receive(p, m) {
     if (!this.peers.has(p)) return;
-    if (["key", "knob", "voice", "signal_state", "clear_approval"].includes(m.type) &&
+    if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
     if (p.secure && this.killed.has(p.device)) throw Error("pad kill latch active");
@@ -1045,6 +1084,17 @@ export class PadLink extends EventEmitter {
     if (!p.device) throw new Error("hello required");
     if (m.type === "keymap_state") {
       this.signals?.publish({ type: "pad", device: p.device, message: m });
+      return;
+    }
+    if(m.type==="session_state" || m.type==="session_signature"){
+      const pending=p.sessionRequest;
+      if(!p.secure || !p.verified || !pending || pending.secure!==p.secure || pending.type!==m.type ||
+        (m.type==="session_state"?pending.requestId!==m.requestId:pending.signalId!==m.signalId || pending.messageHash!==m.messageHash) ||
+        typeof m.ok!=="boolean")throw Error("unsolicited or stale pad signer response");
+      if(m.type==="session_state" && m.ok){p.sessionState=m;}
+      if(m.type==="session_signature" && m.ok && (!/^[0-9a-f]{128}$/.test(m.signature) || typeof m.publicKey!=="string"))throw Error("invalid pad signature");
+      pending.finish(m.ok?null:Error(m.error || "pad signing refused"),{...m,device:p.device});
+      this.signals?.publish({type:"pad_signer",device:p.device,ok:m.ok,automatic:m.automatic===true,signalId:m.signalId});
       return;
     }
     if(m.type==="clear_approval"){

@@ -8,6 +8,7 @@ import { SessionWallet, authorizeSigning, assertSigningCluster } from './session
 import { decide } from './decide.mjs';
 import { propose, buildRouted } from './propose.mjs';
 import { walletHandoff } from './wallet-requests.mjs';
+import { PadSigner } from './pad-signer.mjs';
 import { withTradeLock } from './lock.mjs';
 
 const GENESIS = {devnet:'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
@@ -44,9 +45,10 @@ export class Executor {
   }
   mode() { return readJson(this.#settings,{mode:'phone'}).mode; }
   setMode(mode) {
-    if (!['phone','session'].includes(mode)) throw new Error('wallet mode must be phone or session');
+    if (!['phone','session','pad'].includes(mode)) throw new Error('wallet mode must be phone, session or pad');
     saveJson(this.#settings,{mode}); return {mode};
   }
+  setPadLink(link) { this.padSigner = new PadSigner(link); }
   async budgetStatus() {
     const {brief,context}=this.#budget(await this.mem.recallBrief());
     const policy=this.permissions.read();
@@ -90,9 +92,11 @@ export class Executor {
     try {
       await this.#gate(id,entry.proposal);
       const mode = this.mode(), cluster = entry.proposal.routing?.best?.network;
-      if (mode === 'session') assertSigningCluster(cluster);
-      const owner = mode === 'session' ? (await this.wallet.info()).publicKey
-        : entry.proposal.signal.kind === 'perp' ? (entry.proposal.signal.venue === 'phoenix' ? process.env.PHOENIX_AUTHORITY : process.env.JUPPERPS_AUTHORITY) || process.env.SOLANA_ADDRESS : process.env.SOLANA_ADDRESS;
+      if (mode === 'session' || mode === 'pad') assertSigningCluster(cluster);
+      if(mode==='pad' && !this.padSigner)throw Error('Setup required: paired pad signer');
+      const padInfo=mode==='pad'?await this.padSigner.info():null;
+      const owner = padInfo?.publicKey || (mode === 'session' ? (await this.wallet.info()).publicKey
+        : entry.proposal.signal.kind === 'perp' ? (entry.proposal.signal.venue === 'phoenix' ? process.env.PHOENIX_AUTHORITY : process.env.JUPPERPS_AUTHORITY) || process.env.SOLANA_ADDRESS : process.env.SOLANA_ADDRESS);
       if (!owner) throw new Error('Setup required: SOLANA_ADDRESS (phone wallet public key)');
       const fresh = await propose({...entry.proposal.signal,sizeUsd:entry.proposal.verdict.sizeUsd},await this.mem.recallBrief());
       if (fresh.verdict.action !== 'EXECUTE' || fresh.verdict.sizeUsd !== entry.proposal.verdict.sizeUsd || fresh.signal.venue !== entry.proposal.signal.venue)
@@ -105,6 +109,11 @@ export class Executor {
       const gated = await this.#gate(id,fresh);
       this.#ledger[id] = {usd:fresh.verdict.sizeUsd,symbol:fresh.signal.symbol,side:fresh.signal.side,at:Date.now(),status:'reserved',cluster}; this.#save();
       const record = {proposal:fresh,built,tx,connection,cluster,owner,mode}; this.#pending.set(id,record);
+      if(mode==='pad') {
+        const signed=await this.padSigner.sign(tx,{device:padInfo.device,owner,signalId:id,expiresAt:gated.entry.expiresAt,cluster,
+          inputMint:fresh.routing?.best?.quote?.inputMint,recheck:()=>this.#gate(id,fresh)});
+        return await this.#submit(id,record,signed);
+      }
       if (mode === 'session') {
         const permit = authorizeSigning(tx,{...gated.entry,proposal:fresh,cluster},gated.brief,gated.policy,gated.context);
         const signed = await this.wallet.sign(tx,{permit,cluster,connection,recheck:() => this.#gate(id,fresh)});

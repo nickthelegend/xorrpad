@@ -377,6 +377,7 @@ export function createServer(mem) {
     try {
       if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
       if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
+      if (url.pathname === '/pad/session') return send(200,req.method==='GET'?await srv.padlink.sessionStatus(url.searchParams.get('device')):await srv.padlink.configureSession(body.device,body.policy));
       if (url.pathname === '/pad/clear-sign') return send(202,await srv.padlink.clearSign(body.device,body));
       if (url.pathname === '/pad/rearm') return send(200,srv.padlink.rearm(body.device));
       if (url.pathname === '/pad/profiles') return send(200,req.method==='GET'?srv.padlink.profiles:srv.padlink.setProfiles(body.profiles));
@@ -1047,6 +1048,15 @@ export function createServer(mem) {
     }};
   },status:() => ({armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
+  executor.setPadLink(srv.padlink);
+  signals.on('event',e=>{
+    if(e.type!=='pad_signer' || !e.ok || !e.automatic)return;
+    const text=`Pad policy auto-accepted signing for ${e.signalId}.`;note(text);
+    (async()=>{
+      if(await credentials.get('deepgram'))await speakReply(text);
+      else {const pcm=await tts(text);signals.publish({type:'speech',text,pcm:pcm.toString('base64'),sampleRate:16000});}
+    })().catch(error=>signals.publish({type:'pad_signer_speech_error',error:error.message}));
+  });
   srv.padlink.bind(srv);
   return srv;
 }
@@ -1262,7 +1272,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
