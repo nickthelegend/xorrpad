@@ -21,7 +21,10 @@
     "icon": "python3 build/make-icon.py",
     "dist": "python3 build/make-icon.py && electron-builder --mac --arm64",
     "pack": "electron-builder --dir",
-    "test:ui": "node test/desk-ui.mjs"
+    "test:ui": "node test/desk-ui.mjs",
+    "build:app": "npm run build --workspace app",
+    "prestart": "npm run build:app",
+    "predist": "npm run build:app"
   },
   "license": "MIT",
   "dependencies": {
@@ -57,7 +60,8 @@
       "!build/**",
       "!shots.mjs",
       "!warm.mjs",
-      "!run-dev.sh"
+      "!run-dev.sh",
+      "app/dist/**/*"
     ],
     "extraResources": [
       {
@@ -86,5 +90,8 @@
   "author": "nickthelegend",
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-26"
-  }
+  },
+  "workspaces": [
+    "app"
+  ]
 }

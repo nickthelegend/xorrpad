@@ -1,3 +1,4 @@
+import { Profiles } from './profiles.mjs';
 import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
 /**
@@ -227,9 +228,18 @@ export function createServer(mem) {
     // so requiring the token to reach it would lock a fresh install out of
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
+    if(url.pathname==='/' || url.pathname==='/index.html' || url.pathname.startsWith('/desktop/')) {
+      const name=(url.pathname==='/'||url.pathname==='/index.html')?'index.html':decodeURIComponent(url.pathname.slice(9));
+      if(!name || name.split('/').some(p=>p==='..'||p==='.'||!p) || name.includes('\\'))return send(400,{error:'invalid app asset'});
+      try {
+        const file=new URL('../app/dist/'+name,import.meta.url),bytes=await readFile(file);
+        const ext=name.split('.').pop(),type={html:'text/html; charset=utf-8',js:'text/javascript',css:'text/css',woff2:'font/woff2',webp:'image/webp',jpg:'image/jpeg',webm:'video/webm',mp4:'video/mp4',svg:'image/svg+xml'}[ext]||'application/octet-stream';
+        res.writeHead(200,{'content-type':type,'cache-control':ext==='html'?'no-store':'public, max-age=3600'});return res.end(bytes);
+      }catch(e){if(e.code!=='ENOENT')throw e;return send(404,{error:'Setup required: npm run build:app --prefix desk'});}
+    }
     const uiFiles = new Set(['status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
-    const open = url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
+    const open = url.pathname === '/v1' || url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
       || url.pathname === "/favicon.ico"
       || url.pathname.startsWith("/fonts/")
@@ -374,9 +384,10 @@ export function createServer(mem) {
 
     try {
       if (url.pathname === '/pad/keymap') {
-        try {return send(200,srv.padlink.setKeymap(body));} catch(e) {return send(400,{error:e.message});}
+        try {const map=srv.padlink.setKeymap(body);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
       }
       if (url.pathname === '/events') {res.setHeader('Upgrade','websocket'); return send(426,{error:'use WebSocket at /events'});}
+      if(url.pathname==='/desk/profiles'){const p=new Profiles(srv.padlink);if(req.method==='GET')return send(200,p.read());try{const r=p.select(body.name);signals.publish({type:'profile',profile:r.active});return send(200,r);}catch(e){return send(400,{error:e.message});}}
       if (url.pathname === '/desk/status') { deskStatus ??= new DeskStatus(executor,srv.padlink); return send(200,await deskStatus.get()); }
       if (url.pathname === '/permissions') {
         try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
@@ -538,7 +549,7 @@ export function createServer(mem) {
         } catch(e) {if(e.code==='ENOENT')return send(404,{error:'no such UI asset'});throw e;}
       }
       if (url.pathname === '/desk/link') return send(200,srv.padlink.snapshot());
-      if (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === '/classic') {
+      if (url.pathname === "/" || url.pathname === "/index.html" || url.pathname === '/v1' || url.pathname === '/classic') {
         const html = await readFile(new URL(url.pathname === "/classic" ? "../renderer/classic.html" : "../renderer/index.html", import.meta.url));
         // The page is the app. Letting a client cache it means an edit ships
         // and the window keeps rendering yesterday's build, which reads as
@@ -1241,7 +1252,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

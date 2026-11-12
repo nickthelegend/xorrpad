@@ -97,7 +97,7 @@ try {
     });
     console.log("Captured " + file);
   }
-  await page.goto(origin + "/?token=" + process.env.PAD_TOKEN + "#trade");
+  await page.goto(origin + "/v1?token=" + process.env.PAD_TOKEN + "#trade");
   await ready("trade");
   await realChart(false);
   for (const period of ["1m", "15m", "1h", "1d"]) {
@@ -166,7 +166,7 @@ try {
       );
     }
   }
-  await page.goto(origin + "/?token=" + process.env.PAD_TOKEN + "#backtest");
+  await page.goto(origin + "/v1?token=" + process.env.PAD_TOKEN + "#backtest");
   await ready("backtest");
   await page.locator('[name="strategy"]').selectOption("rule");
   await page.locator('[name="venue"]').selectOption("phoenix");

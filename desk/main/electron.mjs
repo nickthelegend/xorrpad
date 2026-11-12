@@ -43,16 +43,14 @@ async function boot() {
   }
   const lan = `http://${lanAddress()}:${PORT}`;
   console.log(`\n  point the pad's captive portal at:  ${lan}`);
-  console.log(`  pad token:                          ${TOKEN}\n`);
+
 
   win = new BrowserWindow({
-    width: 1440, height: 940, minWidth: 860, minHeight: 620, backgroundColor: "#000000",
+    width: 1440, height: 940, minWidth: 1280, minHeight: 800, backgroundColor: "#030304",
     title: `xorr-pad — pad connects to ${lan}`,
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
-  win.loadURL(NEEDS_SETUP
-    ? `http://127.0.0.1:${PORT}/setup?token=${encodeURIComponent(TOKEN)}`
-    : `http://127.0.0.1:${PORT}/?token=${encodeURIComponent(TOKEN)}`);
+  win.loadURL(`http://127.0.0.1:${PORT}/?token=${encodeURIComponent(TOKEN)}`);
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
 }
 

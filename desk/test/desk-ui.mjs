@@ -42,7 +42,7 @@ try {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();
   page.on("pageerror", (e) => consoleErrors.push(e.message));
-  const base = origin + "/?token=" + process.env.PAD_TOKEN;
+  const base = origin + "/v1?token=" + process.env.PAD_TOKEN;
   async function settle() {
     const expected = new URL(page.url()).hash.slice(1) || "pad";
     await page
@@ -530,7 +530,7 @@ try {
       "Live devnet proposal check unavailable: no liquid open market returned",
     );
   // Unauthenticated public demo renders a designed setup state and no private data.
-  await page.goto(origin + "/#pad");
+  await page.goto(origin + "/v1#pad");
   await settle();
   assert.match(
     await page.locator("#content").innerText(),
