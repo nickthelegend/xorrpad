@@ -24,7 +24,9 @@
     "test:ui": "node test/desk-ui.mjs",
     "build:app": "npm run build --workspace app",
     "prestart": "npm run build:app",
-    "predist": "npm run build:app"
+    "predist": "npm run build:app",
+    "pretest": "npm run build:app",
+    "test:v2": "node test/desktop-v2.mjs"
   },
   "license": "MIT",
   "dependencies": {

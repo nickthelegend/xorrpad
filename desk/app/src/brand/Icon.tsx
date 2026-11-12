@@ -68,7 +68,9 @@ export const ICON_PATHS: Record<Exclude<IconName, "github">, ReactNode> = {
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </>
   ),
-  wave: <path d="M8.5 16.5a6 6 0 0 0 0-9M12 19a9.5 9.5 0 0 0 0-14M15.5 21.5a13 13 0 0 0 0-19" />,
+  wave: (
+    <path d="M8.5 16.5a6 6 0 0 0 0-9M12 19a9.5 9.5 0 0 0 0-14M15.5 21.5a13 13 0 0 0 0-19" />
+  ),
   play: <path d="M7 4.5v15l12.5-7.5L7 4.5Z" />,
   copy: (
     <>

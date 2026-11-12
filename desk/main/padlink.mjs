@@ -230,7 +230,7 @@ export class PadLink extends EventEmitter {
         }
       } catch (e) {this.emit('diagnostic',`USB discovery: ${e.message}`);}
     };
-    await scan();this.scanTimer=setInterval(scan,5000);this.scanTimer.unref();
+    await scan();clearInterval(this.scanTimer);this.scanTimer=setInterval(scan,5000);this.scanTimer.unref();
     try {await this.discoverBle();} catch {this.emit('diagnostic','BLE adapter unavailable; phone relay or USB/Wi-Fi remains available');}
   }
   async discoverBle() {

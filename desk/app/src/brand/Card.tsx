@@ -2,7 +2,15 @@ import type { ReactNode } from "react";
 import { Reveal } from "./Reveal";
 
 /** A bento tile: near-black, a hairline edge, and a faint top highlight so it reads as a surface. */
-export function Card({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+export function Card({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   return (
     <Reveal
       delay={delay}
@@ -15,5 +23,10 @@ export function Card({ children, className = "", delay = 0 }: { children: ReactN
 
 /** The large faint circle the reference lets bleed off a card's edge. */
 export function Arc({ className = "" }: { className?: string }) {
-  return <span aria-hidden className={`pointer-events-none absolute size-80 rounded-full border border-white/[0.05] ${className}`} />;
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute size-80 rounded-full border border-white/[0.05] ${className}`}
+    />
+  );
 }

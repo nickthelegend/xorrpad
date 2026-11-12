@@ -77,8 +77,8 @@ export function checkPolicy(signal, brief, policy, { now = Date.now(), reservedU
   if (last && now - last < p.cooldownSeconds * 1000) return refuse('cooldown', 'trade cooldown is active');
   if(p.lossCooldownSeconds>0) for(const e of brief?.journal_recent || []) {
     let a=e.acted,f=e.forward;try{if(typeof a==='string')a=JSON.parse(a);if(typeof f==='string')f=JSON.parse(f);}catch{continue;}
-    const pnl=a?.realizedPnlUsd ?? a?.pnlUsd ?? f?.receipt?.realizedPnlUsd;
-    if(a?.executed && Number.isFinite(pnl) && pnl<0 && now-Date.parse(e.ts)>=0 && now-Date.parse(e.ts)<p.lossCooldownSeconds*1000)
+    const pnl=f?.receipt?.realizedPnlUsd;
+    if(a?.executed && f?.receipt?.signature && f?.receipt?.confirmedAt && Number.isFinite(pnl) && pnl<0 && now-Date.parse(e.ts)>=0 && now-Date.parse(e.ts)<p.lossCooldownSeconds*1000)
       return refuse('loss_cooldown','cooldown after a confirmed realized loss is active');
   }
   if (p.quietHours) {

@@ -14,7 +14,12 @@ type LoopVideoProps = {
  * A muted, looping film. It plays only while it is on screen, and holds on its poster for anyone who asked for
  * reduced motion.
  */
-export function LoopVideo({ sources, poster, className, preload = "metadata" }: LoopVideoProps) {
+export function LoopVideo({
+  sources,
+  poster,
+  className,
+  preload = "metadata",
+}: LoopVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const reduce = useReducedMotion();
 
@@ -38,7 +43,16 @@ export function LoopVideo({ sources, poster, className, preload = "metadata" }: 
   }, [reduce]);
 
   return (
-    <video ref={ref} className={className} muted loop playsInline preload={preload} poster={poster} aria-hidden>
+    <video
+      ref={ref}
+      className={className}
+      muted
+      loop
+      playsInline
+      preload={preload}
+      poster={poster}
+      aria-hidden
+    >
       {sources.map((s) => (
         <source key={s.src} src={s.src} type={s.type} />
       ))}

@@ -1,6 +1,5 @@
 import { connectionStatus } from './connection-status.mjs';
 import { Abilities } from './abilities.mjs';
-import { regimeOf } from './strategies.mjs';
 import { Profiles } from './profiles.mjs';
 import { DeskStatus } from './desk-status.mjs';
 import { SpotQuotes } from './spot-quotes.mjs';
@@ -42,7 +41,7 @@ import { networkInterfaces } from "node:os";
 import { stt, tts, think, parseIntent, pcmToWav, configureVoiceKeys } from "./voice.mjs";
 import { DeepgramVoice } from "./voice-deepgram.mjs";
 import { scan } from "./scan.mjs";
-import { klines } from "./candles.mjs";
+import { klines, regimeOf } from "./candles.mjs";
 import { MARKETS, SYMBOLS, DELISTED, delistReason } from "./markets.mjs";
 import { active as activeChain, survey as surveyChains, assertNeverSigns } from "./chains/index.mjs";
 import * as pmamm from "./chains/pmamm.mjs";
@@ -247,13 +246,13 @@ export function createServer(mem) {
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
     if(url.pathname==='/' || url.pathname==='/index.html' || url.pathname.startsWith('/desktop/')) {
-      const name=(url.pathname==='/'||url.pathname==='/index.html')?'index.html':decodeURIComponent(url.pathname.slice(9));
+      let name;try{name=(url.pathname==='/'||url.pathname==='/index.html')?'index.html':decodeURIComponent(url.pathname.slice(9));}catch{return send(400,{error:'invalid app asset encoding'});}
       if(!name || name.split('/').some(p=>p==='..'||p==='.'||!p) || name.includes('\\'))return send(400,{error:'invalid app asset'});
       try {
         const file=new URL('../app/dist/'+name,import.meta.url),bytes=await readFile(file);
         const ext=name.split('.').pop(),type={html:'text/html; charset=utf-8',js:'text/javascript',css:'text/css',woff2:'font/woff2',webp:'image/webp',jpg:'image/jpeg',webm:'video/webm',mp4:'video/mp4',svg:'image/svg+xml'}[ext]||'application/octet-stream';
         res.writeHead(200,{'content-type':type,'cache-control':ext==='html'?'no-store':'public, max-age=3600'});return res.end(bytes);
-      }catch(e){if(e.code!=='ENOENT')throw e;return send(404,{error:'Setup required: npm run build:app --prefix desk'});}
+      }catch(e){return send(['ENOENT','ENOTDIR','EISDIR'].includes(e.code)?404:500,{error:'Setup required: npm run build:app --prefix desk'});}
     }
     const uiFiles = new Set(['status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
@@ -408,7 +407,7 @@ export function createServer(mem) {
       if(abilityMatch)return send(200,await (abilityMatch[2]?abilities().run(abilityMatch[1]):abilities().install(abilityMatch[1],body)));
       if(url.pathname==='/agent/voice-test'){if(![...srv.padlink.peers].some(p=>p.device))throw Error('Setup required: connect a verified pad for speaker playback');await speakReply('Your pad. Your rules. I am ready when you are.');return send(200,{spoken:true});}
       if (url.pathname === '/pad/keymap') {
-        try {const map=srv.padlink.setKeymap(body);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
+        try {abilities().validateBindings(body);const before=srv.padlink.keymap;const map=srv.padlink.setKeymap(body);abilities().captureBindings(before,map);new Profiles(srv.padlink).capture();return send(200,map);} catch(e) {return send(400,{error:e.message});}
       }
       if (url.pathname === '/events') {res.setHeader('Upgrade','websocket'); return send(426,{error:'use WebSocket at /events'});}
       if(url.pathname==='/desk/profiles'){const p=new Profiles(srv.padlink);if(req.method==='GET')return send(200,p.read());try{const r=p.select(body.name);signals.publish({type:'profile',profile:r.active});return send(200,r);}catch(e){return send(400,{error:e.message});}}

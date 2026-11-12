@@ -19,18 +19,32 @@ type BlurWordsProps = {
  * A heading that resolves word by word out of a blur — the reveal every headline in the reference uses.
  * Lines split on "\n", so where a headline breaks is authored rather than left to the viewport.
  */
-export function BlurWords({ text, className = "", delay = 0, stagger = 0.07, immediate = false }: BlurWordsProps) {
+export function BlurWords({
+  text,
+  className = "",
+  delay = 0,
+  stagger = 0.07,
+  immediate = false,
+}: BlurWordsProps) {
   const reduce = useReducedMotion();
   const lines = text.split("\n").map((line) => line.split(" "));
-  const starts = lines.map((_, i) => lines.slice(0, i).reduce((n, words) => n + words.length, 0));
+  const starts = lines.map((_, i) =>
+    lines.slice(0, i).reduce((n, words) => n + words.length, 0),
+  );
 
   const word: Variants = {
-    hidden: reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(12px)", y: "0.28em" },
+    hidden: reduce
+      ? { opacity: 0 }
+      : { opacity: 0, filter: "blur(12px)", y: "0.28em" },
     shown: (i: number) => ({
       opacity: 1,
       filter: "blur(0px)",
       y: "0em",
-      transition: { duration: reduce ? 0.5 : 1.05, ease: EASE, delay: delay + i * stagger },
+      transition: {
+        duration: reduce ? 0.5 : 1.05,
+        ease: EASE,
+        delay: delay + i * stagger,
+      },
     }),
   };
 
@@ -44,7 +58,11 @@ export function BlurWords({ text, className = "", delay = 0, stagger = 0.07, imm
         <span key={l} className="block">
           {words.map((w, k) => (
             <span key={k}>
-              <motion.span custom={starts[l] + k} variants={word} className="inline-block will-change-transform">
+              <motion.span
+                custom={starts[l] + k}
+                variants={word}
+                className="inline-block will-change-transform"
+              >
                 {w}
               </motion.span>
               {k < words.length - 1 ? " " : null}

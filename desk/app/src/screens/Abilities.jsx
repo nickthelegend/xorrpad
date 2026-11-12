@@ -1,2 +1,340 @@
-import React,{useState}from'react';import{useDesk,useRead,State,Sheet,Field,money}from'../core';import{Card}from'../brand/Card';import{Badge}from'../brand/Badge';import{Icon}from'../brand/Icon';import{BlurWords}from'../brand/BlurWords';
-export function Abilities(){const d=useDesk(),list=useRead('/abilities'),map=useRead('/pad/keymap'),policy=useRead('/permissions'),catalog=useRead('/backtest',0);const [edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null);async function remove(a){await d.run(async()=>{await d.api('/abilities/'+a.id,{installed:false});d.refresh();d.notify('Ability removed. Its unchanged key bindings were restored.');});}return <section className="page abilities-page"><div className="page-heading"><div><Badge>Made for your pad</Badge><h1><BlurWords text={'Small additions.\nEntirely new possibilities.'} immediate/></h1><p>Give your pad a new instinct. Every ability stays inside your rules.</p></div><a className="subtle-link" href={'/v1'+(d.token?'?token='+encodeURIComponent(d.token):'')+'#permissions'}>Your permissions <Icon name="arrowUpRight"/></a></div><State state={list}/>{list.data&&<><div className="featured-abilities">{list.data.abilities.slice(0,2).map((a,i)=><Card key={a.id} className={'ability-feature '+(i?'cobalt-feature':'voice-feature')}><div className="ability-art" aria-hidden="true">{i?<div className="shield-orbits"><i/><i/><Icon name="shieldCheck"/></div>:<div className="sound-bars">{Array.from({length:23},(_,n)=><i key={n} style={{height:18+Math.sin(n*.8)**2*76,animationDelay:(n*.08)+'s'}}/>)}</div>}</div><div className="section-title"><span className="badge new">New ability</span><button role="switch" aria-checked={a.installed} aria-label={'Install '+a.name} className={'install-switch '+(a.installed?'on':'')} onClick={()=>a.installed?remove(a):setEdit(a)}><i/></button></div><h2>{a.name}</h2><p>{a.description}</p><div className="ability-meta"><span><Icon name={a.icon}/> {a.permissions}</span><b>{a.bindings.length?a.bindings.map(k=>'Key '+(k.index+1)).join(' · '):'No keys bound'}</b></div>{a.setupRequired&&<p className="setup-note">{a.setupRequired}</p>}</Card>)}</div><div className="section-title ability-list-title"><h2>Find your next ability.</h2><span className="muted">Built on the desk you already trust.</span></div><div className="ability-list">{list.data.abilities.slice(2).map(a=><div className="ability-row" key={a.id}><div className={'ability-icon icon-'+a.id}><Icon name={a.icon}/></div><div><h3>{a.name}</h3><p>{a.description}</p><small>{a.permissions}</small>{a.setupRequired&&<p className="setup-note">{a.setupRequired}</p>}{a.evidence&&<small>Replay: {a.evidence.barCount} bars · {money(a.evidence.pnl)} model PnL · {a.evidence.source}</small>}</div><div className="ability-row-end"><span>{a.bindings.length?a.bindings.map(k=>'K'+(k.index+1)).join(', '):'Not bound'}</span><button role="switch" aria-checked={a.installed} aria-label={'Install '+a.name} className={'install-switch '+(a.installed?'on':'')} onClick={()=>a.installed?remove(a):setEdit(a)}><i/></button>{a.installed&&<button onClick={()=>d.run(async()=>{const r=await d.api('/abilities/'+a.id+'/run',{});setResult(r);d.notify(r.summary||r.note||'Ability read completed');})}>Run <Icon name="play"/></button>}</div></div>)}</div>{result&&<details className="surface"><summary>Latest real ability result</summary><pre>{JSON.stringify(result,null,2)}</pre></details>}</>}{edit&&<Sheet title={'Install '+edit.name} onClose={()=>setEdit(null)}><p>{edit.description}</p><p className="permission-line"><Icon name="shieldCheck"/>Requires: {edit.permissions}</p>{edit.setupRequired&&<p className="setup-note">{edit.setupRequired}</p>}<form onSubmit={async e=>{e.preventDefault();const f=new FormData(e.currentTarget);setBusy(true);try{await d.api('/abilities/'+edit.id,{installed:true,keys:[Number(f.get('key'))],config:{market:f.get('market')||'SOL',...(edit.id==='backtest'?{strategy:f.get('strategy')}:{}),...(edit.id==='discipline'?{dailyCapUsd:Number(f.get('cap')),lossCooldownSeconds:Number(f.get('cooldown'))*60}:{}),...(edit.id==='auto'?{enableAuto:f.get('enableAuto')==='on',autoVenue:f.get('venue'),autoKind:f.get('kind')}:{})}});d.refresh();setEdit(null);d.notify('Installed locally. Bindings pushed to verified connected pads; otherwise sync on connection.');}catch(e){d.notify(e.message);}finally{setBusy(false);}}}><Field label="Bind to a programmable key"><select name="key">{map.data?.keys.map((k,i)=>!['mic','kill','yes','no'].includes(k.action)&&<option key={i} value={i}>Key {i+1} · {k.label}</option>)}</select></Field>{['pulse','signals','backtest'].includes(edit.id)&&<Field label="Market"><input name="market" defaultValue="SOL" required/></Field>}{edit.id==='backtest'&&<><Field label="Replay a BOOK strategy"><select name="strategy">{catalog.data?.strategies.filter(s=>!['book','rule'].includes(s)).map(s=><option key={s}>{s}</option>)}</select></Field><p>Seven days of real history, Phoenix current fees. The reviewed strategy is bound only after the replay succeeds. Live routing is quoted and gated again.</p></>}{edit.id==='discipline'&&<><Field label="Daily cap (USD)"><input name="cap" type="number" min="0.01" step="any" defaultValue={policy.data?.maxDayUsd||300} required/></Field><Field label="Cooldown after a confirmed loss (minutes)"><input name="cooldown" type="number" min="1" defaultValue="15" required/></Field><p>Loss detection requires a confirmed realized-PnL journal entry. Unknown PnL is never treated as a known result. The daily cap applies immediately.</p></>}{edit.id==='auto'&&<><Field label="Venue"><select name="venue">{['jupiter','meteora','phoenix','jupperps','pmamm'].map(v=><option key={v}>{v}</option>)}</select></Field><Field label="Product"><select name="kind">{['spot','perp','predict'].map(v=><option key={v}>{v}</option>)}</select></Field><label className="check"><input name="enableAuto" type="checkbox"/>Enable automatic acceptance for this exact scope</label><p>Off unless checked. All memory limits, policy caps and spoken/logged acceptance still apply.</p></>}<button className="primary" disabled={busy||!map.data}>{busy?(edit.id==='backtest'?'Replaying real history…':'Installing…'):'Install & bind'} <Icon name="arrowUpRight"/></button></form></Sheet>}</section>;}
+import React, { useState } from "react";
+import { useDesk, useRead, State, Sheet, Field, money } from "../core";
+import { Card } from "../brand/Card";
+import { Badge } from "../brand/Badge";
+import { Icon } from "../brand/Icon";
+import { BlurWords } from "../brand/BlurWords";
+export function Abilities() {
+  const d = useDesk(),
+    list = useRead("/abilities"),
+    map = useRead("/pad/keymap"),
+    policy = useRead("/permissions"),
+    catalog = useRead("/backtest", 0);
+  const [edit, setEdit] = useState(null),
+    [busy, setBusy] = useState(false),
+    [result, setResult] = useState(null);
+  async function remove(a) {
+    await d.run(async () => {
+      await d.api("/abilities/" + a.id, { installed: false });
+      d.refresh();
+      d.notify("Ability removed. Its unchanged key bindings were restored.");
+    });
+  }
+  return (
+    <section className="page abilities-page">
+      <div className="page-heading">
+        <div>
+          <Badge>Made for your pad</Badge>
+          <h1>
+            <BlurWords
+              text={"Small additions.\nEntirely new possibilities."}
+              immediate
+            />
+          </h1>
+          <p>
+            Give your pad a new instinct. Every ability stays inside your rules.
+          </p>
+        </div>
+        <a
+          className="subtle-link"
+          href={
+            "/v1" +
+            (d.token ? "?token=" + encodeURIComponent(d.token) : "") +
+            "#permissions"
+          }
+        >
+          Your permissions <Icon name="arrowUpRight" />
+        </a>
+      </div>
+      <State state={list} />
+      {list.data && (
+        <>
+          <div className="featured-abilities">
+            {list.data.abilities.slice(0, 2).map((a, i) => (
+              <Card
+                key={a.id}
+                className={
+                  "ability-feature " + (i ? "cobalt-feature" : "voice-feature")
+                }
+              >
+                <div className="ability-art" aria-hidden="true">
+                  {i ? (
+                    <div className="shield-orbits">
+                      <i />
+                      <i />
+                      <Icon name="shieldCheck" />
+                    </div>
+                  ) : (
+                    <div className="sound-bars">
+                      {Array.from({ length: 23 }, (_, n) => (
+                        <i
+                          key={n}
+                          style={{
+                            height: 18 + Math.sin(n * 0.8) ** 2 * 76,
+                            animationDelay: n * 0.08 + "s",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="section-title">
+                  <span className="badge new">New ability</span>
+                  <button
+                    role="switch"
+                    aria-checked={a.installed}
+                    aria-label={"Install " + a.name}
+                    className={"install-switch " + (a.installed ? "on" : "")}
+                    onClick={() => (a.installed ? remove(a) : setEdit(a))}
+                  >
+                    <i />
+                  </button>
+                </div>
+                <h2>{a.name}</h2>
+                <p>{a.description}</p>
+                <div className="ability-meta">
+                  <span>
+                    <Icon name={a.icon} /> {a.permissions}
+                  </span>
+                  <b>
+                    {a.bindings.length
+                      ? a.bindings
+                          .map((k) => "Key " + (k.index + 1))
+                          .join(" · ")
+                      : "No keys bound"}
+                  </b>
+                </div>
+                {a.setupRequired && (
+                  <p className="setup-note">{a.setupRequired}</p>
+                )}
+              </Card>
+            ))}
+          </div>
+          <div className="section-title ability-list-title">
+            <h2>Find your next ability.</h2>
+            <span className="muted">Built on the desk you already trust.</span>
+          </div>
+          <div className="ability-list">
+            {list.data.abilities.slice(2).map((a) => (
+              <div className="ability-row" key={a.id}>
+                <div className={"ability-icon icon-" + a.id}>
+                  <Icon name={a.icon} />
+                </div>
+                <div>
+                  <h3>{a.name}</h3>
+                  <p>{a.description}</p>
+                  <small>{a.permissions}</small>
+                  {a.setupRequired && (
+                    <p className="setup-note">{a.setupRequired}</p>
+                  )}
+                  {a.evidence && (
+                    <small>
+                      Replay: {a.evidence.barCount} bars ·{" "}
+                      {money(a.evidence.pnl)} model PnL · {a.evidence.source}
+                    </small>
+                  )}
+                </div>
+                <div className="ability-row-end">
+                  <span>
+                    {a.bindings.length
+                      ? a.bindings.map((k) => "K" + (k.index + 1)).join(", ")
+                      : "Not bound"}
+                  </span>
+                  <button
+                    role="switch"
+                    aria-checked={a.installed}
+                    aria-label={"Install " + a.name}
+                    className={"install-switch " + (a.installed ? "on" : "")}
+                    onClick={() => (a.installed ? remove(a) : setEdit(a))}
+                  >
+                    <i />
+                  </button>
+                  {a.installed && (
+                    <button
+                      onClick={() =>
+                        d.run(async () => {
+                          const r = await d.api(
+                            "/abilities/" + a.id + "/run",
+                            {},
+                          );
+                          setResult(r);
+                          d.notify(
+                            r.summary ||
+                              r.setupRequired ||
+                              r.note ||
+                              "Ability read completed",
+                          );
+                        })
+                      }
+                    >
+                      Run <Icon name="play" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {result && (
+            <details className="surface">
+              <summary>Latest real ability result</summary>
+              <pre>{JSON.stringify(result, null, 2)}</pre>
+            </details>
+          )}
+        </>
+      )}
+      {edit && (
+        <Sheet title={"Install " + edit.name} onClose={() => setEdit(null)}>
+          <p>{edit.description}</p>
+          <p className="permission-line">
+            <Icon name="shieldCheck" />
+            Requires: {edit.permissions}
+          </p>
+          {edit.setupRequired && (
+            <p className="setup-note">{edit.setupRequired}</p>
+          )}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              setBusy(true);
+              try {
+                await d.api("/abilities/" + edit.id, {
+                  installed: true,
+                  keys: [Number(f.get("key"))],
+                  config: {
+                    market: f.get("market") || "SOL",
+                    ...(edit.id === "backtest"
+                      ? { strategy: f.get("strategy") }
+                      : {}),
+                    ...(edit.id === "discipline"
+                      ? {
+                          dailyCapUsd: Number(f.get("cap")),
+                          lossCooldownSeconds: Number(f.get("cooldown")) * 60,
+                        }
+                      : {}),
+                    ...(edit.id === "auto"
+                      ? {
+                          enableAuto: f.get("enableAuto") === "on",
+                          autoVenue: f.get("venue"),
+                          autoKind: f.get("kind"),
+                        }
+                      : {}),
+                  },
+                });
+                d.refresh();
+                setEdit(null);
+                d.notify(
+                  "Installed locally. Bindings pushed to verified connected pads; otherwise sync on connection.",
+                );
+              } catch (e) {
+                d.notify(e.message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <Field label="Bind to a programmable key">
+              <select name="key">
+                {map.data?.keys.map(
+                  (k, i) =>
+                    !["mic", "kill", "yes", "no"].includes(k.action) && (
+                      <option key={i} value={i}>
+                        Key {i + 1} · {k.label}
+                      </option>
+                    ),
+                )}
+              </select>
+            </Field>
+            {["pulse", "signals", "backtest"].includes(edit.id) && (
+              <Field label="Market">
+                <input name="market" defaultValue="SOL" required />
+              </Field>
+            )}
+            {edit.id === "backtest" && (
+              <>
+                <Field label="Replay a BOOK strategy">
+                  <select name="strategy">
+                    {catalog.data?.strategies
+                      .filter((s) => !["book", "rule"].includes(s))
+                      .map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                  </select>
+                </Field>
+                <p>
+                  Seven days of real history, Phoenix current fees. The reviewed
+                  strategy is bound only after the replay succeeds. Live routing
+                  is quoted and gated again.
+                </p>
+              </>
+            )}
+            {edit.id === "discipline" && (
+              <>
+                <Field label="Daily cap (USD)">
+                  <input
+                    name="cap"
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    defaultValue={policy.data?.maxDayUsd || 300}
+                    required
+                  />
+                </Field>
+                <Field label="Cooldown after a confirmed loss (minutes)">
+                  <input
+                    name="cooldown"
+                    type="number"
+                    min="1"
+                    defaultValue="15"
+                    required
+                  />
+                </Field>
+                <p>
+                  Loss detection requires a confirmed realized-PnL journal
+                  entry. Unknown PnL is never treated as a known result. The
+                  daily cap applies immediately.
+                </p>
+              </>
+            )}
+            {edit.id === "auto" && (
+              <>
+                <Field label="Venue">
+                  <select name="venue">
+                    {["jupiter", "meteora", "phoenix", "jupperps", "pmamm"].map(
+                      (v) => (
+                        <option key={v}>{v}</option>
+                      ),
+                    )}
+                  </select>
+                </Field>
+                <Field label="Product">
+                  <select name="kind">
+                    {["spot", "perp", "predict"].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </select>
+                </Field>
+                <label className="check">
+                  <input name="enableAuto" type="checkbox" />
+                  Enable automatic acceptance for this exact scope
+                </label>
+                <p>
+                  Off unless checked. All memory limits, policy caps and
+                  spoken/logged acceptance still apply.
+                </p>
+              </>
+            )}
+            <button className="primary" disabled={busy || !map.data}>
+              {busy
+                ? edit.id === "backtest"
+                  ? "Replaying real history…"
+                  : "Installing…"
+                : "Install & bind"}{" "}
+              <Icon name="arrowUpRight" />
+            </button>
+          </form>
+        </Sheet>
+      )}
+    </section>
+  );
+}
