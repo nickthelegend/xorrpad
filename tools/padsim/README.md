@@ -41,3 +41,36 @@ skips. After funding, rerun the test command above to execute the real 1 mUSDC
 key → signal → accept → confirmation → receipt path. It never sends mainnet.
 A separate receipt-delivery check reads and replays a real historical devnet
 confirmation; it is explicitly not evidence of a newly executed trade.
+
+## Firmware v2 end-to-end tests
+
+The CLI starts `PadSimulatorV2` by default. Pair through the desk using the
+simulator's displayed QR/public identity and code. Protocol details are in
+[FIRMWARE-PROTOCOL-V2.md](../../docs/v2/FIRMWARE-PROTOCOL-V2.md).
+
+```sh
+node --test --test-concurrency=1 desk/test/pad-v2*.test.mjs
+npm test --prefix desk
+firmware/test/run.sh
+```
+
+`pad-v2.e2e.test.mjs` runs real desk routes and cryptography over fragmented
+TCP and CRC-protected serial records. It checks encrypted wire envelopes,
+matching live-quote fingerprints, independent desk rejection of a wrong
+fingerprint/short hold, hold cancellation, receipt delivery, signed OTA,
+disk-backed kill across a new simulator instance, and replay rejection in both
+directions. The receipt is a separately verified historical devnet transaction;
+these tests do not claim that accepting their proposal produced a new fill.
+
+The OTA case requires the existing compiled, signed public release artifacts
+`firmware/build/artifacts/app.bin` and `manifest.json`, matching the pinned OTA
+public key. It never opens a signing key or runs key generation/signing.
+Missing artifacts fail the test; obtain them from an authorized release build.
+It checks a valid transfer, missing/bad signatures, and corrupted image bytes.
+Cryptographic protocol fixtures are test material, not market prices or fills.
+Live quote/receipt cases require public devnet RPC access and a liquid market;
+provider outages are reported as explicit skips, not simulated successes.
+
+Disk persistence models NVS semantics only. Physical hold timing, BLE security
+and throughput, flash writes, power-loss persistence and OTA boot/rollback need
+the board. Firmware remains **compiled, not yet flashed**.

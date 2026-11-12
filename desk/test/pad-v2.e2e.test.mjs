@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { PadSimulatorV2 } from "../../tools/padsim/v2.mjs";
+import { Lines } from "../main/padlink.mjs";
 import { Memory } from "../main/memory.mjs";
 import { fingerprint, sha } from "../main/pad-v2.mjs";
 import { OTA_PUBLIC_KEY } from "../main/firmware-release.mjs";
@@ -45,7 +46,15 @@ async function lab(fn, { serial = false } = {}) {
         pad.lastError = e;
       });
       await pad.listen(8729);
+      // Observe actual TCP bytes without replacing either protocol endpoint.
+      pad.wireFrames = { fromPad: [], fromDesk: [] };
+      pad.server.on("connection", (socket) => {
+        const lines = new Lines((m) => pad.wireFrames.fromDesk.push(m));
+        socket.on("data", (bytes) => lines.feed(bytes));
+      });
       const stream = net.createConnection(8729, "127.0.0.1");
+      const lines = new Lines((m) => pad.wireFrames.fromPad.push(m));
+      stream.on("data", (bytes) => lines.feed(bytes));
       server.padlink.attach(stream, serial ? "usb" : "tcp");
       await waitUntil(
         () =>
@@ -116,6 +125,23 @@ test("v2 pairing, encrypted real key routes, replay rejection and no plaintext d
     await waitUntil(() => peer.telemetry?.uptime === 1);
     assert(peer.last > last);
   }));
+test("v2 encrypted serial replay is rejected by the pad without applying it twice", async () =>
+  lab(async ({ pad, server }) => {
+    const peer = [...server.padlink.peers][0];
+    await waitUntil(() => !peer.secure.pending.size && !peer.sendQueue.length);
+    let rejected = 0;
+    pad.on("replay_rejected", () => rejected++);
+    const line = peer.secure.seal({ type: "config", holdThreshold: 77 });
+    peer.write(line);
+    await pad.waitFor((m) => m.type === "config" && m.holdThreshold === 77);
+    await waitUntil(() => !peer.secure.pending.size);
+    peer.write(line);
+    await waitUntil(() => rejected === 1);
+    assert.equal(pad.threshold, 77);
+    assert.equal(pad.history.filter((m) => m.type === "config" && m.holdThreshold === 77).length, 1);
+    assert.equal(pad.lastError, undefined);
+    assert.equal(pad.wireFrames.fromDesk.filter((m) => m.type === "encrypted" && m.seq === JSON.parse(line).seq).length, 2);
+  }, { serial: true }));
 test("v2 serial CRC pairing and management routes preserve authentication", async () =>
   lab(async ({ pad, server }) => {
     assert.equal(server.padlink.snapshot().devices[0].link, "usb");
@@ -155,9 +181,15 @@ test("v2 kill latch survives simulated reboot and requires desk plus physical ho
       identity: pad.identity,
       exchange: pad.exchange,
     });
+    // Check the new instance before the desk can send kill_sync, then make the
+    // desk relearn the latch exclusively from the rebooted pad's encrypted ready.
+    assert.equal(next.killed, true);
     await pad.close();
+    server.padlink.killed.delete(next.device);
+    state.armed = true;
     await connect(next);
     assert.equal(next.killed, true);
+    assert.equal(server.padlink.killed.has(next.device), true);
     assert.equal(state.armed, false);
     server.padlink.rearm(next.device);
     await next.waitFor((m) => m.type === "rearm_request");
@@ -199,6 +231,10 @@ test(
       );
       pad.otaPublicKey = OTA_PUBLIC_KEY;
       await assert.rejects(
+        server.padlink.update(pad.device, { ...manifest, signature: undefined }, image, OTA_PUBLIC_KEY),
+        /manifest/,
+      );
+      await assert.rejects(
         server.padlink.update(
           pad.device,
           { ...manifest, signature: "00".repeat(64) },
@@ -208,18 +244,32 @@ test(
         /signature/,
       );
       const peer = [...server.padlink.peers][0];
+      let refusal;
+      const onOTA = ({ message }) => {
+        if (message.id === "bad-ota") refusal = message;
+      };
+      server.padlink.on("ota", onOTA);
       server.padlink.send(peer, {
         type: "ota_begin",
         id: "bad-ota",
         manifest: { ...manifest, signature: "00".repeat(64) },
       });
-      await pad.waitFor((m) => m.id === "bad-ota");
-      await waitUntil(() => !pad.session.pending.size);
+      await waitUntil(() => refusal);
+      server.padlink.off("ota", onOTA);
+      assert.equal(refusal.ok, false);
+      assert.match(refusal.error, /signature/);
       assert.equal(pad.ota, null);
       assert.equal(pad.installedHash, undefined);
+      const corrupted = Buffer.from(image);
+      corrupted[corrupted.length - 1] ^= 1;
+      await assert.rejects(
+        server.padlink.update(pad.device, manifest, corrupted, OTA_PUBLIC_KEY),
+        /hash/,
+      );
       await server.padlink.update(pad.device, manifest, image, OTA_PUBLIC_KEY);
       assert.equal(pad.installedHash, sha(image).toString("hex"));
       assert.equal(peer.otaStatus.progress, 100);
+      assert.equal(peer.otaStatus.state, "rebooting");
     }),
 );
 const networkUnavailable = (e) =>
@@ -267,7 +317,30 @@ test(
           server.signals.get(signal.signalId).fingerprint,
         );
         assert.equal(signal.trusted.side, "yes");
+        for (const [direction, allowed] of [
+          ["fromPad", ["hello", "pair_proof", "encrypted"]],
+          ["fromDesk", ["ping", "pair", "encrypted"]],
+        ]) {
+          assert(pad.wireFrames[direction].some((m) => m.type === "encrypted"));
+          assert(pad.wireFrames[direction].every((m) => allowed.includes(m.type)));
+          assert(!JSON.stringify(pad.wireFrames[direction]).includes(signal.signalId));
+        }
+        // Bypass the simulator's button guard to exercise the desk's independent
+        // checks on real encrypted, authenticated but invalid confirmations.
+        for (const [id, fp, heldMs] of [
+          ["short-hold", signal.fingerprint, 799],
+          ["wrong-fingerprint", "000000", 800],
+        ]) {
+          pad.send({ type: "key", id, action: "yes", edge: "down", signalId: signal.signalId, fingerprint: fp, heldMs });
+          const denied = await pad.waitFor((m) => m.type === "result" && m.id === id);
+          assert.equal(denied.ok, false);
+          assert.match(denied.error, /trusted display/);
+          assert.equal(server.signals.get(signal.signalId).state, "awaiting");
+        }
         assert.throws(() => pad.key("yes"), /800ms/);
+        pad.pressConfirm();
+        pad.releaseConfirm();
+        assert.throws(() => pad.confirm(), /press YES/);
         pad.pressConfirm();
         await delay(810);
         const acceptedId = pad.confirm();
