@@ -1,4 +1,5 @@
 import {mountCrew} from "./crew.mjs";
+import { attestationState } from "./device-attestation.mjs";
 import {
   $,
   esc,
@@ -11,6 +12,11 @@ import {
   action,
   notice,
 } from "./shared.mjs";
+export function deviceVerification(p) {
+  const state = p.secure && p.attestation?.verified === true
+    ? attestationState(true, p.attestation.serial) : attestationState(false, "", p.attestation?.reason);
+  return `<div class="device-verification" data-verified="${state.verified}" role="status"><strong>${esc(state.label)}</strong><p class="hint">${esc(state.reason)}</p></div>`;
+}
 export async function mount({ el, api, subscribe, signal }) {
   el.innerHTML =
     heading(
@@ -53,12 +59,12 @@ export async function mount({ el, api, subscribe, signal }) {
     devices = d.devices || [];
     crew.update(d);
     $("#link-status", el).innerHTML =
-      `<div class="panel-body">${["usb", "ble", "wifi"].map((t) => `<div class="row-top"><h3>${t === "usb" ? "USB-CDC" : t === "ble" ? "Bluetooth LE" : "Wi-Fi"}</h3><span class="tag">${devices.some((p) => p.link === t) ? "CONNECTED" : "NO VERIFIED DEVICE"}</span></div>`).join("")}<p class="hint">Observed ${esc(d.observedAt)}</p>${d.pairing?.length ? "<p>Pad found. Use its displayed code and QR to finish pairing.</p>" : ""}</div>`;
+      `<div class="panel-body">${["usb", "ble", "wifi"].map((t) => `<div class="row-top"><h3>${t === "usb" ? "USB-CDC" : t === "ble" ? "Bluetooth LE" : "Wi-Fi"}</h3><span class="tag">${devices.some((p) => p.link === t) ? "CONNECTED" : "DISCONNECTED"}</span></div>`).join("")}<p class="hint">Observed ${esc(d.observedAt)}</p>${d.pairing?.length ? "<p>Pad found. Use its displayed code and QR to finish pairing.</p>" : ""}</div>`;
     $("#link-devices", el).innerHTML = devices.length
       ? devices
           .map(
             (p) =>
-              `<div class="row"><div class="row-top"><h3>${esc(p.device)}</h3><span class="tag">FW ${esc(p.firmware)}</span></div><p>${esc(p.link)} · ${p.secure ? "Encrypted v2" : "Legacy v1"} · ${esc(p.lastSeen)}</p>${p.ota ? `<p>Update ${esc(p.ota.state)} · ${esc(p.ota.progress)}% ${esc(p.ota.error || "")}</p>` : ""}${p.killed ? `<p>Kill latch active</p><button data-rearm="${esc(p.device)}">Request rearm on pad</button>` : ""}${detail("Live status", p.status)}${p.telemetry ? detail("Health telemetry", p.telemetry) : ""}</div>`,
+              `<div class="row"><div class="row-top"><h3>${esc(p.device)}</h3><span class="tag">FW ${esc(p.firmware)}</span></div>${deviceVerification(p)}<p>${esc(p.link)} · ${p.secure ? "Encrypted v2" : "Legacy v1"} · ${esc(p.lastSeen)}</p>${p.ota ? `<p>Update ${esc(p.ota.state)} · ${esc(p.ota.progress)}% ${esc(p.ota.error || "")}</p>` : ""}${p.killed ? `<p>Kill latch active</p><button data-rearm="${esc(p.device)}">Request rearm on pad</button>` : ""}${detail("Live status", p.status)}${p.telemetry ? detail("Health telemetry", p.telemetry) : ""}</div>`,
           )
           .join("")
       : empty(
@@ -96,7 +102,11 @@ export async function mount({ el, api, subscribe, signal }) {
       const d = await api("/desk/link");
       if (!signal.aborted) render(d);
     } catch (e) {
-      if (!signal.aborted) $("#link-status", el).innerHTML = error(e);
+      if (!signal.aborted) {
+        devices = [];
+        $("#link-devices", el).innerHTML = empty("Device verification unavailable", "Reconnect to the desk to verify this connection.");
+        $("#link-status", el).innerHTML = error(e);
+      }
     }
   }
   async function loadProfiles() {

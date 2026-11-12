@@ -2,6 +2,8 @@ import {otaEligible, verifyPatch} from "./ota.mjs";
 import {verifyCrewApproval} from "./crew.mjs";
 import {validatePriceAlerts} from "./price-alerts.mjs";
 import {verifyAbility} from "./abilities.mjs";
+import { verifyDeviceAttestation, FACTORY_ROOTS } from "./attestation.mjs";
+import { attestationState } from "../renderer/ui/device-attestation.mjs";
 import {assertSigningCluster} from "./session-wallet.mjs";
 import {prepareClearSign} from "./clear-sign.mjs";
 /** v1/v2 NDJSON bridge. All trade inputs use the authenticated/gated API. */
@@ -170,9 +172,11 @@ export class PadLink extends EventEmitter {
     speak,
     status = () => ({}),
     dir = appDataDir(),
+    factoryRoots = FACTORY_ROOTS,
   } = {}) {
     super();
     Object.assign(this, { baseUrl, token, signals, status, voiceInput, speak });
+    this.factoryRoots = Object.freeze([...factoryRoots]);
     this.keymapFile = path.join(dir, "pad-keymap.json");
     this.stateDir = dir;
     this.profiles = [];
@@ -253,6 +257,7 @@ export class PadLink extends EventEmitter {
           firmware: p.firmware,
           devicePublicKey: p.candidate?.pk,
           secure: !!p.secure,
+          attestation: p.attestation || attestationState(),
           ota: p.otaStatus,
           telemetry: p.telemetry,
           sessionSigner: p.sessionState,
@@ -943,13 +948,14 @@ export class PadLink extends EventEmitter {
           (!p.verified && Date.now() - p.handshake?.at >= 10000))) {
         const hello = p.name === "usb" ? checkCRC(m) : m;
         if (
-          hello.fw !== "2.0.0" ||
+          !["2.0.0","3.0.0"].includes(hello.fw) ||
           !/^\w[\w-]{0,63}$/.test(hello.device) ||
           !/^[0-9a-f]{64}$/.test(hello.pk) ||
           !/^[0-9a-f]{64}$/.test(hello.xpk) ||
           !/^[0-9a-f]{64}$/.test(hello.nonce)
         )
           throw Error("invalid v2 identity");
+        p.attestation = attestationState();
         p.candidate = hello;
         if (p.secure) {
           p.secure = null;
@@ -963,13 +969,17 @@ export class PadLink extends EventEmitter {
       if (m.type === "pair_proof" && p.handshake && !p.secure) {
         const proof = p.name === "usb" ? checkCRC(m) : m;
         const h = p.handshake;
+        if (Date.now() - h.at >= 10000) throw Error("pairing challenge expired");
         if (!verifyHandshake(h.text, proof.signature, h.candidate.pk))
           throw Error("device identity mismatch");
+        p.attestation = verifyDeviceAttestation({
+          certificate: proof.certificate, signature: proof.attestationSignature,
+        }, { device: h.candidate.device, deviceKey: h.candidate.pk, context: h.text }, this.factoryRoots);
         p.secure = new SecureSession(h.session.desk, h.session.pad, {
           serial: p.name === "usb",
         });
         p.device = h.candidate.device;
-        p.firmware = "2.0.0";
+        p.firmware = h.candidate.fw;
         this.send(p, { type: "ready", ...this.options });
         return;
       }

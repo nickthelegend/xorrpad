@@ -6,6 +6,7 @@
 #include "certs.h"
 #include "config.h"
 #include "secure.h"
+#include "attestation.h"
 #include "logic/link-policy.h"
 #include "settings.h"
 #include <HTTPClient.h>
@@ -22,6 +23,8 @@ public:
   typedef void (*Handler)(JsonVariantConst);
   enum Transport { NONE = 0, WIFI = 1, BLE = 2, USB = 3 };
   secure::Identity identity;
+  secure::Attestation attestation;
+  bool factoryProvisioning = false;
   bool legacy = false, killed = false;
   volatile bool blePairing = false;
   uint32_t onPassKeyDisplay() override {
@@ -43,6 +46,7 @@ public:
     ble_hs_cfg.sm_sc_only = 1;
     if (!identity.begin())
       return;
+    attestation.begin(identity);
     Preferences cfg;
     cfg.begin("xorrv2", true);
     legacy = cfg.getBool("legacy", false);
@@ -335,6 +339,7 @@ private:
   }
   uint32_t _connectionEpoch=0;
   Transport _previous = NONE;
+  uint32_t _attestWindow=0;unsigned _attestAttempts=0;
   secure::Session _sessions[4];
   void flush(Transport via) {
     auto &s = _sessions[via];
@@ -418,6 +423,27 @@ private:
     auto &session = _sessions[via];
     String type = d["type"] | "";
     if (d["v"] == 2) {
+      // Independent phone-origin liveness proof. Public, domain-separated and BLE-only.
+      if(type=="attest_request"&&via==BLE){
+        if(millis()-_attestWindow>=60000){_attestWindow=millis();_attestAttempts=0;}
+        if(_attestAttempts>=4)return;
+        auto context=xorr::phoneAttestationContext(identity.device.c_str(),xorr::hex(identity.xpub,32),session.nonce().c_str(),d.as<JsonVariantConst>());
+        if(context.empty())return;
+        ++_attestAttempts;JsonDocument proof;proof["v"]=2;proof["type"]="attest_response";
+        attestation.proof(identity,proof,context);
+        // The pairing proof uses attestationSignature; the phone verifier has a single signature field.
+        if(proof["attestationSignature"].is<const char*>()){proof["signature"]=proof["attestationSignature"];proof.remove("attestationSignature");}
+        write(BLE,secure::line(proof,false));return;
+      }
+      // Physical factory boot chord + USB only; no network provisioning path.
+      if (type == "factory_cert" && via == USB && factoryProvisioning &&
+          secure::check(d, true)) {
+        JsonDocument result;
+        result["v"] = 2; result["type"] = "factory_cert_result";
+        result["ok"] = attestation.provision(identity, d["certificate"]);
+        write(USB, secure::line(result, true));
+        return;
+      }
       if (type == "pair" && !session.established && !session.offered) {
         if (millis() - _pairWindow >= 60000) {
           _pairWindow = millis();
@@ -435,6 +461,7 @@ private:
         proof["v"] = 2;
         proof["type"] = "pair_proof";
         proof["signature"] = signature;
+        attestation.proof(identity, proof, session.pairingContext);
         write(via, secure::line(proof, via == USB));
         return;
       }

@@ -33,6 +33,7 @@ public:
   int micLevel() const { return min(100, int(progress.micLevel / 80)); }
   void tick(PadLink &link, Audio &audio, bool turn, bool press) {
     using P = xorr::FactoryProgress;
+    link.factoryProvisioning = active;
     if (!active) return;
     if (reported) {
       // Reopening USB CDC must not lose the signed unit result.

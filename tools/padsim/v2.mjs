@@ -1,4 +1,5 @@
 import {otaEligible, verifyPatch, applyDelta} from "../../desk/main/ota.mjs";
+import { attestationText } from "../../desk/renderer/ui/device-attestation.mjs";
 /** Stateful v2 protocol endpoint, with real cryptography and disk-backed kill state. */
 import { PadSimulator } from "./index.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -24,10 +25,11 @@ export class PadSimulatorV2 extends PadSimulator {
     stateFile,
     identity = keypair("ed25519"),
     exchange = keypair(),
+    certificate,
     ...options
   } = {}) {
     super(options);
-    Object.assign(this, { serial, code, stateFile, identity, exchange });
+    Object.assign(this, { serial, code, stateFile, identity, exchange, certificate });
     this.killed = false;
     this.threshold = 100;
     this.holding = null;
@@ -116,7 +118,7 @@ export class PadSimulatorV2 extends PadSimulator {
           v: 2,
           type: "hello",
           device: this.device,
-          fw: "2.0.0",
+          fw: this.firmware || "2.0.0",
           pk: rawPublic(this.identity.publicKey),
           xpk: rawPublic(this.exchange.publicKey),
           nonce: this.nonce,
@@ -172,6 +174,10 @@ export class PadSimulatorV2 extends PadSimulator {
             v: 2,
             type: "pair_proof",
             signature: signHandshake(text, this.identity.privateKey),
+            ...(this.certificate ? {
+              certificate: this.certificate,
+              attestationSignature: signHandshake(attestationText(this.certificate, text), this.identity.privateKey),
+            } : {}),
           },
           this.serial,
         ),

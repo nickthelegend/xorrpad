@@ -90,6 +90,7 @@ class Session : public xorr::FrameSession {
 public:
   bool established = false, offered = false;
   String offerNonce;
+  std::string pairingContext;
   String nonce() {
     if (!offerNonce.length()) {
       uint8_t bytes[32];
@@ -103,6 +104,7 @@ public:
     established = offered = false;
     clear();
     offerNonce = "";
+    pairingContext.clear();
     queue.clear();
   }
   bool pair(Identity &i, JsonVariantConst d, String &signature) {
@@ -115,6 +117,7 @@ public:
                                   desk.c_str(), challenge.c_str(), offeredNonce.c_str());
     if (text.empty() || !i.derive(remote, text, deskKey, padKey)) return false;
     reset();
+    pairingContext = text;
     keys(padKey, deskKey);
     memset(padKey, 0, 32);
     memset(deskKey, 0, 32);

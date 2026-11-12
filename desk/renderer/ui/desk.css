@@ -1347,3 +1347,7 @@ textarea::placeholder {
   color: var(--muted);
   opacity: 1;
 }
+
+.device-verification { overflow-wrap: anywhere; }
+.device-verification[data-verified="false"] strong { color: var(--bad); }
+.device-verification[data-verified="true"] strong { color: var(--good); }

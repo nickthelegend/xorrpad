@@ -42,3 +42,8 @@ firmware/keys/
 firmware/*.bin
 firmware/*.sig
 .impeccable/review/
+
+# Factory authority and certificate output (private material never belongs here).
+**/factory-ed25519*
+firmware/factory-keys/
+*.device-cert.json
