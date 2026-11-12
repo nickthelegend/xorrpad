@@ -98,7 +98,7 @@ def key_layout():
         K("rebalance", "rebalance", 0, 1, 1, COLORS["agent"], LEGEND_DARK),
         K("yield",     "yield",     1, 1, 1, COLORS["agent"], LEGEND_DARK),
         K("risk",      "risk",      2, 1, 1, COLORS["agent"], LEGEND_DARK),
-        K("base",      "base",      3, 1, 1, COLORS["base"],  LEGEND_DARK),
+        K("base",      "scan",      3, 1, 1, COLORS["base"],  LEGEND_DARK),  # SCAN key (was the Base chain mark; Solana-only)
         # r2 — the verbs: green buys and agrees, red sells and refuses
         K("buy",       "buy",       0, 2, 1, COLORS["buy"],   LEGEND_LIGHT),
         K("sell",      "sell",      1, 2, 1, COLORS["sell"],  LEGEND_LIGHT),
@@ -268,6 +268,12 @@ def _g_base():
     return circle(8.6, 72).difference(box(-6.0, -6.0, -2.7, 6.0))
 
 
+def _g_scan():
+    """Magnifier — the SCAN key: it checks every market for a setup."""
+    return unary_union([_stroke(_arc(-0.9, 0.9, 2.8, 0, 360, 60), 1.5),
+                        _stroke([(1.2, -1.2), (3.9, -3.9)], 1.9)])
+
+
 def _g_dca():
     """Three ascending bars — a recurring buy, stacking up."""
     return unary_union([box(-4.0, -4.0, -1.9, -0.7),
@@ -332,7 +338,7 @@ def _g_kill():
 def glyph(name, size=10.0):
     """Deboss glyph as shapely geometry in a size x size box centered at 0."""
     g = {
-        "buy": _g_buy, "sell": _g_sell, "base": _g_base, "dca": _g_dca,
+        "buy": _g_buy, "sell": _g_sell, "base": _g_base, "scan": _g_scan, "dca": _g_dca,
         "grid": _g_grid, "momentum": _g_momentum, "rebalance": _g_rebalance,
         "yield": _g_yield, "risk": _g_risk, "portfolio": _g_portfolio,
         "kill": _g_kill,
@@ -378,7 +384,7 @@ GLYPH_SIZES = {
     "claude": 10.6, "antigravity": 10.4, "opencode": 9.8,
     "kiro": 10.2, "cursor": 10.2, "codex": 10.8, "grok": 10.4,
     # v8 trading marks
-    "buy": 9.6, "sell": 9.6, "base": 10.2, "dca": 9.8, "grid": 9.4,
+    "buy": 9.6, "sell": 9.6, "base": 10.2, "scan": 10.0, "dca": 9.8, "grid": 9.4,
     "momentum": 10.2, "rebalance": 10.0, "yield": 9.8, "risk": 10.0,
     "portfolio": 10.2, "kill": 9.8,
 }
