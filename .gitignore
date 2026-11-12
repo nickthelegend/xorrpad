@@ -34,3 +34,10 @@ session-wallet.encrypted
 # OS-encrypted provider credentials are private app state.
 *.encrypted
 *.encrypted.*.tmp
+
+# Firmware signing material must live outside the repository.
+*.pem
+*.key
+firmware/keys/
+firmware/*.bin
+firmware/*.sig
