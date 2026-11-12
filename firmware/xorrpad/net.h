@@ -49,6 +49,7 @@ public:
     st.mode      = jsonStr(b, "mode");
     st.verdict   = jsonStr(b, "verdict");
     st.price      = jsonNum(b, "price", 0);
+    st.positionCount=(int)jsonNum(b,"positions",-1);
     st.spentToday = (int)jsonNum(b, "spentToday", -1);
     st.dayLimit   = (int)jsonNum(b, "dayLimit", -1);
     st.hasPnl     = hasField(b, "unrealised") && !jsonNull(b, "unrealised");

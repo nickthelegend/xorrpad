@@ -48,7 +48,7 @@ static int th(uint8_t size) { return 8 * size; }
 
 static bool highContrastTheme=false;
 static void text(GFXcanvas16 &c, int x, int y, uint8_t size, uint16_t col, const char *s) {
-  c.setTextSize(size); c.setTextColor(highContrastTheme&&(col==MUTE||col==GRID)?0xffff:col); c.setCursor(x, y); c.print(s);
+  c.setTextSize(size); c.setTextColor(highContrastTheme?0xffff:col); c.setCursor(x, y); c.print(s);
 }
 static void textR(GFXcanvas16 &c, int right, int y, uint8_t size, uint16_t col, const char *s) {
   text(c, right - tw(size, s), y, size, col, s);

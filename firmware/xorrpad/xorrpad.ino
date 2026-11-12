@@ -37,6 +37,7 @@
 #include "provision.h"
 #include "display.h"
 #include "presentation.h"
+#include "accessibility.h"
 #include "ota.h"
 #include "logic/kill-switch.h"
 #include "profiles.h"
@@ -60,6 +61,8 @@ Settings   settings;
 PadLink    padlink;
 Health health;
 Ota ota;
+Accessibility accessibility;
+bool amountSpoken=false;
 uint32_t rebootAt=0;
 Profiles profiles;
 Knob knob;
@@ -159,6 +162,13 @@ void onPadMessage(JsonVariantConst d) {
   }
   presentationMessage(d,pad,chartNow);
   String type=d["type"] | "";
+  if(type=="signal")amountSpoken=false;
+  if(type=="config" || type=="ready") {
+    if(padlink.secureReady() && !accessibility.patch(d)) {
+      pad.errorCode="UI_SETTINGS";pad.errorFix="Retry desk display settings";
+    }
+    pad.highContrast=accessibility.highContrast();
+  }
   if(type.startsWith("ota_")) {
     if(!padlink.secureReady()) return;
     bool ok=ota.message(d);
@@ -194,7 +204,7 @@ void onPadMessage(JsonVariantConst d) {
     bool ok=applyKeymap(d);
     JsonDocument ack;ack["type"]="keymap_state";ack["revision"]=d["revision"];ack["ok"]=ok;padlink.send(ack);
     if(ok && (!keymapShown || previousRevision!=keymapRevision)){
-      int i=0;for(int r=0;r<4;r++)for(int c=0;c<4;c++)if(liveKeys[r][c].role!=ROLE_NONE)pad.keyLabels[i++]=keyLabels[r][c];
+      int i=0;for(int r=0;r<4;r++)for(int c=0;c<4;c++)if(liveKeys[r][c].role!=ROLE_NONE)pad.keyLabels[i++]=accessibility.key(r,c).label;
       pad.keymapUntil=millis()+4000;keymapShown=true;
     }
   } else if(type=="status") {
@@ -337,7 +347,11 @@ void sendKey(const KeyBind &kb) {
 void onKey(uint8_t r, uint8_t c, bool pressed) {
   if (factory.active) { factory.key(r,c,pressed); return; }
   if (factoryReset.active) return;
-  const KeyBind &kb = keyAt(r, c);
+  bool consumed=accessibility.keyEvent(r,c,pressed,pad);
+  screen.brightness(accessibility.brightness(millis()));
+  screenDirty=true;screenHoldUntil=0;
+  if(consumed)return;
+  const KeyBind &kb=accessibility.key(r,c);
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
     telnet.logf("  [KEY] row=%u col=%u  = %s\n", r, c, kb.label ? kb.label : "unbound");
 
@@ -345,6 +359,9 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(kb.role==ROLE_CONFIRM) {
     killSwitch.confirmKey(pressed,millis(),padlink.secureReady() && !padlink.blePairing);
     if(killSwitch.killed)return;
+    if(pressed && pad.pending && padlink.secureReady() && !padlink.blePairing && accessibility.speakAmounts() && !amountSpoken) {
+      amountSpoken=true;JsonDocument d;d["type"]="speak_amount";d["signalId"]=pad.signalId;padlink.send(d);
+    }
   }
   if(killSwitch.killed)return;
   if(pressed && kb.id) {
@@ -494,6 +511,8 @@ void setup() {
   loadKeymap();
   profiles.begin();
   knob.begin();
+  accessibility.begin();
+  pad.highContrast=accessibility.highContrast();
   health.begin(screen.begin());                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
   bool audioOK = audio.begin();
@@ -612,7 +631,12 @@ void loop() {
   showKillState();
   profiles.refresh(pad.pending || recording);
   pad.profile=profiles.name();pad.layer=profiles.layerName();
+  pad.highContrast=accessibility.highContrast();
+  screen.brightness(accessibility.brightness(millis()));
   auto event=knob.tick();
+  bool wakeKnob=event!=Knob::None && accessibility.idle.blank(millis());
+  if(event!=Knob::None){accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));screenDirty=true;}
+  if(wakeKnob && event!=Knob::TalkEnd)event=Knob::None;
   if(event==Knob::TalkStart)startRecording();
   else if(event==Knob::TalkEnd)stopAndSend();
   else if(event==Knob::Click) {
@@ -644,7 +668,7 @@ void loop() {
   if (!killSwitch.killed && !recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
     nextPoll = millis() + PAD_POLL_MS;
     PadState fresh;
-    if (net.pad(fresh)) pad = fresh; else pad.ok = false;
+    if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();pad = fresh;} else pad.ok = false;
     screenDirty = true;
   }
   ledFromState();
