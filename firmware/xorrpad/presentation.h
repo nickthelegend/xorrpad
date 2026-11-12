@@ -4,29 +4,44 @@
 #include "padstate.h"
 #include "logic/presentation.h"
 #include "logic/portfolio.h"
+#include "logic/fund.h"
 
 inline bool presentationConfirmationVisible(const PadState &pad) {
   return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed,
     pad.updating,pad.errorCode.length(),pad.pairCode.length());
 }
+inline bool presentationWalletVisible(const PadState &pad) {
+  return (pad.fund.visible || pad.portfolio.visible) && pad.ok && !pad.pending &&
+    !pad.factory && !pad.killed && !pad.updating && !pad.errorCode.length() &&
+    !pad.alertsOnly && !pad.pairCode.length() && !pad.abilityReview && !pad.listening &&
+    !(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0);
+}
 
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if (type == "portfolio") {
+  if (type == "fund") {
+    if(xorr::parseFund(d,pad.fund)) {
+      pad.portfolio.visible=false;pad.reply="";pad.labelUntil=0;pad.receiptUntil=0;
+    } else pad.fund.visible=false;
+  } else if (type == "portfolio") {
+    pad.fund.visible=false;
     pad.reply="";pad.labelUntil=0;pad.receiptUntil=0;
     if(!xorr::parsePortfolio(d,pad.portfolio))pad.portfolio.visible=false;
   } else if (type == "error") {
     pad.errorCode = d["code"] | "LINK_ERROR";
     pad.errorFix = d["fix"] | "Reconnect the desk";
   } else if (type == "reply") {
+    pad.fund.visible=false;
     pad.portfolio.visible=false;
     pad.reply = d["text"].as<String>().substring(0, 2000);
     pad.replyAt = millis();
   } else if (type == "receipt") {
+    pad.fund.visible=false;
     pad.portfolio.visible=false;
     pad.reply = ""; pad.errorCode = "";
   } else if (type == "signal") {
+    pad.fund.visible=false;
     pad.portfolio.visible=false;
     pad.reply = "";
     auto trusted = d["trusted"];

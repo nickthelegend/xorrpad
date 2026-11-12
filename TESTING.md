@@ -1913,3 +1913,57 @@ The full run includes the app build and model3d/Portfolio parity tests. Its
 complete log is `firmware/build/w1-desk-final.log`. The standalone app build
 also passed. The disposable source/runtime copy was removed after verification;
 public acceptance logs and the two inspected pad captures remain in this repo.
+
+## Agent wallet W2 — part 2 (2026-11-12)
+
+Scope: brief parts 2 and 5. The approved desktop components and styling are
+unchanged; the desktop wallet card from part 4 is outside this step. Existing
+working-tree edits are preserved and excluded from the W2 commits.
+
+- `firmware/test/run.sh`: **273 cases / 2709 assertions passed**, no skips.
+  Funding parsing binds the exact Solana Pay URI to its public address and
+  supported cluster. Hold tests cover 999/1000 ms, release-only detection,
+  one-shot dispatch, cancellation, dismissal and clock wrap.
+- `desk/test/portfolio-screen.test.mjs`: native RGB565 and shipped WASM agree
+  byte for byte for six wallet states: five-row Portfolio, unknown USD,
+  no wallet, devnet Fund, mainnet Fund and a longer funding address. `jsqr`
+  independently decodes each actual native funding frame to its supplied URI.
+- All six `desk/test/model3d.test.mjs` checks passed in the focused run,
+  including exact native/WASM home and offline frame parity. No test was
+  weakened. Full serial desk-suite results are recorded in the W2 part 5 entry.
+- `npm run build:app --prefix desk`: passed (existing chunk/import warnings).
+- Final ESP32-S3 compile passed: **1,953,978 sketch bytes / 68,316 global
+  bytes**. Compiled, not flashed; no hardware scan claim is made.
+- Actual uipreview captures inspected: [Fund](docs/screens/v3/agent-wallet-fund-devnet.png),
+  [Portfolio](docs/screens/v3/agent-wallet-portfolio-devnet.png) and
+  [no wallet](docs/screens/v3/agent-wallet-portfolio-no-wallet.png). Fund uses
+  the record received by the real v1 TCP padsim; the existing Portfolio captures
+  were regenerated from the public W1 records and remained byte-identical.
+
+```sh
+firmware/test/run.sh
+EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' tools/uipreview/build-web-screen.sh
+SIBYL_PY="$PWD/.venv/bin/python" node --test --test-concurrency=1 desk/test/fund.live.test.mjs desk/test/portfolio-screen.test.mjs desk/test/model3d.test.mjs
+npm run build:app --prefix desk
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad
+make -C tools/uipreview preview
+tools/uipreview/preview firmware/build/w2-shots/fund 2 firmware/build/w2-fund-devnet.json
+```
+
+`firmware-screen.wasm` was rebuilt with the specified EMSDK; a second rebuild
+was byte-identical, SHA-256
+`554e559be963087ad9823789333a43f5ebbcd3c3055c4164d79f25cb00c15058`.
+ESP32 pairing and funding use `esp_qrcode`; native/WASM uses the same encoder
+and encoding options, with pinned Espressif source and retained licenses.
+
+The authenticated local `POST /agent-wallet {"action":"fund"}` is the integration
+point for “Show QR on pad”: 200 with the number of pads sent, 409 when no pad
+is connected, 503 for no wallet, and 502 for unavailable RPC/storage. It never
+creates a wallet implicitly. A firmware hold emits the existing key record
+with `action:"fund"`; short release emits `action:"portfolio"`. Wallet screens
+wake the display and dismiss without activating another key, while KILL retains
+its safety action and pending confirmations keep priority.
+
+Public logs: `firmware/build/w2-{native,focused,app-build,esp32}.log`.
+No existing key files, environment files or private project state were opened;
+no transaction was submitted. Mainnet execution gating is unchanged.

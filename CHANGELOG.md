@@ -6,6 +6,23 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Agent wallet W2, part 2
+
+- The desk sends `{type:"fund", address, uri, cluster}` over the existing v1
+  link or encrypted v2. Authenticated local `POST /agent-wallet {action:"fund"}`
+  opens the funding QR on connected pads and reports an absent pad honestly;
+  it never creates a wallet implicitly. A pad `fund` key requests the same record.
+- Hold PORTFOLIO for one second for Fund; release sooner for Portfolio.
+  Any key dismisses the wallet screen without triggering another action;
+  KILL retains its safety action. Incoming wallet screens wake the display.
+- Fund shows the real Solana Pay QR, shortened address, cluster and funding
+  instruction. Pairing and Fund share `esp_qrcode` and the exact firmware pixel
+  renderer across ESP32, native preview and the rebuilt desktop screen WASM.
+  Portfolio retains its total, SOL/USDC, top-three tokens and honest unknown USD.
+- Native hold/parser tests, independent decoding of the rendered funding QR,
+  six native/WASM wallet frame cases and model3d frame parity are covered.
+  The approved desktop components and styling are unchanged.
+
 ### Added — Agent wallet W1, part 3
 
 - Final isolated desk suite: 248 tests, 238 passed, 10 existing setup/provider

@@ -1,8 +1,35 @@
 #include "doctest.h"
 #include "../xorrpad/logic/presentation.h"
 #include "../xorrpad/logic/portfolio.h"
+#include "../xorrpad/logic/fund.h"
 #include <numeric>
 #include "../xorrpad/logic/accessibility.h"
+
+TEST_CASE("fund records bind the QR URI to the public address and supported cluster") {
+  JsonDocument d;d["address"]="11111111111111111111111111111111";
+  d["uri"]="solana:11111111111111111111111111111111?label=xorrpad%20agent";d["cluster"]="devnet";
+  xorr::Fund f;REQUIRE(xorr::parseFund(d,f));CHECK(f.visible);CHECK(f.cluster=="devnet");
+  auto address=f.address;
+  d["cluster"]="mainnet-beta";REQUIRE(xorr::parseFund(d,f));
+  d["uri"]="solana:22222222222222222222222222222222?label=xorrpad%20agent";
+  CHECK_FALSE(xorr::parseFund(d,f));CHECK(f.address==address);
+  d["uri"]="https://example.com";CHECK_FALSE(xorr::parseFund(d,f));
+  d["address"]="not an address";CHECK_FALSE(xorr::parseFund(d,f));
+  d["address"]="11111111111111111111111111111111";d["uri"]="solana:11111111111111111111111111111111?label=xorrpad%20agent";
+  d["cluster"]="testnet";CHECK_FALSE(xorr::parseFund(d,f));
+  d["cluster"]="devnet";d["address"]=nullptr;CHECK_FALSE(xorr::parseFund(d,f));
+}
+TEST_CASE("PORTFOLIO short press, exact one-second hold, cancellation and clock wrap") {
+  xorr::PortfolioKey key;using K=xorr::PortfolioKey;
+  CHECK(key.release(10)==K::None);
+  key.press(10);CHECK(key.tick(1009)==K::None);CHECK(key.release(1009)==K::Portfolio);
+  key.press(10);CHECK(key.tick(1010)==K::Fund);CHECK(key.tick(5000)==K::None);CHECK(key.release(5000)==K::None);
+  key.press(10);CHECK(key.release(1010)==K::Fund);
+  key.press(0);key.cancel();CHECK(key.tick(1000)==K::None);CHECK(key.release(1200)==K::None);
+  key.press(UINT32_MAX-499);CHECK(key.tick(499)==K::None);CHECK(key.tick(500)==K::Fund);
+  key.press(0,true);CHECK(key.release(999)==K::None);
+  key.press(0,true);CHECK(key.tick(1000)==K::Fund);
+}
 
 TEST_CASE("portfolio preserves unknown USD and the honest no-wallet message") {
   JsonDocument d;d["cluster"]="devnet";d["totalUsd"]=nullptr;

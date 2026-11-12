@@ -423,6 +423,15 @@ export class PadLink extends EventEmitter {
       if (p.device) this.send(p, { type: "keymap", ...value });
     return value;
   }
+  // Desktop "Show QR on pad": use the existing v1 transport or v2 encryption.
+  showFund(record) {
+    let sent=0;
+    for(const p of this.peers) {
+      if(!p.device || (!p.secure && p.firmware!=='1.0.0') || (p.secure && !p.verified) || this.preferred(p.device)!==p || Date.now()-p.last>=15000)continue;
+      this.send(p,record);sent++;
+    }
+    return sent;
+  }
   flush(p) {
     if (!p.secure || p.secure.pending.size) return;
     let next = p.sendQueue?.shift() || p.audioQueue?.shift();
@@ -1280,8 +1289,9 @@ export class PadLink extends EventEmitter {
           });
         else {
           const result = await this.request("/key", { id: m.action, ...p.knobDefaults });
-          if (m.action === 'portfolio' && result.portfolio)
+          if (['portfolio','fund'].includes(m.action) && result.portfolio)
             this.send(p,{type:'portfolio',...result.portfolio});
+          if(m.action === 'fund' && result.fund)this.send(p,result.fund);
         }
       }
     } else if (m.type === "signal_state") {

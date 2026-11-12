@@ -512,7 +512,7 @@ private:
     }
     if (type != "caps" && type != "status" && type != "signal" &&
         type != "signal_state" && type != "receipt" && type != "tts" &&
-        type != "keymap" && type != "result" && type != "portfolio")
+        type != "keymap" && type != "result" && type != "portfolio" && type != "fund")
       return;
     _seen[via] = millis();
     if (active() != via)

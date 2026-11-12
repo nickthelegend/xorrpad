@@ -5,6 +5,7 @@
 #include <vector>
 
 namespace xorr {
+struct Fund { bool visible=false; std::string address,uri,cluster; };
 struct PortfolioRow { std::string symbol; double amount=0,usd=0; bool hasUsd=false; };
 struct Portfolio {
   bool visible=false,hasTotal=false; double totalUsd=0;

@@ -35,7 +35,7 @@ import {verifyManifestSignature,verifyManifest} from "./pad-v2.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
-import { AgentWallet, NO_AGENT_WALLET } from './agent-wallet.mjs';
+import { AgentWallet, NO_AGENT_WALLET, fundRecord } from './agent-wallet.mjs';
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -453,9 +453,16 @@ export function createServer(mem) {
       if (url.pathname === '/agent-wallet') {
         const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
         if (req.method === 'POST' && !local) return send(403,{error:'wallet configuration is local only'});
-        if (req.method === 'POST' && (body.action !== 'create' || Object.keys(body).some(k => k !== 'action')))
-          return send(400,{error:'Use {action:"create"} to create your agent wallet'});
-        try { return send(200,await agentWallet.get({create:req.method === 'POST'})); }
+        if (req.method === 'POST' && (!['create','fund'].includes(body.action) || Object.keys(body).some(k => k !== 'action')))
+          return send(400,{error:'Use {action:"create"} or {action:"fund"}'});
+        try {
+          const wallet=await agentWallet.get({create:req.method === 'POST' && body.action === 'create'});
+          if(req.method === 'POST' && body.action === 'fund') {
+            const sent=srv.padlink.showFund(fundRecord(wallet));
+            return send(sent?200:409,{ok:sent>0,sent,...(sent?{}:{error:'Connect your pad to show its funding QR'})});
+          }
+          return send(200,wallet);
+        }
         catch (e) {
           const setup = e.message === NO_AGENT_WALLET || e.message.startsWith('Setup required:');
           return send(setup ? 503 : 502,{error:setup ? e.message : 'Agent wallet unavailable: check local wallet storage and Solana RPC'});
@@ -1056,7 +1063,7 @@ export function createServer(mem) {
         // Resolve a symbol case-insensitively before flattening the rest.
         const raw = String(body.id || "");
         if(raw.startsWith('ability:'))return send(200,await abilities().run(raw.slice(8)));
-        const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","kill","mic"]);
+        const controls = new Set(["dca","grid","momentum","rebalance","yield","risk","market","scan","buy","sell","long","short","yes","no","base","portfolio","fund","kill","mic"]);
         const asSymbol = !controls.has(raw.toLowerCase()) && (SYMBOLS.find((k) => k.toLowerCase() === raw.toLowerCase())
           || Object.keys(DELISTED).find((k) => k.toLowerCase() === raw.toLowerCase()));
         return send(200, await onKey(mem, asSymbol || raw.toLowerCase(), body, signals, executor));
@@ -1223,6 +1230,13 @@ async function onKey(mem, id, options = {}, signals, executor) {
 
   if (id === "base") return onKey(mem, "scan", {}, signals, executor);   // the white key runs the book
   if (id === "portfolio") return { ok: true, ...(await portfolioSnapshot(mem,executor)) };
+  if (id === 'fund') {
+    try {return {ok:true,fund:fundRecord(await new AgentWallet(executor).get())};}
+    catch(e) {
+      if(e.message!==NO_AGENT_WALLET)throw e;
+      return {ok:true,portfolio:{message:NO_AGENT_WALLET,rows:[],totalUsd:null}};
+    }
+  }
   // Stopping voids the decision on the table as well as disarming — the same
   // as POST /panic. A loaded ✓ left behind a kill switch is exactly what bites:
   // the operator stops, walks away, and a later re-arm makes a decision reasoned

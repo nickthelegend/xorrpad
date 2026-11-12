@@ -3,6 +3,7 @@
 #include "padstate.h"
 #include "config.h"
 #include "logic/presentation.h"
+#include <qrcode.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ui.h — every pixel the pad draws, and nothing that knows about hardware.
@@ -361,6 +362,39 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
   banner(c, WARN, "CONNECTING", "joining wifi, then the desk");
 }
 
+// Pairing and funding share the real ESP encoder and the same pixel renderer.
+// Native/WASM uses Espressif's encoder through tools/uipreview/shim/qrcode.h.
+inline bool qrData[53*53]={};inline int qrSize=0;inline String qrText;
+static bool drawQr(GFXcanvas16 &c,const String &uri,int x,int y,int box) {
+  if(strcmp(qrText.c_str(),uri.c_str())) {
+    qrText=uri;qrSize=0;
+    esp_qrcode_config_t cfg={[](esp_qrcode_handle_t qr){
+      qrSize=esp_qrcode_get_size(qr);if(qrSize>53){qrSize=0;return;}
+      for(int row=0;row<qrSize;++row)for(int col=0;col<qrSize;++col)
+        qrData[row*53+col]=esp_qrcode_get_module(qr,col,row);
+    },9,ESP_QRCODE_ECC_LOW};
+    if(esp_qrcode_generate(&cfg,uri.c_str())!=ESP_OK)qrSize=0;
+  }
+  if(!qrSize)return false;
+  int scale=box/(qrSize+8),side=(qrSize+8)*scale;
+  int left=x+(box-side)/2,top=y+(box-side)/2;
+  c.fillRect(left,top,side,side,0xffff);
+  for(int row=0;row<qrSize;++row)for(int col=0;col<qrSize;++col)
+    if(qrData[row*53+col])c.fillRect(left+(col+4)*scale,top+(row+4)*scale,scale,scale,0);
+  return true;
+}
+
+static void drawFund(GFXcanvas16 &c,const xorr::Fund &fund) {
+  text(c,12,10,2,INK,"FUND");pill(c,308,8,fund.cluster.c_str(),fund.cluster=="devnet"?WARN:UP);
+  text(c,12,52,1,MUTE,"AGENT WALLET");
+  wrap(c,12,76,114,1,INK,"Send SOL or USDC to fund your agent",4);
+  text(c,12,143,1,MUTE,"ADDRESS");
+  String address(fund.address.c_str());
+  text(c,12,159,1,INK,(address.substring(0,6)+"..."+address.substring(address.length()-6,address.length())).c_str());
+  if(!drawQr(c,String(fund.uri.c_str()),136,34,176))text(c,148,110,1,WARN,"QR unavailable");
+  text(c,12,224,1,MUTE,"Any key to close");
+}
+
 static void drawPortfolio(GFXcanvas16 &c, const xorr::Portfolio &p) {
   c.fillScreen(BG);
   text(c,12,10,2,INK,"PORTFOLIO");
@@ -446,6 +480,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     wrap(c,12,156,296,2,UP,pad.alertNotice,3);return;
   }
   if(pad.pairCode.length()){
+    drawQr(c,pad.pairQr,133,24,183);
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
   if(pad.abilityReview){
@@ -465,6 +500,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     wrap(c,12,124,W-24,1,MUTE,pad.receiptExplorer,4);
     banner(c,UP,"CONFIRMED","confirmed / explorer short sig");
   }
+  else if(pad.fund.visible) {drawFund(c,pad.fund);return;}
   else if(pad.portfolio.visible) {drawPortfolio(c,pad.portfolio);return;}
   else if(pad.abilityWidget.length() && !pad.reply.length()) {
     textClip(c,12,18,296,1,MUTE,"ABILITY / "+pad.abilityName);

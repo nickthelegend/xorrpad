@@ -7,7 +7,6 @@
 #include "padstate.h"
 #include "ui.h"
 #include <esp_heap_caps.h>
-#include <qrcode.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The display pod: a 2.8" ILI9341 (320x240, SPI — LCDwiki MSP2807) laid
@@ -68,10 +67,6 @@ public:
     if (!_ok) return;
     const uint32_t t0 = millis();
     ui::drawFrame(*_canvas, pad, ch);
-    if(pad.pairCode.length()&&!pad.alertsOnly&&!pad.killed&&!pad.factory&&!pad.updating&&!pad.errorCode.length()){
-      if(_qrText!=pad.pairQr){_qrText=pad.pairQr;esp_qrcode_config_t cfg={.display_func=[](esp_qrcode_handle_t qr){_qrSize=esp_qrcode_get_size(qr);if(_qrSize>53){_qrSize=0;return;}for(int y=0;y<_qrSize;y++)for(int x=0;x<_qrSize;x++)_qrData[y*53+x]=esp_qrcode_get_module(qr,x,y);},.max_qrcode_version=9,.qrcode_ecc_level=ESP_QRCODE_ECC_LOW};if(esp_qrcode_generate(&cfg,pad.pairQr.c_str())!=ESP_OK)_qrSize=0;}
-      if(_qrSize){_canvas->fillRect(133,24,183,183,0xffff);for(int y=0;y<_qrSize;y++)for(int x=0;x<_qrSize;x++)if(_qrData[y*53+x])_canvas->fillRect(145+x*3,36+y*3,3,3,0);}
-    }
     blit();
     _frameMs = millis() - t0;
     _frames++;
@@ -99,7 +94,6 @@ public:
   }
 
 private:
-  inline static bool _qrData[53*53]={};inline static int _qrSize=0;String _qrText;
   SPIClass *_spi = nullptr;
   Adafruit_ILI9341 *_tft = nullptr;
   GFXcanvas16 *_canvas = nullptr,*_back=nullptr;

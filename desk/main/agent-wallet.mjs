@@ -4,6 +4,9 @@ import {TOKENS} from './spot-book.mjs';
 import {USDC, SOL} from './xstocks.mjs';
 
 export const NO_AGENT_WALLET = 'Create your agent wallet in XOR Desktop';
+export function fundRecord(wallet) {
+  return {type:'fund',address:wallet.address,uri:wallet.solanaPay,cluster:wallet.cluster};
+}
 export const DEVNET_USDC = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 const GENESIS = {
   EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG:'devnet',

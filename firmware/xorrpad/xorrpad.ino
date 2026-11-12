@@ -173,6 +173,9 @@ void onPadMessage(JsonVariantConst d) {
   }
   presentationMessage(d,pad,chartNow);
   String type=d["type"] | "";
+  if((type=="fund" && pad.fund.visible) || (type=="portfolio" && pad.portfolio.visible)) {
+    accessibility.idle.wake(millis());screenHoldUntil=0;
+  }
   if(type=="signal")amountSpoken=false;
   if(type=="config" || type=="ready") {
     if(padlink.secureReady() && !accessibility.patch(d)) {
@@ -358,8 +361,16 @@ void sendKey(const KeyBind &kb) {
   nextPoll = 0;                       // reflect the new state immediately
 }
 
+xorr::PortfolioKey portfolioKey;
+uint16_t dismissedKeys=0;
+void walletKeyAction(xorr::PortfolioKey::Action action) {
+  if(action==xorr::PortfolioKey::None)return;
+  if(!sendLinkedKey(action==xorr::PortfolioKey::Fund?"fund":"portfolio")) {
+    pad.lastKeyLabel="Connect XOR Desktop to view your wallet";pad.labelUntil=millis()+4000;
+  }
+  screenDirty=true;
+}
 void onKey(uint8_t r, uint8_t c, bool pressed) {
-  if(pressed)pad.portfolio.visible=false;
   if (factory.active) { factory.key(r,c,pressed); return; }
   if (factoryReset.active) return;
   bool consumed=accessibility.keyEvent(r,c,pressed,pad);
@@ -367,6 +378,22 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   screenDirty=true;screenHoldUntil=0;
   if(consumed)return;
   const KeyBind &kb=accessibility.key(r,c);
+  const uint16_t bit=uint16_t(1)<<(r*4+c);
+  if(!pressed && (dismissedKeys&bit)){dismissedKeys&=~bit;return;}
+  bool walletVisible=presentationWalletVisible(pad);
+  bool portfolio=kb.id && String(kb.id)=="portfolio";
+  if(pressed && walletVisible) {
+    bool wasFund=pad.fund.visible;
+    pad.fund.visible=false;pad.portfolio.visible=false;
+    portfolioKey.cancel();
+    // KILL retains its safety action; other keys only dismiss the wallet card.
+    if(kb.role!=ROLE_KILL) {
+      if(portfolio && !wasFund)portfolioKey.press(millis(),true);
+      else dismissedKeys|=bit;
+      return;
+    }
+  }
+  if(pressed && !portfolio)portfolioKey.cancel();
   if(abilities.reviewing() && kb.role!=ROLE_KILL){
     if(kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)abilities.key(kb.role==ROLE_CONFIRM,pressed,pad);
     return;
@@ -389,6 +416,11 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
     }
   }
   if(killSwitch.killed)return;
+  if(portfolio) {
+    if(pressed)portfolioKey.press(millis());
+    else walletKeyAction(portfolioKey.release(millis()));
+    return;
+  }
   if(pressed && kb.id) {
     String action=kb.id;
     if(action=="profile:next") {profiles.next(pad.pending || recording);return;}
@@ -698,6 +730,8 @@ void loop() {
   abilities.tick(padlink.connectionEpoch(),padlink.secureReady(),health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !pad.listening && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length() && !killSwitch.requested,pad,abilityChime);
   if(abilityChime>=0)audio.chime(abilityChime?xorr::Chime::Fill:xorr::Chime::Accept);
   matrix.scan(onKey);
+  if(killSwitch.killed || ota.busy || pad.pending || recording || !padlink.ready())portfolioKey.cancel();
+  else walletKeyAction(portfolioKey.tick(millis()));
   health.keysScanned=true;
   telnet.poll();
 

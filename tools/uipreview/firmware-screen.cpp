@@ -7,6 +7,10 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"fundVisible")){pad.fund.visible=atoi(v)!=0;return;}
+ if(!strcmp(k,"fundAddress")){pad.fund.address=v;return;}
+ if(!strcmp(k,"fundUri")){pad.fund.uri=v;return;}
+ if(!strcmp(k,"fundCluster")){pad.fund.cluster=v;return;}
  if(!strcmp(k,"portfolioVisible")){pad.portfolio.visible=atoi(v)!=0;return;}
  if(!strcmp(k,"portfolioMessage")){pad.portfolio.message=v;return;}
  if(!strcmp(k,"portfolioCluster")){pad.portfolio.cluster=v;return;}
