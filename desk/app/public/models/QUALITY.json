@@ -17,9 +17,9 @@
   "reports": [
     {
       "file": "xorrpad.glb",
-      "triangles": 83274,
-      "rays": 994048,
-      "cachedVertices": 125560,
+      "triangles": 84314,
+      "rays": 1006528,
+      "cachedVertices": 127120,
       "bounds": {
         "min": [
           -45.00128936767578,
@@ -35,9 +35,9 @@
     },
     {
       "file": "xorrpad-exploded.glb",
-      "triangles": 83274,
-      "rays": 994048,
-      "cachedVertices": 125560,
+      "triangles": 84314,
+      "rays": 1006528,
+      "cachedVertices": 127120,
       "bounds": {
         "min": [
           -45.001285552978516,

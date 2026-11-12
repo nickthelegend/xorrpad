@@ -6,7 +6,7 @@
 // What each key does on the xorr-pad deck.
 //
 // This is a TRADING surface, not a chat surface. Every key here maps to a real
-// control on the backend: an agent takes the baton, BASE runs the strategy
+// control on the backend: an agent takes the baton, SCAN runs the strategy
 // book, and BUY/SELL raise a decision that only a ✓ can execute. Nothing on
 // this pad can move money on its own — the gate lives on the backend and
 // answers every key the same way whether it was pressed here or on screen.
@@ -57,7 +57,7 @@ struct KeyBind {
 //   r1c0  REBALANCE         (1,2)   11 · 8           measured
 //   r1c1  YIELD             (1,1)   11 · 17          measured
 //   r1c2  RISK              (1,0)   11 · 18          measured
-//   r1c3  BASE              (2,3)   12 · 14          measured
+//   r1c3  SCAN              (2,3)   12 · 14          measured
 //   r2c0  BUY               (2,2)   12 · 8           measured
 //   r2c1  SELL              (3,2)   13 · 8           COLD JOINT — never fired; cell is a guess
 //   r2c2  ✓ YES             (2,1)   12 · 17          unverified
@@ -78,13 +78,13 @@ static const KeyBind KEYMAP[MATRIX_ROWS][MATRIX_COLS] = {
   // C0 · GPIO 18                                        C1 · GPIO 17                                       C2 · GPIO 8                                               C3 · GPIO 14
   {{ROLE_AGENT,  "momentum", "MOMENTUM",  30, 60,120}, {ROLE_AGENT,  "grid",  "GRID",     77, 50,120}, {ROLE_AGENT,  "dca",       "DCA",       110, 80, 20}, {ROLE_NONE,   nullptr,     nullptr,       0,  0,  0}},  // row 0 · GPIO 10 — measured
   {{ROLE_AGENT,  "risk",     "RISK",      70, 45,120}, {ROLE_AGENT,  "yield", "YIELD",    20,110, 70}, {ROLE_AGENT,  "rebalance", "REBALANCE",  30,100,120}, {ROLE_NONE,   nullptr,     nullptr,       0,  0,  0}},  // row 1 · GPIO 11 — measured
-  {{ROLE_REFUSE, "no",       "REFUSE",   110, 20, 20}, {ROLE_CONFIRM,"yes",   "CONFIRM",   0,110, 30}, {ROLE_ACTION, "buy",       "BUY",        20, 90, 40}, {ROLE_ACTION, "base",      "BASE",       60, 60, 60}},  // row 2 · GPIO 12 — BUY, BASE measured; ✗ ✓ unverified
+  {{ROLE_REFUSE, "no",       "REFUSE",   110, 20, 20}, {ROLE_CONFIRM,"yes",   "CONFIRM",   0,110, 30}, {ROLE_ACTION, "buy",       "BUY",        20, 90, 40}, {ROLE_ACTION, "base",      "SCAN",       60, 60, 60}},  // row 2 · GPIO 12 — BUY, SCAN measured; ✗ ✓ unverified
   {{ROLE_KILL,   "kill",     "KILL",     120,  0,  0}, {ROLE_MIC,    nullptr, "MIC",     110,  0,  0}, {ROLE_ACTION, "sell",      "SELL",       90, 30, 30}, {ROLE_ACTION, "portfolio", "PORTFOLIO",  50, 50, 50}},  // row 3 · GPIO 13 — unverified; SELL is the cold joint
 };
 
 // Agent colours match the orbs on screen (desktop/renderer AGENTS), dimmed for
 // a WS2812 the same way the first four were: GRID from #C79BFF, REBALANCE from
-// #5AD9E8. BASE takes the neutral SCAN used, because it runs the same book.
+// #5AD9E8. SCAN uses neutral white, because it runs the book.
 // Green and red are reserved for confirm and refuse — the same law the
 // interface follows.
 //
