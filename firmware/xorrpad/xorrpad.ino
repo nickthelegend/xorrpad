@@ -25,6 +25,7 @@
 #include "config.h"
 #include "settings.h"
 #include "clear-sign.h"
+#include "abilities.h"
 #include "agents.h"
 #include "keymap.h"
 #include "link.h"
@@ -91,6 +92,7 @@ PadState   pad;
 xorr::KillSwitch killSwitch;
 PadLink::Transport rearmTransport = PadLink::NONE;
 ClearSigning clearSigning;
+Abilities abilities;
 
 bool persistKill(bool killed) {
   Preferences p;
@@ -146,6 +148,11 @@ bool usbDebugAllowed() {
 }
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  JsonDocument abilityResponse;
+  bool abilityIdle=health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length();
+  if(abilities.message(d,padlink.connectionEpoch(),padlink.secureReady(),abilityIdle,pad,abilityResponse)){padlink.send(abilityResponse);screenDirty=true;screenHoldUntil=0;return;}
+  if(abilities.reviewing() && d["type"]!="kill_sync")return;
+  if(d["type"]=="pulse")abilities.priceAt=millis();
   if(clearSigning.message(d,padlink.connectionEpoch(),padlink.secureReady(),killSwitch.killed || ota.busy,pad)) {
     screenDirty=true;screenHoldUntil=0;return;
   }
@@ -354,6 +361,10 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   screenDirty=true;screenHoldUntil=0;
   if(consumed)return;
   const KeyBind &kb=accessibility.key(r,c);
+  if(abilities.reviewing() && kb.role!=ROLE_KILL){
+    if(kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)abilities.key(kb.role==ROLE_CONFIRM,pressed,pad);
+    return;
+  }
   if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
     bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && presentationConfirmationVisible(pad));
@@ -534,6 +545,7 @@ void setup() {
   net.begin(&settings, &padlink.legacy);
   padlink.begin(&settings,onPadMessage);
   if (factory.active) { WiFi.mode(WIFI_STA); return; }
+  abilities.begin();
   if (!XORR_RELEASE) Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();
@@ -674,6 +686,9 @@ void loop() {
     bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
   }
+  int abilityChime=-1;
+  abilities.tick(padlink.connectionEpoch(),padlink.secureReady(),health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !pad.listening && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length() && !killSwitch.requested,pad,abilityChime);
+  if(abilityChime>=0)audio.chime(abilityChime?xorr::Chime::Fill:xorr::Chime::Accept);
   matrix.scan(onKey);
   health.keysScanned=true;
   telnet.poll();
@@ -708,6 +723,7 @@ void loop() {
   if (screenDirty && millis() >= screenHoldUntil) {
     screenDirty = false;
     screen.draw(pad, chartNow);
+    abilities.shown(health.displayUp && !accessibility.idle.blank(millis()) && pad.abilityReview && !pad.killed && !pad.updating && !pad.errorCode.length() && !pad.pairCode.length());
     if(health.displayUp && presentationConfirmationVisible(pad))clearSigning.shown(pad);
   }
 

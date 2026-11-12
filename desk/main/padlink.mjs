@@ -1,3 +1,4 @@
+import {verifyAbility} from "./abilities.mjs";
 import {assertSigningCluster} from "./session-wallet.mjs";
 import {prepareClearSign} from "./clear-sign.mjs";
 /** v1/v2 NDJSON bridge. All trade inputs use the authenticated/gated API. */
@@ -705,6 +706,39 @@ export class PadLink extends EventEmitter {
     for (const p of peers)this.send(p,{type:"profile_select",profile,layer});
     return { ok: true };
   }
+  async abilityRequest(p,message) {
+    if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error("Paired encrypted device required");
+    const secure=p.secure,id=randomUUID();
+    return new Promise((resolve,reject)=>{
+      const finish=(error,value)=>{clearTimeout(timer);this.off("ability",done);error?reject(error):resolve(value);};
+      const timer=setTimeout(()=>finish(Error("Ability response timeout; reconnect and check pad status")),15000);
+      const done=e=>{
+        if(e.peer!==p || e.message.id!==id)return;
+        if(p.secure!==secure || !p.verified || this.preferred(p.device)!==p)return finish(Error("Ability connection changed"));
+        e.message.ok?finish(null,e.message):finish(Error(e.message.error||"Ability refused"));
+      };
+      this.on("ability",done);
+      try{this.send(p,{...message,id});}catch(error){finish(error);}
+    });
+  }
+  async abilities(device,command={type:"ability_status"}) {
+    const p=this.sessionPeer(device);
+    if(p.abilityBusy)throw Error("Ability install already running");
+    return this.abilityRequest(p,command);
+  }
+  async installAbility(device,slot,bundle) {
+    if(!Number.isInteger(slot)||slot<0||slot>1)throw Error("Choose ability slot 0 or 1");
+    const wasm=verifyAbility(bundle),p=this.sessionPeer(device),secure=p.secure;
+    if(p.abilityBusy || p.updating || p.sessionRequest || p.clearReview)throw Error("Pad is busy");
+    p.abilityBusy=true;
+    try{
+      const exchange=message=>{if(p.secure!==secure)throw Error("Ability connection changed");return this.abilityRequest(p,message);};
+      const status=await exchange({type:"ability_status"});verifyAbility(bundle,status.developerPublicKey);
+      await exchange({type:"ability_begin",slot,manifest:bundle.manifest});
+      for(let offset=0;offset<wasm.length;offset+=256)await exchange({type:"ability_chunk",offset,data:wasm.subarray(offset,offset+256).toString("hex")});
+      await exchange({type:"ability_end"});return exchange({type:"ability_status"});
+    }finally{p.abilityBusy=false;}
+  }
   async update(device, manifest, image, publicKey) {
     verifyManifest(manifest, image, publicKey);
     const p = [...this.peers]
@@ -983,6 +1017,10 @@ export class PadLink extends EventEmitter {
           }
           this.send(p,{type:"crash_saved",dump:m.dump,size:m.size});
         }
+        return;
+      }
+      if (m.type === "ability_result") {
+        this.emit("ability", { peer: p, message: m });
         return;
       }
       if (m.type === "ota_result") {

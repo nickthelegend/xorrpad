@@ -6,6 +6,17 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V4 Abilities SDK
+
+- Embedded wasm3 with capability-only imports, instruction-dispatch fuel,
+  bounded linear/engine memory, deadline traps and staged host effects.
+- Two persistent developer-signed ability slots, full-key physical developer
+  approval, encrypted installs and the desktop Abilities management screen.
+- C/AssemblyScript templates, Market Pulse and Pomodoro discipline samples,
+  external-signing bundle tools and native/ASan/UBSan sandbox escape regressions.
+- Compiled, not yet flashed; hardware timing and production interpreter review
+  remain explicit in `firmware/V3-NOTES.md`.
+
 ### Added — firmware 3.0.0, V2 on-pad session signing
 
 - On-pad Ed25519 session generation, NVS policy/rolling debit journal, program

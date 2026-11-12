@@ -21,6 +21,8 @@ struct PadPosition {
 };
 
 struct PadState {
+  bool abilityReview=false;
+  String abilityDeveloper,abilityWidget,abilityName;
   bool sessionPolicy=false;
   bool clearSigning=false,blindSigning=false,blindAllowed=false,clearReviewed=false;
   size_t clearPage=0;uint32_t confirmDuration=800;

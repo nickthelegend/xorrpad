@@ -229,7 +229,7 @@ export function createServer(mem) {
     // so requiring the token to reach it would lock a fresh install out of
     // itself. It only ever writes to the app's own config file, and it binds to
     // the LAN, so it refuses any request that did not come from this machine.
-    const uiFiles = new Set(['status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
+    const uiFiles = new Set(['abilities.mjs','status.mjs','signals.mjs','price-chart.mjs','desk.css','app.mjs','shared.mjs','pad.mjs','trade.mjs','predict.mjs','positions.mjs','chats.mjs','agent.mjs','permissions.mjs','backtest.mjs','link.mjs']);
     const uiName = url.pathname.startsWith('/ui/') ? url.pathname.slice(4) : '';
     const open = url.pathname === '/classic' || uiFiles.has(uiName) || url.pathname === "/setup" || url.pathname === "/health"
       || url.pathname === "/" || url.pathname === "/index.html"
@@ -375,6 +375,17 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
+      if (url.pathname === '/pad/abilities') {
+        const device=req.method==='GET'?url.searchParams.get('device'):body.device;
+        if(req.method==='GET')return send(200,await srv.padlink.abilities(device));
+        if(body.action==='developer'){
+          if(typeof body.developerPublicKey!=='string'||! /^[0-9a-f]{64}$/.test(body.developerPublicKey))return send(400,{error:'Enter a 64-character developer public key'});
+          return send(200,await srv.padlink.abilities(device,{type:'ability_developer',developerPublicKey:body.developerPublicKey}));
+        }
+        if(body.action==='remove'&&Number.isInteger(body.slot)&&body.slot>=0&&body.slot<=1)return send(200,await srv.padlink.abilities(device,{type:'ability_remove',slot:body.slot}));
+        if(body.action==='install')return send(200,await srv.padlink.installAbility(device,body.slot,body.bundle));
+        return send(400,{error:'Choose developer, install or remove'});
+      }
       if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
       if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
       if (url.pathname === '/pad/session') return send(200,req.method==='GET'?await srv.padlink.sessionStatus(url.searchParams.get('device')):await srv.padlink.configureSession(body.device,body.policy));
@@ -1272,7 +1283,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],

@@ -666,3 +666,34 @@ pre-existing unfinished firmware edits. Its identical FQBN/flags use source
 both isolated commands use `--jobs 2`. Native verification is
 `firmware/build/v2-snapshot/firmware/test/run.sh`. Exact sizes/counts are in
 [TESTING.md](../TESTING.md). No image is signed, flashed or pushed by these steps.
+
+## v3 V4 Abilities SDK (2026-11-12)
+
+**Compiled, not yet flashed.** See [sdk/abilities](../sdk/abilities/README.md)
+for templates, samples, the four capability imports and developer signing.
+The desk **Abilities** screen enrolls a developer through a physical pad hold,
+then verifies and installs signed modules into two persistent slots.
+[TESTING.md](../TESTING.md) records sizes and sandbox/transport evidence;
+[V3-NOTES.md](V3-NOTES.md#v4--abilities-sdk-2026-11-12) lists remaining limits.
+
+Compile-only reproduction (Arduino CLI 1.5.1; ESP32 core 3.3.10):
+
+```sh
+mkdir -p firmware/build/v4-tmp
+TMPDIR="$PWD/firmware/build/v4-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v4-normal" --output-dir firmware/build/v4-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/v4-tmp" arduino-cli compile --jobs 2 --build-path "$PWD/firmware/build/v4-release" --output-dir firmware/build/v4-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+npm ci --prefix sdk/abilities/assemblyscript
+firmware/test/run.sh
+firmware/test/abilities-sanitize.sh
+npm test --prefix desk
+node desk/test/abilities-ui.mjs
+```
+
+The index-only snapshot in `firmware/build/v4-snapshot` excludes pre-existing
+unfinished edits. It uses the same FQBN and flags, source
+`firmware/build/v4-snapshot/firmware/xorrpad`, build directories
+`v4-isolated-{normal,release}`, matching `-out` output directories and `--jobs 3`.
+Its native command is `firmware/build/v4-snapshot/firmware/test/run.sh` after
+installing/symlinking the pinned AssemblyScript dependency inside that snapshot.
+No firmware signing, private-key read, flashing, fuse operation or push is part
+of these commands. The firmware label remains 2.0.0 pending the full v3 release.

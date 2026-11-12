@@ -418,6 +418,14 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   if(pad.pairCode.length()){
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
+  if(pad.abilityReview){
+    text(c,12,12,2,WARN,"TRUST DEVELOPER?");
+    text(c,12,44,1,INK,"Compare this full key with your developer:");
+    for(int i=0;i<4;++i)text(c,12,68+i*20,2,INK,pad.abilityDeveloper.substring(i*16,(i+1)*16).c_str());
+    text(c,12,164,1,INK,"This replaces your trusted developer and abilities.");
+    text(c,12,190,1,WARN,"HOLD YES 800ms / NO TO CANCEL");
+    c.fillRect(12,212,int(296*pad.holdProgress),4,WARN);return;
+  }
   if(pad.pending&&pad.ok){drawConfirm(c,pad,ch);return;}
   if(pad.listening){text(c,12,20,3,SOL,"LISTENING");for(int i=0;i<32;i++){int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}text(c,12,204,1,INK,"Release MIC or knob to send");return;}
   if (!pad.ok)          drawOffline(c);
@@ -426,6 +434,10 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     wrap(c,12,68,W-24,1,INK,pad.receiptSignature,4);
     wrap(c,12,124,W-24,1,MUTE,pad.receiptExplorer,4);
     banner(c,UP,"CONFIRMED","confirmed / explorer short sig");
+  }
+  else if(pad.abilityWidget.length() && !pad.reply.length()) {
+    textClip(c,12,18,296,1,MUTE,"ABILITY / "+pad.abilityName);
+    wrap(c,12,58,296,2,INK,pad.abilityWidget,6);
   }
   else if (pad.reply.length()) {
     text(c,12,12,2,SOL,"AGENT REPLY");

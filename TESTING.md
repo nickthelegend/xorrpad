@@ -978,3 +978,67 @@ trusted wall clock survives power loss. These boundaries are explicit; this is
 not a completed all-venues/funded full-v3 end-to-end claim. Hardware NVS power
 cuts, encrypted NVS provisioning, TFT readability and physical holds remain
 unverified.
+
+## Firmware v3 — V4 Abilities SDK (2026-11-12)
+
+**Compiled, not yet flashed.** No image was signed/flashed, no production fuse
+changed, no signing secret opened, and nothing pushed. V4 implements item 4;
+full v3 completion and hardware qualification remain separate work.
+
+| Verification | Result |
+|---|---|
+| `firmware/test/run.sh` (full working tree) | 250 cases, 2,379 assertions, all pass |
+| Isolated staged-source native suite | 236 cases, 2,326 assertions, all pass |
+| `npm test --prefix desk` | 192 total: 182 pass, 10 explicit setup/provider skips, zero failures/cancellations |
+| Focused `desk/test/abilities.test.mjs` | 5 pass, including real encrypted developer approval/install and native sandbox refusal |
+| SDK external-signing bundle tools | Public signing-request/finalize round trip and native verification pass |
+| `firmware/test/abilities-sanitize.sh` | Same 5 cases pass under AddressSanitizer + UBSan; halt on first UB; no diagnostic |
+| `node desk/test/abilities-ui.mjs` | Real isolated HTTP auth/method/schema checks and Chromium 1440×1100 / 390×844; no page errors/overflow |
+| `npm test --prefix site` | 14/14 pass |
+| `npm test --prefix keeper` | 7 pass, 2 explicit setup skips, zero failures |
+
+The native total includes 31 new ability cases. The 14-case difference between
+source trees is pre-existing unfinished attestation work, excluded from the V4
+index. Tests run the actual vendored firmware interpreter and Ed25519 verifier.
+Fresh test developer keys remain in process memory; only public manifests,
+code and detached signatures are sent to the native process. Sample market
+formatting uses explicitly constructed unit-test inputs; the encrypted transport
+test uses price unavailable rather than invented market data. No new market
+read, quote, transaction signature or broadcast is claimed for V4.
+
+Adversarial coverage includes unknown signing/trade imports (also delivered
+past the desktop validator over encrypted padsim), undeclared capabilities,
+manifest/bytecode/signature tampering, untrusted developers, linear memory and
+host-pointer bounds, memory growth, recursion, infinite-loop fuel exhaustion,
+independent watchdog deadline logic, host-call floods, trade-like macro IDs,
+malformed/duplicate/forbidden sections, upload offsets/expiry/connection changes,
+heap caps/reclamation and isolation of the two runtimes. Both C/AssemblyScript
+templates and Market Pulse/Pomodoro execute on the embedded engine. Sanitizers
+found a misaligned upstream constant access; the final source uses `memcpy` and
+passes. macOS lacks LeakSanitizer support, so leak detection is disabled;
+explicit engine-allocation accounting is checked instead.
+
+UI captures are ignored artifacts at `firmware/build/v4-ui/{desktop,mobile}.png`.
+The reviewer found stale file-preview and pending-error feedback; both fixes
+were scored resolved after a repeat real-browser smoke. Captures prove the
+unpaired setup layout, not physical pad display or pairing. See
+[sdk/abilities](sdk/abilities/README.md) for install/external-signing instructions.
+
+Arduino CLI 1.5.1, ESP32 core 3.3.10; exact FQBN/commands in
+[firmware/README.md](firmware/README.md#v3-v4-abilities-sdk-2026-11-12):
+
+| Source | Mode | Flash / 3,145,728 bytes | Static RAM / 327,680 bytes |
+|---|---|---:|---:|
+| Full working tree | normal | 1,929,210 | 67,740 |
+| Full working tree | release | 1,927,078 | 67,668 |
+| Isolated V4 + committed V1/V2/v2 | normal | 1,918,422 | 67,484 |
+| Isolated V4 + committed V1/V2/v2 | release | 1,916,226 | 67,404 |
+
+Runtime heap/PSRAM allocations are additional to static RAM. The isolated
+snapshot was exported from the index into `firmware/build/v4-snapshot`; no
+unfinished attestation/key-tool/other changes are part of that snapshot. Native
+and focused abilities tests run there too. Logs are ignored `firmware/build/v4-*`.
+Actual hardware NVS power loss, PSRAM pressure, physical hold/TFT visibility,
+watchdog timing and chime latency remain unverified. The documented pinned
+interpreter needs a production security review; adversarial regressions are
+not a formal proof of resistance to every possible engine vulnerability.

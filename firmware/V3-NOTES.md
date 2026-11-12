@@ -209,3 +209,64 @@ stable test identity to fund because simulator private material is never saved.
 The full v3 funded-padsim broadcast criterion is consequently not claimed here.
 Physical NVS power-cut atomicity, encrypted NVS provisioning, real hold timing,
 TFT policy readability, and funded end-to-end execution still need hardware.
+
+## V4 — Abilities SDK (2026-11-12)
+
+**Compiled, not yet flashed.** V3-SPEC item 4 adds the pinned wasm3 interpreter,
+two persistent ability slots, developer-approved signed installs, the desktop
+Abilities screen, C/AssemblyScript templates and Market Pulse/Pomodoro samples.
+[SDK instructions](../sdk/abilities/README.md) document the complete ABI and
+external signing workflow. No private signing material is shipped or read.
+
+The only host imports are `xorr.widget`, `xorr.macro`, `xorr.price` and
+`xorr.chime`, authorized respectively by the four specified capabilities. No
+signer, link/trade frame, native pointer, file, network or WASI import exists.
+Macros affect the ability's own local view; they cannot synthesize physical
+YES/KILL or create desk key frames. Price is a read of the current desk cache,
+not a fabricated quote or an autonomous trade. Missing/stale data returns zero.
+
+The pad stores one trusted developer public key after a fresh physical 800 ms
+hold over the full displayed key. A timeout, hidden/unhealthy display, pairing,
+kill, busy state or connection change cancels approval. Changing developer
+removes the old abilities. The manifest signs identity, sorted capabilities,
+WASM hash/size, ABI and resource limits through a domain-separated canonical
+payload. The desk and pad independently verify Ed25519 and the exact digest.
+Ordered uploads are connection-bound and expire after 30 s; only verified,
+compiled modules reach the atomic NVS record. Boot re-verifies stored code.
+Factory reset already erases the selected `profiles` NVS partition.
+
+Resource limits cover bytecode size (32 KiB), per-module linear memory (1–4
+64 KiB pages), a 16 KiB VM stack, parser/function/global counts, a shared 768 KiB
+engine heap (including compiled code), per-invocation dispatch fuel, a separate
+20 ms dispatch deadline and at most sixteen bounded host calls. The engine
+allocator uses PSRAM on ESP32. Bytecode/staging/display buffers are separately
+bounded and additional to the engine heap cap. All outputs are staged; traps
+stop the module and discard those effects. One module's globals and outputs
+are isolated from the other slot. Untrusted widget text has a labelled screen
+and cannot cover a trusted signal, kill, pairing, factory or OTA screen.
+
+Native attacks exercise forbidden signing/trade imports, undeclared imports,
+forged signatures, changed code/limits, out-of-bounds native-host pointers and
+WASM memory, recursion, infinite loops, memory growth, macro abuse, host-call
+floods, malformed section envelopes, upload ordering/expiry and stale sessions.
+The encrypted padsim deliberately bypasses the desk import check and proves
+that the actual firmware interpreter refuses developer-signed signing access.
+Both samples and both language templates run on that same engine. Test signing
+identities are generated only in process memory; only public signed inputs
+cross to the native driver. No test transaction is broadcast for V4.
+
+ASan/UBSan exposed an upstream misaligned 64-bit constant-table access; the
+vendored compiler now uses `memcpy`. Initializer execution also receives a
+metered runtime context and propagates traps. All dispatch paths, including
+loop back-edges, are metered; growth above the manifest's backing allocation
+is refused. The [vendor provenance](xorrpad/src/wasm3/README.xorrpad.md) lists
+all local hardening. This is regression evidence, not formal proof that an
+interpreter has no vulnerabilities. Production engine security review, physical
+NVS power-loss/reboot tests, TFT/hold readability, PSRAM pressure and actual
+watchdog/audio latency remain hardware work. Developer revocation lists and
+ability downgrade prevention are outside ABI 1. Offline ability execution and
+autonomous polling are outside this step; no offline input becomes a trade.
+
+Full working-tree and isolated staged-source build/test evidence is recorded
+in [TESTING.md](../TESTING.md). Existing unfinished attestation and other edits
+are deliberately excluded from the V4 commit.
