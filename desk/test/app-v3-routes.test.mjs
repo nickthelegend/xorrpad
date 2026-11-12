@@ -744,6 +744,7 @@ test("D3 Abilities trusts on pad, installs both signed SDK examples and removes 
         const bounds = await control.boundingBox();
         if (bounds) assert.ok(bounds.height >= 44, `${state}: tap target below 44px`);
       }
+      await assertReadableLayout(page, area, `Abilities ${state} ${width}`);
       await page.screenshot({ path: path.join(fileURLToPath(output), `abilities-${state}-${width}.png`), fullPage: true, animations: "disabled" });
     }
   }
