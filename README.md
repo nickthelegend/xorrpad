@@ -281,3 +281,10 @@ MIT · Copyright (c) 2026 Nivesh Gajengi. No tag is created by T8; Claude tags
 Art generated with ChatGPT; pad renders from the real CAD.
 The [studio render pipeline](tools/render3d/README.md) and
 [asset prompts/provenance](tools/render3d/ART-PROMPTS.md) document the source.
+
+The finishing-pass [desktop contact sheet](docs/screens/v2/sheet-3d.jpg) records
+all six screens at 1440 and 375 plus the command palette. The shared offline
+studio rig, bounds-based framing and [timestamped SOL snapshot](desk/app/public/media/pad/SCREEN-SNAPSHOT.json)
+keep the CAD renders and desktop consistent. `offline.png` is the explicit offline
+asset; the hero and turntable show the firmware's real home screen. Teaser media
+was copied in a separate local `xorrpad-teaser` commit; nothing was pushed.

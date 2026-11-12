@@ -1,3 +1,36 @@
+# MODEL-3D-FIX verification
+
+Completed 2026-11-12: **152 tests, 143 passed, 9 skipped, 0 failed**, exit 0,
+416,333.878916 ms. Command: `node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs`.
+[Every result, skip reason and copy hash](docs/v2/MODEL-3D-FIX-RESULTS.json).
+
+Five focused artifact checks pass and are included in the full total. They verify
+both sub-2 MB GLBs with zero validator errors/warnings, 1080p six-second videos,
+alpha stills, all 16 art size contracts, native/WASM RGB565 parity for both home
+and offline, bounds-derived 8% framing, clearcoat/AO and genuine quote provenance.
+The SOL price and historical trace are real timestamped public reads; no mocked
+prices, balances, positions or fills are used. Studio profile/link configuration
+is explicitly labelled STUDIO SNAPSHOT, not asserted hardware connectivity.
+
+Playwright: **9 groups, 13 captures, no runtime errors or horizontal overflow**.
+[Current desktop contact sheet](docs/screens/v2/sheet-3d.jpg). Native Apple M4
+Metal: **60.04 fps** at browser DPR 2, 1440×900, with the final shared studio rig.
+[GPU measurement](docs/screens/v2/model-metal-performance.json). The separate
+SwiftShader measurement is not represented as native GPU performance.
+
+The nine full-suite skips name actual dependencies: localhost Ollama unavailable;
+ANTHROPIC_API_KEY and DEEPGRAM_API_KEY absent; Meteora RPC HTTP 429; an unfunded
+pad test wallet; two PHOENIX_AUTHORITY setup cases; PMAMM_TEST_OWNER unfunded with
+the public devnet faucet closed; and Hermes requiring PYTH_API_KEY. No test was
+removed or weakened. No mainnet transaction was sent.
+
+Production build, formatting and diff checks pass; the design detector reports
+zero findings. ESP32-S3 compile passed with the recorded exact FQBN/command:
+`arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad`.
+Sketch **1,476,559 bytes**, globals **59,060 bytes**. **Compiled, not yet flashed**.
+The home header/profile strip change is in the actual firmware ui.h and bundled
+WASM, rather than a studio-only imitation. Earlier reports below are historical.
+
 # MODEL-3D verification
 
 Completed 2026-11-12: full desk + keeper + site **151 tests, 142 passed, 9 skipped,

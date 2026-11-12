@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-12T03:51:09.149Z",
+  "capturedAt": "2026-11-12T04:26:27.279Z",
   "data": "Actual isolated server, SQLite, authenticated events and real venue APIs. NDJSON host simulator verified and disconnected before screenshots. Real devnet proposal may be created then refused. No API interception, fake data, signing or transaction submission.",
   "checks": [
     "Key preview stays local until the actual keymap save; 14 keys and offline brand fonts",

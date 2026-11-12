@@ -35,13 +35,11 @@ try {
   await page.locator('[data-model-ready="webgl"]').waitFor({ timeout: 60000 });
   await page.waitForTimeout(3000);
   const sample = () =>
-      page
-        .locator(".real-pad")
-        .evaluate((n) => ({
-          frames: Number(n.dataset.frames),
-          at: performance.now(),
-          sway: Number(n.dataset.sway),
-        })),
+      page.locator(".real-pad").evaluate((n) => ({
+        frames: Number(n.dataset.frames),
+        at: performance.now(),
+        sway: Number(n.dataset.sway),
+      })),
     a = await sample();
   await page.waitForTimeout(5000);
   const b = await sample();

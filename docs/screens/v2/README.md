@@ -1,3 +1,25 @@
+# MODEL-3D-FIX finishing-pass evidence
+
+[Current desktop sheet](sheet-3d.jpg) · [Native Metal measurement](model-metal-performance.json).
+All six screens were recaptured at 1440×900 and 375×812, with palette-1440.png.
+Nine actual browser groups pass, including raycast and keyboard assignment,
+real NDJSON knob rotation, reduced-motion changes and a devnet proposal refused
+through the existing gate. Runtime errors 0; layout issues 0. Layouts, keycap
+colours and CAD geometry remain in place.
+
+The desktop and render tool share an offline PMREM RoomEnvironment, ACES Filmic,
+sRGB, key/fill/cobalt/lavender lights, clearcoat and geometry-baked AO. Native
+Apple M4 Metal measured 60.04 fps at browser DPR 2. Every studio still has at
+least 8% projected bounds padding. Home and offline RGB565 frames both match
+the native firmware byte for byte. Studio home uses the recorded real public
+quote, explicitly marked STUDIO SNAPSHOT; the live desktop still shows actual
+connection state. The original prototype is compiled, not yet flashed.
+
+[Render provenance](../../../desk/app/public/media/pad/RENDERS.json) ·
+[Read-only quote capture](../../../desk/app/public/media/pad/SCREEN-SNAPSHOT.json).
+The teaser assets are identical copies committed only on xorrpad-teaser.
+Earlier capture reports below are retained as historical records.
+
 # MODEL-3D evidence
 
 [Current CAD contact sheet](sheet-3d.jpg) · [All 16 art assets](art-contact.jpg).
