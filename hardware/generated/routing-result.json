@@ -1,0 +1,48 @@
+[
+  {
+    "sku": "pro",
+    "read_date": "2026-11-12",
+    "router": "Freerouting CLI v2.5.0 macos-arm64",
+    "pid": 5656,
+    "command": [
+      "/Volumes/Extreme SSD/.xorrpad-toolcache/business/router/freerouting-cli",
+      "-de",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.dsn",
+      "-do",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.ses",
+      "--router.autorouter.max_passes=2",
+      "-mt",
+      "1",
+      "-da",
+      "--gui.enabled=false",
+      "--api_server.enabled=false"
+    ],
+    "dsn_sha256": "c1c0827e37b8bdf41a901e9d53d45d0d46ab3f05ccc23a2b9a5560ded1300a9f",
+    "exit_code": 143,
+    "stop_reason": "native SerializationConstructorAccessor UnsupportedFeatureError",
+    "session_created": false
+  },
+  {
+    "sku": "core",
+    "read_date": "2026-11-12",
+    "router": "Freerouting CLI v2.5.0 macos-arm64",
+    "pid": 5657,
+    "command": [
+      "/Volumes/Extreme SSD/.xorrpad-toolcache/business/router/freerouting-cli",
+      "-de",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.dsn",
+      "-do",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.ses",
+      "--router.autorouter.max_passes=2",
+      "-mt",
+      "1",
+      "-da",
+      "--gui.enabled=false",
+      "--api_server.enabled=false"
+    ],
+    "dsn_sha256": "cb31568af0f179b044192e0a04b6eda4d50c88eb0bf4e1fcc1c98124d962419e",
+    "exit_code": 143,
+    "stop_reason": "native SerializationConstructorAccessor UnsupportedFeatureError",
+    "session_created": false
+  }
+]
