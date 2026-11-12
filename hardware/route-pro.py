@@ -63,21 +63,30 @@ def prepare():
     # Planes are exported to Specctra as power planes, not extra signal layers.
     zone(b,k.In1_Cu,'GND','L2 continuous GND')
     zone(b,k.In2_Cu,'3V3','L3 3V3')
-    # Rotate the flow-through ESD array to preserve D+/D- order on the trunk.
+    # Flow-through ESD: connector on right, MCU pair leaves the left pads.
     esd=next(f for f in b.GetFootprints() if f.GetReference()=='U2')
-    esd.SetOrientationDegrees(180)
+    esd.SetOrientationDegrees(0)
     limiter=next(f for f in b.GetFootprints() if f.GetReference()=='U8')
     limiter.SetPosition(v(180.5,148.5))
-    track(b,'USB_DP',[(170.65,139.5375),(172.35,139.5375)],locked=True)
-    track(b,'USB_DN',[(170.65,138.4625),(172.35,138.4625)],locked=True)
-    track(b,'USB_DP',[(172.35,139.5375),(173.2,139.5375),(174,140.3375),
-                     (174,143.5),(175,144.5),
-                     (175,157.7),(173.315,159.385),(166.8,159.385),
-                     (166.185,160),(164.85,160)],locked=True)
-    track(b,'USB_DN',[(172.35,138.4625),(173.25,138.4625),(174.35,139.5625),
-                     (174.35,143.355),(175.35,144.355),
-                     (175.35,157.845),(173.465,159.73),(166.95,159.73),
-                     (165.41,161.27),(164.85,161.27)],locked=True)
+    diode=next(f for f in b.GetFootprints() if f.GetReference()=='D14')
+    diode.SetPosition(v(179,173.5));diode.SetOrientationDegrees(90)
+    track(b,'USB_DP',[(170.65,138.4625),(172.35,138.4625)],locked=True)
+    track(b,'USB_DN',[(170.65,139.5375),(172.35,139.5375)],locked=True)
+    track(b,'USB_DP',[(170.65,138.4625),(167,138.4625),(164,141.4625),
+                     (164,156.4),(167,159.4),(166.4,160),(164.85,160)],locked=True)
+    track(b,'USB_DN',[(170.65,139.5375),(167.05,139.5375),(164.35,142.2375),
+                     (164.35,156.255),(167.35,159.255),(167.35,160.07),(166.15,161.27),(164.85,161.27)],locked=True)
+    # Complete the USB-C duplicate contacts here, so the autorouter cannot
+    # create a shortcut from the connector into the impedance-controlled trunk.
+    track(b,'USB_DN',[(175.955,138.75),(174,138.75),(174,139.75),(175.955,139.75)],locked=True)
+    track(b,'USB_DN',[(174,139.75),(172.5625,139.75),(172.35,139.5375)],locked=True)
+    track(b,'USB_DP',[(175.955,138.25),(177.25,138.25),(177.8,137.7)],locked=True)
+    track(b,'USB_DP',[(175.955,139.25),(177.8,139.25)],locked=True)
+    track(b,'USB_DP',[(177.8,139.25),(177.8,137.7),(173.6,137.7)],layer=k.B_Cu,locked=True)
+    track(b,'USB_DP',[(173.6,137.7),(173.6,138.825),(173.2375,138.4625),(172.35,138.4625)],locked=True)
+    for pos in [(177.8,139.25),(177.8,137.7),(173.6,137.7)]:
+        t=k.PCB_VIA(b);t.SetPosition(v(*pos));t.SetWidth(k.FromMM(.6));t.SetDrill(k.FromMM(.3))
+        t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(b.FindNet('USB_DP'));t.SetLocked(True);b.Add(t)
     k.SaveBoard(str(OUT/'pro-route-input.kicad_pcb'),b)
     path=OUT/'pro-route-input.kicad_pcb'
     text=path.read_text()
@@ -154,7 +163,7 @@ def stitch():
                                     k.ToMM(r.GetRight()),k.ToMM(r.GetBottom())).buffer(.56))
     for t in b.GetTracks():
         if isinstance(t,k.PCB_VIA):
-            blockers.append(Point(xy(t.GetPosition())).buffer(k.ToMM(t.GetWidth())/2+.56))
+            blockers.append(Point(xy(t.GetPosition())).buffer(k.ToMM(t.GetWidth(k.F_Cu))/2+.56))
         elif t.GetNetCode()!=ground:
             blockers.append(LineString([xy(t.GetStart()),xy(t.GetEnd())]).buffer(k.ToMM(t.GetWidth())/2+.46))
     blocked=unary_union(blockers)
