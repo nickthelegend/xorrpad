@@ -1,3 +1,58 @@
+# Desktop v2 · FIX-1 verification
+
+Run on **2026-11-12 (Asia/Kolkata)**, Node 26.5.0. The approved brand direction
+is unchanged. FIX-1 corrects action notification lifetime, complete headlines,
+Agent art, keyboard commands, Connect media containment and mobile navigation.
+
+| Run | Checks | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| **Full desk + keeper + site** | **147** | **137** | **0** | **10** |
+| Desktop HTTP integration (subset) | 6 | 6 | 0 | 0 |
+| Playwright browser groups | 8 | 8 | 0 | 0 |
+
+Full command: `node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs keeper/test/*.test.mjs site/test/*.test.mjs`.
+Exit 0, **530,203.3585 ms**, cancelled 0, TODO 0.
+[Every result and skip reason](docs/v2/FIX-1-RESULTS.json). The focused HTTP tests
+are included in that total; browser groups are reported separately. Two earlier
+attempts were stopped after another worktree occupied port 8717. The final run
+waited for that runner to exit and completed without a port collision.
+
+The ten skips are actual dependencies: localhost Ollama unavailable;
+`ANTHROPIC_API_KEY` and `DEEPGRAM_API_KEY` absent; Meteora RPC HTTP 429;
+GeckoTerminal aggregation HTTP 429 with Pyth fallback HTTP 404; an unfunded
+pad devnet test wallet; two `PHOENIX_AUTHORITY` setup cases;
+`PMAMM_TEST_OWNER` unfunded with the devnet faucet closed; and Hermes requiring
+`PYTH_API_KEY`. The current keeper/session isolation assertion passes.
+No test was removed or weakened. These are the current full-suite counts;
+the T10 and earlier reports below remain historical evidence.
+
+Commands: `npm run build:app --prefix desk`;
+`node --test desk/test/desktop-v2.http.test.mjs`;
+`node desk/test/desktop-v2.mjs`. All exit 0. The browser harness verifies actual
+keymap saves, profile selection, NDJSON hello/knob/disconnect, ability install /
+uninstall, four-second and manually dismissed notifications, full reduced-motion
+headlines, keyboard palette search across six screens and four actions, legacy
+routes, a real devnet quote-backed proposal followed by Refuse, and every screen
+at both sizes. **13 captures, zero runtime errors, zero layout issues**.
+[Capture guide and manifest](docs/screens/v2/README.md) ·
+[Contact sheet](docs/screens/v2/sheet.jpg).
+
+Every capture starts from a freshly loaded app session. No action toast is
+stored or resurrected, no reveal is captured midway, and the complete pad fits
+above the mobile bottom bar. Markets retains real GeckoTerminal candles and
+live venue catalog counts; an unavailable spot reference is labelled unavailable.
+No responses, prices, credentials, signatures or fills are invented.
+
+The production app builds. Changed app and harness files pass Prettier and
+`git diff --check`; the Impeccable detector reports zero findings. Firmware
+compiles with the exact command recorded in [firmware/README.md](firmware/README.md):
+`arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad`.
+Sketch **1,476,455 bytes**, globals **59,060 bytes**. **Compiled, not yet flashed**.
+No signed firmware package is available; Connect says Setup required. Voice
+requires the user's Deepgram key and verified pad. A loss cooldown requires
+confirmed realized-PnL metadata; unknown PnL is never turned into a loss.
+No transaction was signed or submitted by the browser harness.
+
 # T10 history-source verification
 
 Run on **2026-11-12 (Asia/Kolkata)** / November 11 UTC, Node 26.5.0.

@@ -26,10 +26,7 @@ export function Abilities() {
         <div>
           <Badge>Made for your pad</Badge>
           <h1>
-            <BlurWords
-              text={"Small additions. Entirely yours."}
-              immediate
-            />
+            <BlurWords text={"Small additions. Entirely yours."} immediate />
           </h1>
           <p>
             Give your pad a new instinct. Every ability stays inside your rules.

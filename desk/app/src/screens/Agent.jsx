@@ -135,8 +135,21 @@ export function Agent() {
                 <div className="section-title">
                   <h2>Make the connection.</h2>
                   <div className="model-signal" aria-hidden="true">
-                    <div className="model-wave">{[8,14,22,12,28,18,10,24,16].map((height, i) => <i key={i} style={{height, animationDelay: `${i * 85}ms`}} />)}</div>
-                    <span className="model-chip">{config.provider === "openai" ? "OpenRouter" : config.provider === "anthropic" ? "Anthropic" : "Ollama"}</span>
+                    <div className="model-wave">
+                      {[8, 14, 22, 12, 28, 18, 10, 24, 16].map((height, i) => (
+                        <i
+                          key={i}
+                          style={{ height, animationDelay: `${i * 85}ms` }}
+                        />
+                      ))}
+                    </div>
+                    <span className="model-chip">
+                      {config.provider === "openai"
+                        ? "OpenRouter"
+                        : config.provider === "anthropic"
+                          ? "Anthropic"
+                          : "Ollama"}
+                    </span>
                   </div>
                 </div>
                 <form

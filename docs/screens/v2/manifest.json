@@ -1,0 +1,96 @@
+{
+  "capturedAt": "2026-11-12T02:44:12.404Z",
+  "data": "Actual isolated server, SQLite, authenticated events and real venue APIs. NDJSON host simulator verified and disconnected before screenshots. Real devnet proposal may be created then refused. No API interception, fake data, signing or transaction submission.",
+  "checks": [
+    "Key preview stays local until the actual keymap save; 14 keys and offline brand fonts",
+    "Real NDJSON hello/knob/disconnect updates the device island and physical marker; no hardware flash claimed",
+    "Action notifications can be closed and automatically dismiss within four seconds",
+    "All eight abilities are present; Market Pulse actually installs, binds and uninstalls through the real API",
+    "Command palette searches all six screens and four actions, moves with arrows, contains Tab and opens Activity with Enter",
+    "Skip link keeps the active screen and focuses content",
+    "v1 and Classic remain reachable; all six screens have no 375px overflow",
+    "Real quote-backed devnet proposal arrives on Activity and is refused through the global gate; no signing"
+  ],
+  "runtimeErrors": [],
+  "layoutIssues": [],
+  "screenshots": [
+    {
+      "name": "device",
+      "width": 1440,
+      "height": 900,
+      "file": "device-1440.png"
+    },
+    {
+      "name": "abilities",
+      "width": 1440,
+      "height": 900,
+      "file": "abilities-1440.png"
+    },
+    {
+      "name": "connect",
+      "width": 1440,
+      "height": 900,
+      "file": "connect-1440.png"
+    },
+    {
+      "name": "agent",
+      "width": 1440,
+      "height": 900,
+      "file": "agent-1440.png"
+    },
+    {
+      "name": "markets",
+      "width": 1440,
+      "height": 900,
+      "file": "markets-1440.png"
+    },
+    {
+      "name": "activity",
+      "width": 1440,
+      "height": 900,
+      "file": "activity-1440.png"
+    },
+    {
+      "name": "device",
+      "width": 375,
+      "height": 812,
+      "file": "device-375.png"
+    },
+    {
+      "name": "abilities",
+      "width": 375,
+      "height": 812,
+      "file": "abilities-375.png"
+    },
+    {
+      "name": "connect",
+      "width": 375,
+      "height": 812,
+      "file": "connect-375.png"
+    },
+    {
+      "name": "agent",
+      "width": 375,
+      "height": 812,
+      "file": "agent-375.png"
+    },
+    {
+      "name": "markets",
+      "width": 375,
+      "height": 812,
+      "file": "markets-375.png"
+    },
+    {
+      "name": "activity",
+      "width": 375,
+      "height": 812,
+      "file": "activity-375.png"
+    },
+    {
+      "name": "palette",
+      "width": 1440,
+      "height": 900,
+      "file": "palette-1440.png"
+    }
+  ]
+}

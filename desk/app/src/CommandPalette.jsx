@@ -84,7 +84,10 @@ export function CommandPalette() {
     return () => previous?.focus?.();
   }, [open]);
   useEffect(() => {
-    if (open) document.getElementById("command-" + active)?.scrollIntoView({block: "nearest"});
+    if (open)
+      document
+        .getElementById("command-" + active)
+        ?.scrollIntoView({ block: "nearest" });
   }, [open, active, query]);
   function choose(a) {
     setOpen(false);

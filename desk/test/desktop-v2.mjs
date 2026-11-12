@@ -192,6 +192,7 @@ try {
           !document
             .querySelector(".venue-strip")
             ?.textContent.includes("Reading venues"),
+        null,
         { timeout: 130000 },
       );
       assert.match(

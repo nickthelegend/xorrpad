@@ -144,7 +144,10 @@ export function Provider({ children }) {
     [message, setMessage] = useState(null),
     [event, setEvent] = useState(null),
     [online, setOnline] = useState(false);
-  const notify = useCallback((text) => setMessage({ text, id: crypto.randomUUID() }), []);
+  const notify = useCallback(
+    (text) => setMessage({ text, id: crypto.randomUUID() }),
+    [],
+  );
   const api = useCallback(
     async (path, body, opts = {}) => {
       if (!token)
@@ -226,7 +229,13 @@ export function Provider({ children }) {
       {message && (
         <div className="notice" role="status">
           <span>{message.text}</span>
-          <button type="button" aria-label="Dismiss notification" onClick={() => setMessage(null)}>Close</button>
+          <button
+            type="button"
+            aria-label="Dismiss notification"
+            onClick={() => setMessage(null)}
+          >
+            Close
+          </button>
         </div>
       )}
     </Desk.Provider>
