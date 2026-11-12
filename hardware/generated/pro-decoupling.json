@@ -33,7 +33,7 @@
     "capacitor": "C9",
     "IC": "U6",
     "power_pin": "7",
-    "pad_distance_mm": 3.147
+    "pad_distance_mm": 4.111
   },
   {
     "capacitor": "C10",

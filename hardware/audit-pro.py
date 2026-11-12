@@ -57,6 +57,12 @@ def usb(net,connector_pin,mcu_pin):
 
 usb_data={pin:usb(net,pin,mp) for net,pin,mp in [('USB_DP','A6','14'),('USB_DP','B6','14'),('USB_DN','A7','13'),('USB_DN','B7','13')]}
 counts=collections.Counter(t.GetLayerName() for t in b.GetTracks() if not isinstance(t,k.PCB_VIA))
+decoupling=json.loads((OUT/'pro-decoupling.json').read_text())
+for row in decoupling:
+    cp=next(p for p in fp[row['capacitor']].Pads() if p.GetNumber()=='1')
+    ip=next(p for p in fp[row['IC']].Pads() if p.GetNumber()==row['power_pin'])
+    row['pad_distance_mm']=round(math.dist(xy(cp.GetPosition()),xy(ip.GetPosition())),3)
+(OUT/'pro-decoupling.json').write_text(json.dumps(decoupling,indent=2)+'\n')
 with (OUT/'pro-cpl.csv').open('w',newline='') as stream:
     w=csv.writer(stream,lineterminator='\n');w.writerow(['Designator','Mid X','Mid Y','Layer','Rotation'])
     for ref,f in sorted(fp.items()):
@@ -68,6 +74,8 @@ result=dict(scope='Pro P1 only; local draft; human PCB review required before an
     drc_sha256=hashlib.sha256((OUT/'pro-p1-drc.json').read_bytes()).hexdigest(),
     copper_layers=b.GetCopperLayerCount(),signal_tracks_by_layer=dict(counts),
     key_centre_discrepancies=key_errors,usb=usb_data,
+    ground_stitching_vias_added=json.loads((OUT/'pro-stitching.json').read_text())['added_count'],
+    warnings=warnings,
     drc_exclusions=json.loads((OUT/'pro.kicad_pro').read_text())['board']['design_settings']['drc_exclusions'])
 (OUT/'pro-p1-summary.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))

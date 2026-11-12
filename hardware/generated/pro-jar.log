@@ -1,39 +1,105 @@
-java.util.concurrent.CompletionException: java.net.ConnectException
-	at java.base/java.util.concurrent.CompletableFuture.encodeRelay(CompletableFuture.java:368)
-	at java.base/java.util.concurrent.CompletableFuture.uniComposeStage(CompletableFuture.java:1189)
-	at java.base/java.util.concurrent.CompletableFuture.thenCompose(CompletableFuture.java:2309)
-	at java.net.http/jdk.internal.net.http.MultiExchange.responseAsyncImpl(MultiExchange.java:475)
-	at java.net.http/jdk.internal.net.http.MultiExchange.lambda$responseAsyncImpl$7(MultiExchange.java:471)
-	at java.base/java.util.concurrent.CompletableFuture.uniHandle(CompletableFuture.java:934)
-	at java.base/java.util.concurrent.CompletableFuture.uniHandleStage(CompletableFuture.java:950)
-	at java.base/java.util.concurrent.CompletableFuture.handle(CompletableFuture.java:2340)
-	at java.net.http/jdk.internal.net.http.MultiExchange.responseAsyncImpl(MultiExchange.java:461)
-	at java.net.http/jdk.internal.net.http.MultiExchange.lambda$responseAsync0$2(MultiExchange.java:350)
-	at java.base/java.util.concurrent.CompletableFuture$UniCompose.tryFire(CompletableFuture.java:1150)
-	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
-	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1773)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
-	at java.base/java.lang.Thread.run(Thread.java:840)
-Caused by: java.net.ConnectException
-	at java.net.http/jdk.internal.net.http.common.Utils.toConnectException(Utils.java:1107)
-	at java.net.http/jdk.internal.net.http.PlainHttpConnection.connectAsync(PlainHttpConnection.java:203)
-	at java.net.http/jdk.internal.net.http.AsyncSSLConnection.connectAsync(AsyncSSLConnection.java:56)
-	at java.net.http/jdk.internal.net.http.Http2Connection.createAsync(Http2Connection.java:450)
-	at java.net.http/jdk.internal.net.http.Http2ClientImpl.getConnectionFor(Http2ClientImpl.java:133)
-	at java.net.http/jdk.internal.net.http.ExchangeImpl.get(ExchangeImpl.java:98)
-	at java.net.http/jdk.internal.net.http.Exchange.establishExchange(Exchange.java:374)
-	at java.net.http/jdk.internal.net.http.Exchange.responseAsyncImpl0(Exchange.java:567)
-	at java.net.http/jdk.internal.net.http.Exchange.responseAsyncImpl(Exchange.java:411)
-	at java.net.http/jdk.internal.net.http.Exchange.responseAsync(Exchange.java:403)
-	at java.net.http/jdk.internal.net.http.MultiExchange.responseAsyncImpl(MultiExchange.java:430)
-	... 12 more
-Caused by: java.nio.channels.UnresolvedAddressException
-	at java.base/sun.nio.ch.Net.checkAddress(Net.java:159)
-	at java.base/sun.nio.ch.Net.checkAddress(Net.java:167)
-	at java.base/sun.nio.ch.SocketChannelImpl.checkRemote(SocketChannelImpl.java:816)
-	at java.base/sun.nio.ch.SocketChannelImpl.connect(SocketChannelImpl.java:839)
-	at java.net.http/jdk.internal.net.http.PlainHttpConnection.lambda$connectAsync$0(PlainHttpConnection.java:187)
-	at java.base/java.security.AccessController.doPrivileged(AccessController.java:569)
-	at java.net.http/jdk.internal.net.http.PlainHttpConnection.connectAsync(PlainHttpConnection.java:189)
-	... 21 more
+2026-11-12 13:30:30.350 INFO   Freerouting v2.5.0 (build-date: 2026-10-05)
+2026-11-12 13:30:30.613 INFO   Hardware: 10 CPU cores, 501 CPU score, 2048 MB RAM
+2026-11-12 13:30:30.614 WARN   Deprecated settings path '-mp / --router.max_passes'; use '--router.autorouter.max_passes' instead. The old path will be removed in a future release.
+2026-11-12 13:30:30.615 WARN   GUI is disabled and you don't have a console available, so the only feedback from Freerouting is in the log.
+2026-11-12 13:30:31.740 WARN   Deprecated settings path 'router.max_passes'; use 'router.autorouter.max_passes' instead. The old path will be removed in a future release.
+2026-11-12 13:30:32.014 INFO   [FA263F\DD9DBB] Loading board file 'pro.dsn'...
+2026-11-12 13:30:32.118 INFO   [FA263F\DD9DBB] Job 'FA263F\DD9DBB' started at 2026-11-12T08:00:32.118182Z.
+2026-11-12 13:30:32.260 WARN   Design Warning: Board has 57 pre-existing clearance violation(s) in the loaded design (before routing):
+  - 57 unfixable violation(s) (cannot be resolved by Freerouting):
+      * 57 fixed trace/via clearance violations (first 5 shown):
+          - FixedVia#1238 [net 3V3] <-> ObstacleArea#1059
+          - FixedVia#1238 [net 3V3] <-> ObstacleArea#1058
+          - FixedVia#1238 [net 3V3] <-> ObstacleArea#1057
+          - FixedVia#1238 [net 3V3] <-> ObstacleArea#1056
+          - FixedVia#1221 [net 3V3] <-> ObstacleArea#1059
+          ... and 52 more
+  - 0 potentially fixable violations
+Notice: Freerouting does not modify component placement, board outlines, or fixed items.
+Resolving these 57 unfixable violation(s) is the responsibility of the board author in their EDA tool (e.g. KiCad).
+2026-11-12 13:30:32.286 INFO   [FA263F\DD9DBB] Pipeline thread limits: autorouter pass is single-threaded, optimizer.max_threads=9.
+2026-11-12 13:30:32.442 INFO   [FA263F\DD9DBB] Fanout stage started on board '9e9c627cc4b70b27f77870ce45ea64cf' with 261 of 286 SMD pins needing fanout (2 already connected, 23 netless).
+2026-11-12 13:30:33.976 INFO   [FA263F\DD9DBB] Fanout pass #1 on board '940ef919bdc68c474903d510a5efa2e8' completed in 1.46 seconds with 104 SMD pins fanouted, 99 not routed, 0 insert errors, +33 extra vias (0 SMD pins still to check in pass, ripup costs=100).
+2026-11-12 13:30:35.188 INFO   [FA263F\DD9DBB] Fanout pass #2 on board 'd9747c3918916a2e2dff0a24153f8f5b' completed in 1.20 seconds with 38 SMD pins fanouted, 81 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=200).
+2026-11-12 13:30:36.037 INFO   [FA263F\DD9DBB] Fanout pass #3 on board '0a31e9731959aadfcd337ddace89538f' completed in 0.84 seconds with 36 SMD pins fanouted, 32 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=300).
+2026-11-12 13:30:36.869 INFO   [FA263F\DD9DBB] Fanout pass #4 on board '3c821034fd2894dcfe4a0cef3cee735b' completed in 0.82 seconds with 36 SMD pins fanouted, 32 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=400).
+2026-11-12 13:30:37.764 INFO   [FA263F\DD9DBB] Fanout pass #5 on board 'bb214c61c0a8f170363646ee724421e5' completed in 0.89 seconds with 36 SMD pins fanouted, 32 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=500).
+2026-11-12 13:30:38.593 INFO   [FA263F\DD9DBB] Fanout pass #6 on board '34891ca598ab61b722a4bd68748e1a28' completed in 0.82 seconds with 36 SMD pins fanouted, 32 not routed, 0 insert errors, +0 extra vias (0 SMD pins still to check in pass, ripup costs=600).
+2026-11-12 13:30:38.594 INFO   Fanout stopped after 6 passes: no progress for 3 consecutive passes.
+2026-11-12 13:30:38.663 INFO   [FA263F\DD9DBB] Fanout stage completed: started with 263 total SMD pins, completed in 6.16 seconds, escaped pins: 159/263 (60.5%), using 6.19 total CPU seconds, 6.59 GB total allocated, and 115.5 MB peak heap usage.
+2026-11-12 13:30:38.933 INFO   [FA263F\DD9DBB] Auto-routing stage started on board '34891ca598ab61b722a4bd68748e1a28' with baseline score 439.99 for 95 unrouted items.
+2026-11-12 13:30:50.696 INFO   [FA263F\DD9DBB] Auto-routing pass #1 on board '34891ca598ab61b722a4bd68748e1a28' was completed in 11.66 seconds with score 726.54 (46 unrouted and 57 violations), using 17.47 CPU seconds and the job allocated 22.70 GB of memory so far.
+2026-11-12 13:30:56.371 INFO   [FA263F\DD9DBB] Auto-routing pass #2 on board '844d36fd0fb692dfc9f97f88d690af09' was completed in 5.56 seconds with score 603.62 (67 unrouted and 58 violations), using 23.38 CPU seconds and the job allocated 31.71 GB of memory so far.
+2026-11-12 13:31:03.047 INFO   [FA263F\DD9DBB] Auto-routing pass #3 on board '5344fc6b0f494143441a873a009bf98b' was completed in 6.57 seconds with score 656.37 (58 unrouted and 57 violations), using 29.29 CPU seconds and the job allocated 40.99 GB of memory so far.
+2026-11-12 13:31:09.322 INFO   [FA263F\DD9DBB] Auto-routing pass #4 on board 'f126ea320c82389dc69594b353725824' was completed in 6.15 seconds with score 697.30 (51 unrouted and 57 violations), using 36.16 CPU seconds and the job allocated 51.90 GB of memory so far.
+2026-11-12 13:31:14.504 INFO   [FA263F\DD9DBB] Auto-routing pass #5 on board '0b4591faadfbd566e1c675b1c6b50a5f' was completed in 5.07 seconds with score 726.54 (46 unrouted and 57 violations), using 41.05 CPU seconds and the job allocated 59.82 GB of memory so far.
+2026-11-12 13:31:18.822 INFO   [FA263F\DD9DBB] Auto-routing pass #6 on board '43b976a2c9a8e64b49c2388f4c4739d0' was completed in 4.20 seconds with score 732.39 (45 unrouted and 57 violations), using 44.97 CPU seconds and the job allocated 65.94 GB of memory so far.
+2026-11-12 13:31:23.505 INFO   [FA263F\DD9DBB] Auto-routing pass #7 on board '3d4bf4e451a0322edce3a74695d7fcfc' was completed in 4.57 seconds with score 738.24 (44 unrouted and 57 violations), using 49.87 CPU seconds and the job allocated 73.51 GB of memory so far.
+2026-11-12 13:31:27.687 INFO   [FA263F\DD9DBB] Auto-routing pass #8 on board '101d2da6fd8a6ed88727c6f721914fc1' was completed in 4.07 seconds with score 738.24 (44 unrouted and 57 violations), using 53.79 CPU seconds and the job allocated 79.56 GB of memory so far.
+2026-11-12 13:31:31.699 INFO   [FA263F\DD9DBB] Auto-routing pass #9 on board '101d2da6fd8a6ed88727c6f721914fc1' was completed in 4.00 seconds with score 738.24 (44 unrouted and 57 violations), using 57.70 CPU seconds and the job allocated 85.78 GB of memory so far.
+2026-11-12 13:31:35.592 INFO   [FA263F\DD9DBB] Auto-routing pass #10 on board '101d2da6fd8a6ed88727c6f721914fc1' was completed in 3.88 seconds with score 738.24 (44 unrouted and 57 violations), using 61.63 CPU seconds and the job allocated 92.27 GB of memory so far.
+2026-11-12 13:31:39.701 INFO   [FA263F\DD9DBB] Auto-routing pass #11 on board '101d2da6fd8a6ed88727c6f721914fc1' was completed in 4.10 seconds with score 738.24 (44 unrouted and 57 violations), using 65.55 CPU seconds and the job allocated 98.49 GB of memory so far.
+2026-11-12 13:31:44.448 INFO   [FA263F\DD9DBB] Auto-routing pass #12 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 4.50 seconds with score 738.24 (44 unrouted and 57 violations), using 70.36 CPU seconds and the job allocated 105.14 GB of memory so far.
+2026-11-12 13:31:48.579 INFO   [FA263F\DD9DBB] Auto-routing pass #13 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 4.12 seconds with score 738.24 (44 unrouted and 57 violations), using 74.23 CPU seconds and the job allocated 111.24 GB of memory so far.
+2026-11-12 13:31:52.921 INFO   [FA263F\DD9DBB] Auto-routing pass #14 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 4.33 seconds with score 738.24 (44 unrouted and 57 violations), using 78.14 CPU seconds and the job allocated 116.89 GB of memory so far.
+2026-11-12 13:32:00.112 INFO   [FA263F\DD9DBB] Auto-routing pass #15 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 7.18 seconds with score 738.24 (44 unrouted and 57 violations), using 84.54 CPU seconds and the job allocated 123.34 GB of memory so far.
+2026-11-12 13:32:06.393 INFO   [FA263F\DD9DBB] Auto-routing pass #16 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 6.26 seconds with score 738.24 (44 unrouted and 57 violations), using 90.30 CPU seconds and the job allocated 129.29 GB of memory so far.
+2026-11-12 13:32:12.243 INFO   [FA263F\DD9DBB] Auto-routing pass #17 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 5.83 seconds with score 738.24 (44 unrouted and 57 violations), using 96.03 CPU seconds and the job allocated 135.29 GB of memory so far.
+2026-11-12 13:32:17.668 INFO   [FA263F\DD9DBB] Auto-routing pass #18 on board 'c3ec38013a8d9cb8c7678d11ce1bd1fe' was completed in 5.41 seconds with score 738.24 (44 unrouted and 57 violations), using 101.88 CPU seconds and the job allocated 142.40 GB of memory so far.
+2026-11-12 13:32:17.690 INFO   [FA263F\DD9DBB] The router's best score (738.24) has not improved by more than 0.5 points since pass #8. Stopping the auto-router after 18 passes (44 items still unconnected).
+The following connections could not be routed -- please review your design (e.g. check pad clearances, trace width rules, and available routing space):
+  Net 'GND' (37 unrouted connections):
+    - U3-9@2  ->  U3-9@1
+    - J3-11  ->  J3-12
+    - J3-12  ->  J3-13
+    - J3-13  ->  J3-14
+    - J3-14  ->  J3-15
+    - J3-15  ->  J3-16
+    - J3-16  ->  J3-17
+    - J3-17  ->  J3-18
+    - J3-18  ->  J3-19
+    - J3-19  ->  J3-20
+    - J3-20  ->  J3-21
+    - J3-21  ->  J3-22
+    - J3-22  ->  J3-23
+    - J3-23  ->  J3-24
+    - J3-24  ->  J3-25
+    - J3-25  ->  J3-26
+    - J3-26  ->  J3-27
+    - J3-28  ->  J3-27
+    - J3-29  ->  J3-28
+    - J3-30  ->  J3-29
+    - J3-31  ->  J3-30
+    - J3-49  ->  J3-48
+    - via  ->  U5-3
+    - U3-9@1  ->  U3-9@3
+    - U1-41@9  ->  U1-41@6
+    - via  ->  U4-1
+    - U4-3  ->  via
+    - via  ->  Q1-2
+    - C6-2  ->  via
+    - U6-3  ->  via
+    - U6-15  ->  via
+    - via  ->  U6-11
+    - C8-2  ->  via
+    - via  ->  C9-2
+    - via  ->  U8-2
+    - SW16-2@1  ->  SW16-2
+    - via  ->  SW15-2@1
+  Net '3V3' (3 unrouted connections):
+    - J3-8  ->  J3-7
+    - J3-40  ->  J3-41
+    - via  ->  U6-4
+  Net 'BUCK_SW' (1 unrouted connection):
+    - L1-1  ->  U3-7
+  Net 'SPK_N' (1 unrouted connection):
+    - U6-10  ->  J2-2
+  Net 'USB_DN' (1 unrouted connection):
+    - J1-B7  ->  J1-A7
+  Net 'USB_DP' (1 unrouted connection):
+    - J1-A6  ->  J1-B6
+2026-11-12 13:32:18.198 INFO   [FA263F\DD9DBB] Auto-routing stage completed: started with 149 unrouted nets, completed in 105.75 seconds, final score: 738.24 (44 unrouted and 57 violations), using 101.88 total CPU seconds, 142.40 GB total allocated, and 444.4 MB peak heap usage.
+2026-11-12 13:32:18.353 INFO   [FA263F\DD9DBB] Skipping optimization stage: the board has 44 unrouted connection(s) (optimizer only runs on completely routed boards).
+2026-11-12 13:32:18.367 INFO   [FA263F\DD9DBB] Job 'FA263F\DD9DBB' finished with state: COMPLETED (elapsed: 1 minute 46.25 seconds, finished at UTC: 2026-11-12T08:02:18.366523Z).
+2026-11-12 13:32:18.386 INFO   Saving output file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.ses' (SES)...
+2026-11-12 13:32:18.388 INFO   Successfully saved output file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.ses' (74125 bytes).

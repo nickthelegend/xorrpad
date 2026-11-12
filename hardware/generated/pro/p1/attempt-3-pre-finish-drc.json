@@ -1,0 +1,176 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-11-12T13:32:44",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+    ],
+    "kicad_version": "10.0.6",
+    "schematic_parity": [],
+    "source": "pro.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [BUCK_SW] of L1 on F.Cu",
+                    "pos": {
+                        "x": 145.5,
+                        "y": 144.0
+                    },
+                    "uuid": "d978c74f-f503-4ec7-a9d4-231095ec1721"
+                },
+                {
+                    "description": "Pad 7 [BUCK_SW] of U3 on F.Cu",
+                    "pos": {
+                        "x": 146.95,
+                        "y": 139.75
+                    },
+                    "uuid": "95db1deb-87ef-4815-a71f-90dc33ca97a4"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "PTH pad 2 [SPK_N] of J2",
+                    "pos": {
+                        "x": 121.0,
+                        "y": 177.0
+                    },
+                    "uuid": "687968ec-f108-4a3d-ac20-fb99364f500b"
+                },
+                {
+                    "description": "Pad 10 [SPK_N] of U6 on F.Cu",
+                    "pos": {
+                        "x": 126.4375,
+                        "y": 157.25
+                    },
+                    "uuid": "84ad7c6d-146e-4bc3-a026-80163f9a9a2f"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.3187 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 177.691904,
+                        "y": 178.098878
+                    },
+                    "uuid": "124f327f-f009-4927-b7fa-863f640caed0"
+                },
+                {
+                    "description": "Track [KEY14] on F.Cu, length 7.8369 mm",
+                    "pos": {
+                        "x": 177.8879,
+                        "y": 177.6802
+                    },
+                    "uuid": "671560bd-25e1-4ad8-b882-85a319d09fa7"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.3623 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 177.691904,
+                        "y": 178.098878
+                    },
+                    "uuid": "124f327f-f009-4927-b7fa-863f640caed0"
+                },
+                {
+                    "description": "Track [KEY14] on F.Cu, length 2.5867 mm",
+                    "pos": {
+                        "x": 179.717,
+                        "y": 175.8511
+                    },
+                    "uuid": "6fffa37b-2b75-4361-881c-390d747d4b0c"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [5V_LIMITED] on F.Cu, length 0.0174 mm",
+                    "pos": {
+                        "x": 165.4881,
+                        "y": 133.663
+                    },
+                    "uuid": "8c3521b8-cf05-492e-a5c4-a07d0d72e874"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1200 mm)",
+            "items": [
+                {
+                    "description": "Track [5V_LIMITED] on F.Cu, length 0.2474 mm",
+                    "pos": {
+                        "x": 165.4881,
+                        "y": 133.4156
+                    },
+                    "uuid": "8c4afa59-b5ed-409d-ab2e-558e938a8379"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        },
+        {
+            "description": "Track width (board setup constraints min width 0.1500 mm; actual 0.1000 mm)",
+            "items": [
+                {
+                    "description": "Track [ROW1] on F.Cu, length 0.0615 mm",
+                    "pos": {
+                        "x": 143.8894,
+                        "y": 132.2653
+                    },
+                    "uuid": "62c26900-bb85-4120-ac0e-4ca78f56a606"
+                }
+            ],
+            "severity": "error",
+            "type": "track_width"
+        }
+    ]
+}

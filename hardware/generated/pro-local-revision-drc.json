@@ -1,0 +1,100 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-11-12T13:46:42",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+    ],
+    "kicad_version": "10.0.6",
+    "schematic_parity": [],
+    "source": "pro.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [SPK_N] on F.Cu, length 0.6250 mm",
+                    "pos": {
+                        "x": 126.4375,
+                        "y": 157.25
+                    },
+                    "uuid": "0e5c9074-0fe7-44f0-bba4-bdbcb863fc55"
+                },
+                {
+                    "description": "PTH pad 2 [SPK_N] of J2",
+                    "pos": {
+                        "x": 121.0,
+                        "y": 177.0
+                    },
+                    "uuid": "687968ec-f108-4a3d-ac20-fb99364f500b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Items shorting two nets (nets MIC_SD and GND)",
+            "items": [
+                {
+                    "description": "Track [MIC_SD] on B.Cu, length 8.6563 mm",
+                    "pos": {
+                        "x": 126.2206,
+                        "y": 153.7503
+                    },
+                    "uuid": "e42ae31d-9411-4717-8924-a0189d970cf1"
+                },
+                {
+                    "description": "Via [GND] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 129.25,
+                        "y": 156.6125
+                    },
+                    "uuid": "fc36eefe-a2f8-4d3b-a9fa-c242b5fcf217"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Via is not connected or connected on only one layer",
+            "items": [
+                {
+                    "description": "Via [SPK_N] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 127.8125,
+                        "y": 157.375
+                    },
+                    "uuid": "2a56e813-7b0b-43a0-aea2-bf6103656d7e"
+                }
+            ],
+            "severity": "warning",
+            "type": "via_dangling"
+        }
+    ]
+}

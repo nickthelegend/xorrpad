@@ -40,7 +40,8 @@ def obstacles(b,net,layer):
         for p in f.Pads():
             sh=padshape(p,k.F_Cu if p.IsOnLayer(k.F_Cu) else k.B_Cu)
             if p.GetDrillSize().x:
-                vr.append(sh.buffer(.551));tr.append(sh.buffer(.326))
+                vr.append(sh.buffer(.551))
+                if p.GetNetCode()!=code:tr.append(sh.buffer(.326))
             elif p.GetNetCode()!=code:
                 vr.append(sh.buffer(.451))
                 if p.IsOnLayer(layer):tr.append(sh.buffer(.226))
@@ -90,3 +91,29 @@ def simplify(pts):
         a,p,c=pts[i-1:i+2]
         if abs((p[0]-a[0])*(c[1]-p[1])-(p[1]-a[1])*(c[0]-p[0]))>1e-8:out.append(p)
     return out+[pts[-1]]
+
+def route_between(b,net,start,end,layer=k.F_Cu,step=.125):
+    """Route one final connection with 0.15 mm copper and real clearances."""
+    ob,_,inside=obstacles(b,net,layer)
+    safe=prep(inside.buffer(-.58));todo=[(math.dist(start,end),0,(0,0))]
+    dist={(0,0):0};parent={};endnode=None
+    def pos(n):return start[0]+n[0]*step,start[1]+n[1]*step
+    while todo:
+        _,cost,n=heapq.heappop(todo)
+        if cost>dist[n]+1e-9:continue
+        q=pos(n)
+        if math.dist(q,end)<step*2 and not ob.intersects(LineString([q,end])):
+            endnode=n;break
+        for dx,dy in [(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)]:
+            nn=(n[0]+dx,n[1]+dy);qq=pos(nn);nc=cost+step*math.hypot(dx,dy)
+            if nc>=dist.get(nn,1e9):continue
+            if not safe.covers(Point(qq)) or ob.intersects(LineString([q,qq])):continue
+            dist[nn]=nc;parent[nn]=n;heapq.heappush(todo,(nc+math.dist(qq,end),nc,nn))
+        if len(dist)>500000:break
+    if endnode is None:raise RuntimeError(f'No local route: {net}, {start}, {end}, searched {len(dist)} nodes')
+    pts=[end,pos(endnode)];n=endnode
+    while n!=(0,0):n=parent[n];pts.append(pos(n))
+    pts.reverse();pts=simplify(pts)
+    track(b,net,pts,width=.15,layer=layer)
+    print(net,'routed',len(pts),'vertices',round(dist[endnode],3),'mm',flush=True)
+    return pts
