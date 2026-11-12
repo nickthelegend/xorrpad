@@ -6,6 +6,15 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S4 voice
+
+- 16 kHz mono Opus at 24 kbps, push-to-talk energy VAD/noise gate, live TFT
+  waveform, ordered Opus TTS and USB/Wi-Fi PCM fallback. Codec state resets per
+  utterance; disconnects and congestion stop capture with an actionable message.
+- Five distinct accept/refuse/fill/error/kill cues and shared speaker gain,
+  adjusted by the knob in Voice mode. Native tests use the actual ESP32 Opus
+  library; encrypted simulator tests decode real Opus TTS and preserve PCM.
+
 ### Added — firmware 2.0.0, S3 profiles and knob
 
 - Eight persistent profiles with Spot, Perps and Predict keymaps; desk sync

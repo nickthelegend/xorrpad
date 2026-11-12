@@ -424,3 +424,29 @@ That source snapshot includes only the S3 commits and their committed
 prerequisites. Earlier uncommitted firmware work remains separate. No signed
 OTA artifacts were overwritten. See [TESTING.md](../TESTING.md) for coverage
 and the remaining physical verification.
+
+## v2 S4 voice (2026-11-12)
+
+Status: **compiled, not yet flashed**. Install the Arduino Opus library from
+[pschatzmann/codec-opus](https://github.com/pschatzmann/codec-opus) at commit
+`c02de6316dddbb9dffdf976c159c4eaacecdf12f` (library version 1.6.1) in
+`$(arduino-cli config get directories.user)/libraries/codec-opus`. CMake is
+required for native tests, which compile that same library on the Mac.
+
+PTT sends 20 ms, 16 kHz mono Opus frames on encrypted v2 links with constant
+24 kbps encoding (60 raw bytes per frame). USB/Wi-Fi keep legacy PCM fallback;
+BLE refuses PCM. The energy gate opens at RMS 600 with 250 ms hangover and a
+500-amplitude noise gate. The TFT waveform shows the gated samples. Voice-mode
+knob turns change the gain by 5%, clamped to 0–100%, for all speech and cues.
+
+Compile commands (no signing key, upload or eFuse operations):
+
+```sh
+mkdir -p firmware/build/s4-tmp
+env TMPDIR="$PWD/firmware/build/s4-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s4-normal" --output-dir firmware/build/s4-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+env TMPDIR="$PWD/firmware/build/s4-tmp" arduino-cli compile --jobs 4 --build-path "$PWD/firmware/build/s4-release" --output-dir firmware/build/s4-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+S4 final sizes and test counts are recorded in [TESTING.md](../TESTING.md).
+Actual mic energy thresholds, BLE throughput/latency, amp volume and the TFT
+waveform require the assembled board. No hardware result is implied by tests.

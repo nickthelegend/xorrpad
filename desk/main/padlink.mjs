@@ -745,7 +745,9 @@ export class PadLink extends EventEmitter {
     if (seq === 0) {
       p.ttsState = { stream, pending: Buffer.alloc(0), seq: 0 };
       p.opusEncoder ||= new OpusScript(16000, 1, OpusScript.Application.VOIP);
+      p.opusEncoder.encoderCTL(4028); // OPUS_RESET_STATE
       p.opusEncoder.encoderCTL(4002, 24000);
+      p.opusEncoder.encoderCTL(4006, 0); // bounded 60-byte, 20 ms CBR packets
     }
     const s = p.ttsState;
     if (!s || s.stream !== stream) return;
@@ -1122,19 +1124,25 @@ export class PadLink extends EventEmitter {
           m.sampleRate !== 16000 ||
           !Number.isInteger(m.seq) ||
           typeof m.stream !== "string" ||
-          m.stream.length > 96 ||
+          (!m.stream.length || m.stream.length > 96) ||
           typeof m.end !== "boolean" ||
           typeof m.data !== "string" ||
-          m.data.length > 344
+          m.data.length > 344 ||
+          (!m.data.length && !m.end) ||
+          !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(m.data)
         )
           throw Error("invalid Opus frame");
         const packet = Buffer.from(m.data, "base64");
         if (packet.length > 256) throw Error("Opus packet too large");
+        if (m.seq === 0 && p.streams.size) throw Error("voice stream already active");
+        const active = p.streams.get(m.stream);
+        if (m.seq !== 0 && (!active || active.seq !== m.seq)) throw Error("voice sequence/limit");
         p.opusDecoder ||= new OpusScript(16000, 1, OpusScript.Application.VOIP);
+        if (m.seq === 0) p.opusDecoder.decoderCTL(4028);
         pcm = packet.length
           ? Buffer.from(p.opusDecoder.decode(packet))
           : Buffer.alloc(0);
-        if (pcm.length > 1920 || pcm.length % 2)
+        if (packet.length && pcm.length !== 640)
           throw Error("invalid decoded audio");
       } else {
         if (p.secure && p.name === "ble") throw Error("BLE requires Opus");
@@ -1142,7 +1150,7 @@ export class PadLink extends EventEmitter {
           m.sampleRate !== 16000 ||
           !Number.isInteger(m.seq) ||
           typeof m.stream !== "string" ||
-          m.stream.length > 96 ||
+          (!m.stream.length || m.stream.length > 96) ||
           typeof m.end !== "boolean" ||
           typeof m.pcm !== "string" ||
           !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(

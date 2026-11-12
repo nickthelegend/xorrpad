@@ -53,11 +53,12 @@ PadLink    padlink;
 Profiles profiles;
 Knob knob;
 xorr::KnobControl knobControl;
-int volume=80;
+
 bool telnetStarted=false, keymapShown=false;
 PadLink::Transport recTransport=PadLink::NONE;
 bool recStreaming=false;
-String ttsStream;uint32_t ttsSeq=0;
+xorr::VoicePlayback playback;
+xorr::VoiceGate voiceGate;
 
 int16_t   *recBuf = nullptr;
 const size_t REC_CAP = (size_t)AUDIO_SAMPLE_RATE * REC_SECONDS_MAX;
@@ -88,6 +89,7 @@ void latchKill() {
   persistKill(true); // Local disarm precedes every network operation.
   padlink.stopInputs();
   recording = recStreaming = false;
+  pad.listening=false;
   recLen = 0;
   pad.signalId = "";
   pad.receiptUntil = pad.keymapUntil = 0;
@@ -98,6 +100,7 @@ void latchKill() {
   JsonDocument d; d["type"] = padlink.secureReady() ? "kill" : "key";
   d["action"] = "kill"; d["edge"] = "down"; d["id"] = padlink.eventId();
   padlink.send(d);
+  audio.chime(xorr::Chime::Kill);
 }
 uint32_t   nextPoll = 0;
 uint8_t    keyR = 0, keyG = 20, keyB = 0;   // colour of the last key that owned the light
@@ -167,19 +170,25 @@ void onPadMessage(JsonVariantConst d) {
   } else if(type=="signal_state") {
     if(d["signalId"].as<String>()==pad.signalId){pad.signalState=d["state"].as<String>();pad.pending=!killSwitch.killed && pad.signalState=="awaiting";}
   } else if(type=="receipt") {
+    audio.chime(xorr::Chime::Fill);
     pad.pending=false;pad.receiptSignature=d["signature"].as<String>();pad.receiptExplorer=d["explorer"].as<String>();pad.receiptUntil=millis()+15000;
   } else if(type=="result" && d["ok"]==false) {
     pad.lastKeyLabel=d["error"].as<String>();pad.labelUntil=millis()+5000;
-  } else if(type=="tts") {
-    if(d["sampleRate"]!=16000)return;
-    String stream=d["stream"].as<String>();uint32_t seq=d["seq"];
-    if(seq==0){ttsStream=stream;ttsSeq=0;}
-    if(stream!=ttsStream || seq!=ttsSeq++) {ttsStream="";return;}
-    const char *base64=d["pcm"] | "";int16_t pcm[256];size_t bytes=0;
-    if(strlen(base64)>684 || mbedtls_base64_decode((unsigned char*)pcm,sizeof pcm,&bytes,(const unsigned char*)base64,strlen(base64)) || bytes%2)return;
-    for(size_t i=0;i<bytes/2;++i)pcm[i]=pcm[i]*volume/100;
-    audio.writeSpk(pcm,bytes/2);if(d["end"]==true)ttsStream="";
+  } else if (type == "tts") {
+    if (!d["stream"].is<const char*>() || !d["seq"].is<uint32_t>() ||
+        !d["end"].is<bool>() || !d["sampleRate"].is<int>()) {playback.reset();return;}
+    bool opus=d["codec"]=="opus";
+    String codec=d["codec"] | "pcm";
+    std::vector<uint8_t> bytes;
+    if (!secure::decode(d[opus?"data":"pcm"] | "",bytes,opus?256:512)) {
+      playback.reset();return;
+    }
+    int16_t pcm[xorr::voiceFrame];
+    int n=playback.decode(d["stream"].as<std::string>(),d["seq"],codec.c_str(),
+        d["sampleRate"],bytes.data(),bytes.size(),d["end"],padlink.active()==PadLink::BLE,pcm);
+    if(n>0) audio.writeSpk(pcm,n);
   }
+
   screenDirty=true;
 }
 
@@ -198,29 +207,45 @@ bool sendLinkedKey(const String &action) {
 
 // ── recording ────────────────────────────────────────────────────────────────
 void startRecording(uint32_t autoStopMs = 0) {
-  if (killSwitch.killed || recording || (!padlink.ready() && !padlink.legacy)) return;
+  if (!recBuf || recording || killSwitch.killed ||
+      (!padlink.ready() && !padlink.legacy))
+    return;
   // No "select an agent first" gate: the backend always has one holding the
   // baton, so a spoken order is never homeless. Refusing here would invent a
   // rule the backend does not have.
-  recTransport=padlink.active();recStreaming=padlink.ready();padlink.newVoice();
+  recTransport = padlink.active();
+  recStreaming = padlink.ready();
+  if (!padlink.newVoice()) {
+    pad.lastKeyLabel="Voice codec unavailable";pad.labelUntil=millis()+4000;
+    audio.chime(xorr::Chime::Error);return;
+  }
+  voiceGate.reset();
+  for(auto &bar:pad.waveform) bar=0;
   recLen = 0;
   recording = true;
+  pad.listening = true;
+  screenHoldUntil=0;screenDirty=true;
   recAutoStopAt = autoStopMs ? millis() + autoStopMs : 0;
-  led(70, 0, 0);                        // red = recording
+  led(70, 0, 0); // red = recording
   audio.beep(1200, 70);
   telnet.logf("  ● recording…\n");
 }
 
 void stopAndSend() {
-  if (!recording) return;
-  if (killSwitch.killed) { recording=false; recLen=0; return; }
+  if (!recording)
+    return;
   recording = false;
-  led(70, 40, 0);                       // amber = thinking
+  pad.listening = false;screenDirty=true;
+  led(70, 40, 0); // amber = thinking
   audio.beep(700, 70);
   float secs = (float)recLen / AUDIO_SAMPLE_RATE;
-  if(recStreaming) {
-    if(padlink.active()==recTransport)padlink.voice(nullptr,0,true);
-    nextPoll=0;return;
+  if (recStreaming) {
+    if (padlink.active()==recTransport && !padlink.voice(nullptr,0,true)) {
+      pad.lastKeyLabel="Voice congested: retry";pad.labelUntil=millis()+4000;
+      audio.chime(xorr::Chime::Error);
+    }
+    nextPoll = 0;
+    return;
   }
   if (recLen < AUDIO_SAMPLE_RATE / 4) { // < 0.25 s
     telnet.logf("  … too short (%.2fs), ignored\n", secs);
@@ -230,14 +255,15 @@ void stopAndSend() {
   String heard, said, action;
   bool ok = net.talk(recBuf, recLen, audio, heard, said, action);
   if (ok) {
-    telnet.logf("  heard : %s\n  action: %s\n  said  : %s\n",
-                heard.c_str(), action.c_str(), said.c_str());
+    telnet.logf("  heard : %s\n  action: %s\n  said  : %s\n", heard.c_str(),
+                action.c_str(), said.c_str());
     // A spoken order leaves a decision waiting on a ✓ — the poll will pick it
     // up and the light will start breathing amber on its own.
     nextPoll = 0;
   } else {
-    telnet.logf("  ✗ voice request failed (backend at %s?)\n", settings.backendUrl);
-    audio.beep(300, 220);
+    telnet.logf("  ✗ voice request failed (backend at %s?)\n",
+                settings.backendUrl);
+    audio.chime(xorr::Chime::Error);
   }
 }
 
@@ -249,7 +275,7 @@ void sendKey(const KeyBind &kb) {
   if(killSwitch.killed)return;
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
   pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
-  if(sendLinkedKey(kb.id))return;
+  if(sendLinkedKey(kb.id)){audio.chime(kb.role==ROLE_REFUSE?xorr::Chime::Refuse:xorr::Chime::Accept);return;}
   if(!padlink.legacy){pad.lastKeyLabel="offline: nothing will execute";pad.labelUntil=millis()+4000;return;}
   if((kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE) && pad.signalId.length()){
     pad.lastKeyLabel="Signal link offline";pad.labelUntil=millis()+4000;return;
@@ -257,10 +283,10 @@ void sendKey(const KeyBind &kb) {
   String err;
   if (net.key(kb.id, err)) {
     telnet.logf("  ▸ %s\n", kb.label);
-    audio.beep(1200, 45);
+    audio.chime(xorr::Chime::Accept);
   } else {
     telnet.logf("  ✗ %s refused: %s\n", kb.label, err.c_str());
-    audio.beep(300, 160);
+    audio.chime(xorr::Chime::Error);
     if (err.length()) net.speak(err, audio);
   }
   nextPoll = 0;                       // reflect the new state immediately
@@ -490,7 +516,7 @@ void loop() {
     knobControl.cycle();pad.lastKeyLabel=String(knobControl.name())+" "+String(knobControl.values[knobControl.mode],0);pad.labelUntil=millis()+1800;
   }
   else if(event==Knob::Turn) {
-    if(profiles.voice)volume=constrain(volume+knob.delta*5,0,100);
+    if(profiles.voice){audio.volume=xorr::voiceVolume(audio.volume,knob.delta);pad.lastKeyLabel="Volume "+String(audio.volume)+"%";pad.labelUntil=millis()+1800;}
     else if(!killSwitch.killed && padlink.ready() && !pad.pending && !recording) {
       double value=knobControl.turn(knob.delta,millis());
       pad.lastKeyLabel=String(knobControl.name())+" "+String(value,0);pad.labelUntil=millis()+1800;
@@ -536,7 +562,7 @@ void loop() {
     screenDirty = true;
   }
   if (pad.ok && chartNow.ok && chartNow.symbol != pad.market) nextChart = 0;
-  if (!recording && screenDirty && millis() >= screenHoldUntil) {
+  if (screenDirty && millis() >= screenHoldUntil) {
     screenDirty = false;
     screen.draw(pad, chartNow);
   }
@@ -544,8 +570,17 @@ void loop() {
   if (recording && recBuf) {
     int16_t block[256];
     size_t n = audio.readMic(block, 256);
-    if(recStreaming && padlink.active()!=recTransport){recording=false;pad.lastKeyLabel="Voice link lost";pad.labelUntil=millis()+4000;return;}
-    if(recStreaming && n)padlink.voice(block,n,false);
+    if(recStreaming && (!padlink.ready() || padlink.active()!=recTransport)) {
+      recording=pad.listening=false;pad.lastKeyLabel="Voice link lost";
+      pad.labelUntil=millis()+4000;screenDirty=true;playback.reset();return;
+    }
+    int level=voiceGate.process(block,n);
+    for(int i=0;i<31;++i) pad.waveform[i]=pad.waveform[i+1];
+    pad.waveform[31]=level;
+    if(recStreaming && n && !padlink.voice(block,n,false)) {
+      recording=pad.listening=false;pad.lastKeyLabel="Voice congested: retry";
+      pad.labelUntil=millis()+4000;screenDirty=true;audio.chime(xorr::Chime::Error);return;
+    }
     for (size_t i = 0; i < n && recLen < REC_CAP; i++) recBuf[recLen++] = block[i];
     if (recLen >= REC_CAP) { telnet.logf("  (max length)\n"); stopAndSend(); }
     else if (recAutoStopAt && millis() >= recAutoStopAt) stopAndSend();

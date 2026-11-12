@@ -532,3 +532,16 @@ Limits: 3,145,728 bytes per app slot, 327,680 bytes static RAM. Runtime profile,
 JSON, audio and display allocations are additional. Exact commands/FQBN are in
 [firmware/README.md](firmware/README.md#v2-s3-kill-latch-profiles-and-rotary-controls-2026-11-12).
 No upload, signing-key read, new signing operation, eFuse action or push occurred.
+
+## Firmware v2 — S4 voice (2026-11-12)
+
+**Compiled, not yet flashed.** Nine new native cases exercise energy VAD,
+noise gate/hangover, waveform bounds, shared volume, distinct chimes, actual
+Opus encode/decode at exactly 24,000 bits per second, partial-frame padding,
+stream resets, malformed packets and ordered TTS/PCM fallback. At this step
+`firmware/test/run.sh`: **153 cases, 970 assertions, all passed** (including
+pre-existing working-tree tests). Three new encrypted simulator tests pass:
+BLE Opus TTS at 60 bytes/20 ms, exact USB PCM and invalid voice rejection.
+Complete normal working-tree build: **1,768,470 bytes flash; 64,900 bytes static
+RAM** before S4 health changes. Final normal/release evidence follows below.
+Mic, speaker, knob, TFT and radio behavior still require hardware verification.

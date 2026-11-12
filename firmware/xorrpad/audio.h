@@ -1,11 +1,13 @@
 #pragma once
 #include <ESP_I2S.h>   // Arduino-ESP32 core 3.x
 #include "config.h"
+#include "logic/voice.h"
 
 // Two independent I2S peripherals: INMP441 mic (RX) and MAX98357A amp (TX).
 // Record and playback are sequential in hold-to-talk, so they never fight.
 class Audio {
 public:
+  int volume = 80;
   I2SClass mic;
   I2SClass spk;
 
@@ -29,7 +31,17 @@ public:
   // Push PCM to the speaker (blocking — this is the back-pressure that paces
   // the streamed download in net.h).
   void writeSpk(const int16_t* buf, size_t samples) {
-    spk.write((uint8_t*)buf, samples * sizeof(int16_t));
+    int16_t scaled[256];
+    while(samples) {
+      size_t n = std::min(samples, size_t(256));
+      for(size_t i=0;i<n;++i) scaled[i]=xorr::voiceScale(buf[i],volume);
+      spk.write((uint8_t*)scaled,n*sizeof(int16_t));
+      buf+=n;samples-=n;
+    }
+  }
+
+  void chime(xorr::Chime kind) {
+    for(auto cue:xorr::chime(kind)) beep(cue.hz,cue.ms);
   }
 
   // A short sine cue. Used for start/stop/error feedback.
@@ -38,7 +50,7 @@ public:
     for (uint32_t i = 0; i < n; i++) {
       float t = (float)i / AUDIO_SAMPLE_RATE;
       int16_t s = (int16_t)(amp * sinf(2.0f * PI * hz * t));
-      spk.write((uint8_t*)&s, sizeof(s));
+      writeSpk(&s, 1);
     }
   }
 };

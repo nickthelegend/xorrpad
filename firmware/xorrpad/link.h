@@ -13,6 +13,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <mbedtls/base64.h>
+#include "logic/voice.h"
 
 // BLE callbacks only enqueue bytes; JSON, NVS, HTTP and I2S run on loop().
 class PadLink : public NimBLECharacteristicCallbacks,
@@ -293,14 +294,38 @@ public:
       }
     }
   }
-  void voice(const int16_t *pcm,size_t samples,bool end) {
+  bool voice(const int16_t *pcm, size_t samples, bool end) {
+    if (!ready() || killed) return false;
     if (!_voiceStream.length()) {_voiceStream=eventId();_voiceSeq=0;}
-    unsigned char encoded[689];size_t n=0;
-    mbedtls_base64_encode(encoded,sizeof encoded,&n,(const unsigned char*)pcm,samples*2);encoded[n]=0;
-    JsonDocument d;d["type"]="voice";d["id"]=eventId();d["stream"]=_voiceStream;d["seq"]=_voiceSeq++;d["end"]=end;d["sampleRate"]=16000;d["pcm"]=(char*)encoded;send(d);
-    if(end)_voiceStream="";
+    const bool opus = secureReady();
+    auto emit = [&](const uint8_t *data, size_t n) {
+      auto via=active();
+      if(via==NONE || (_sessions[via].established && _sessions[via].queue.size()>=32)) return false;
+      JsonDocument d;d["type"]="voice";d["id"]=eventId();
+      d["stream"]=_voiceStream;d["seq"]=_voiceSeq++;d["end"]=false;
+      d["sampleRate"]=xorr::voiceRate;d["codec"]="opus";
+      d["data"]=secure::b64(data,n);send(d);return true;
+    };
+    if(opus && !_voiceEncoder.push(pcm,samples,end,emit)) return false;
+    if(!opus && active()==BLE) return false;
+    if(!opus || end) {
+      auto via=active();
+      if(via==NONE || (_sessions[via].established && _sessions[via].queue.size()>=32)) return false;
+      JsonDocument d;d["type"]="voice";d["id"]=eventId();
+      d["stream"]=_voiceStream;d["seq"]=_voiceSeq++;d["end"]=end;
+      d["sampleRate"]=xorr::voiceRate;
+      if(opus) {d["codec"]="opus";d["data"]="";}
+      else d["pcm"]=secure::b64((const uint8_t*)pcm,samples*2);
+      send(d);
+    }
+    if(end) _voiceStream="";
+    return true;
   }
-  void newVoice() {_voiceStream="";}
+  bool newVoice() {
+    _voiceStream="";
+    return !secureReady() || _voiceEncoder.reset();
+  }
+
 private:
   bool eligible(Transport via) const {
     return _sessions[via].established || (legacy && !_sessions[via].offered);
@@ -319,6 +344,7 @@ private:
     s.queue.pop_front();
     write(via, s.seal(d, via == USB));
   }
+  xorr::VoiceEncoder _voiceEncoder;
   struct Packet {
     size_t n;
     char data[512];

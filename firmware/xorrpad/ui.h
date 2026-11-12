@@ -398,6 +398,11 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
   if(pad.pairCode.length()){
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
+  if(pad.listening) {
+    text(c,12,20,3,SOL,"LISTENING");
+    for(int i=0;i<32;++i) {int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}
+    text(c,12,204,1,INK,"Release MIC or knob to send");return;
+  }
   if (!pad.ok)          drawOffline(c);
   else if(pad.receiptSignature.length() && (int32_t)(pad.receiptUntil-millis())>0) {
     text(c,12,14,3,UP,"RECEIPT");text(c,12,50,1,MUTE,"CONFIRMED SIGNATURE");
