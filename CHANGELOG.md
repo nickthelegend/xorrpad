@@ -23,6 +23,17 @@ All notable changes to xorrpad are documented here. This file follows
   six native/WASM wallet frame cases and model3d frame parity are covered.
   The approved desktop components and styling are unchanged.
 
+### Added — Agent wallet W2, part 5
+
+- Final isolated desk suite: 250 tests, 240 passed, 10 existing setup/provider
+  skips, zero failures; native suite 273 cases passed, app build, ESP32 compile
+  and native/WASM model3d plus wallet-frame parity passed.
+
+- Both padsim versions retain actual received `fund` and `portfolio` records,
+  without inventing balances or rendered QR modules. Live tests exercise the
+  authenticated desktop action and pad key over fragmented TCP and encrypted
+  v2, including the selected native pad wallet and no plaintext funding record.
+
 ### Added — Agent wallet W1, part 3
 
 - Final isolated desk suite: 248 tests, 238 passed, 10 existing setup/provider

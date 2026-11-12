@@ -200,6 +200,8 @@ export class PadSimulatorV2 extends PadSimulator {
     this.flush();
     if (m.type === "ack") return;
     this.history.push(m);
+    if(m.type==='fund')this.fund=m;
+    if(m.type==='portfolio')this.portfolio=m;
     this.emit("message", m);
     if (m.type === "ready") {
       this.verified = true;

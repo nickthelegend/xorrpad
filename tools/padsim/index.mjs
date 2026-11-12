@@ -8,12 +8,14 @@ import path from 'node:path';
 import {Lines,validateKeymap} from '../../desk/main/padlink.mjs';
 
 export class PadSimulator extends EventEmitter {
-  history=[]; keymap=null; signal=null; seq=0;
+  history=[]; keymap=null; signal=null; fund=null; portfolio=null; seq=0;
   constructor({device='padsim-'+randomUUID(),fragmentBytes=4096}={}) {super();Object.assign(this,{device,fragmentBytes});}
   attach(stream) {
     this.stream=stream;
     const lines=new Lines(m => {
       this.history.push(m);this.emit('message',m);
+      if(m.type==='fund')this.fund=m;
+      if(m.type==='portfolio')this.portfolio=m;
       if (m.type==='ping') this.hello();
       if (m.type==='keymap') {this.keymap=validateKeymap(m);this.send({type:'keymap_state',revision:m.revision,ok:true});}
       if (m.type==='signal') this.signal=m;

@@ -1967,3 +1967,44 @@ its safety action and pending confirmations keep priority.
 Public logs: `firmware/build/w2-{native,focused,app-build,esp32}.log`.
 No existing key files, environment files or private project state were opened;
 no transaction was submitted. Mainnet execution gating is unchanged.
+
+## Agent wallet W2 — part 5, final isolated acceptance (2026-11-12)
+
+Final serial desk suite: **250 tests, 240 passed, 10 skipped, zero failures or
+cancellations**, exit **0**, **822,539.133208 ms**. All new funding, native/WASM
+wallet-frame and model3d cases passed without skips. The ten skips are the
+existing unavailable Ollama/Anthropic/Deepgram/Electron setup, rate-limited
+Meteora, missing keeper public metadata, unfunded disposable devnet receipt
+and pm-AMM simulation owners, and two unconfigured Phoenix account cases.
+
+Both padsim versions keep actual received `fund` and `portfolio` records.
+The new live tests verify authenticated desktop funding actions and pad key
+requests over fragmented TCP and encrypted serial v2; the v2 case uses the
+native pad's selected session identity and asserts that neither its address nor
+its funding record appears in plaintext transport. Missing wallet and missing
+pad responses remain explicit. The saved actual TCP Fund screenshot was also
+independently decoded back to the exact received Solana Pay URI.
+
+The first focused run exposed the simulator's 15-second v1 inactivity timeout
+between live reads. The live test now sends normal five-second hello heartbeats;
+both delivery cases passed in the completed isolated suite. The initial broader
+run was stopped after 161 passing tests, before the later receipt test could
+open the repository's existing dedicated devnet key. It is not counted as a
+completed suite. The final run used a disposable source/runtime copy excluding
+all existing keys, environment files, `.loom`, and dedicated wallet directories.
+Only dependency/venv links and explicitly public compiled drivers, firmware,
+manifest and SDK WASM inputs were supplied. The receipt test created its own
+unfunded disposable identity; no existing saved wallet was opened.
+
+Equivalent command, in the isolated source copy (with the original repo venv):
+
+```sh
+TMPDIR="$W2_RUNTIME" XORR_USER_DATA="$W2_RUNTIME/user" SIBYL_PY="$W2_SOURCE_REPO/.venv/bin/python" node --test --test-concurrency=1 --test-reporter=tap desk/test/*.test.mjs
+```
+
+All **30** W2 code, test and artifact files were checked byte for byte against
+the tested source copy and rechecked after completion. The disposable copy and
+its generated wallet were removed. Final public log:
+`firmware/build/w2-desk-final.log`; source hashes:
+`firmware/build/w2-source-sha256.json`. W2 contains local commits only; no push,
+transaction submission, existing secret-file access or desktop restyle occurred.

@@ -13,6 +13,15 @@ to exercise CDC/BLE-style reassembly. Stdin accepts exact v1 NDJSON records;
 stdout prints desk records. The simulator automatically sends hello and
 acknowledges validated keymaps. It does not invent market or voice responses.
 
+Both versions keep received funding records in `pad.fund`, portfolio records
+in `pad.portfolio`, and the original messages in `pad.history`. They render no
+fake QR or balances. Use the real firmware renderer in `tools/uipreview` for
+screenshots. The desktop requests a funding screen with authenticated local
+`POST /agent-wallet {"action":"fund"}`; `pad.key('fund')` exercises the same
+request as the firmware's one-second PORTFOLIO hold. `pad.key('portfolio')`
+requests balances. A connected v1 test peer must send its normal heartbeat
+while waiting between reads; the desk expires inactive links after 15 seconds.
+
 For a serial/PTY exercise, create a pair with `socat`:
 
 ```
