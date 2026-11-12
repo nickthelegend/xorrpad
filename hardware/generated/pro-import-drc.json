@@ -1,0 +1,957 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-11-12T13:02:23",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+    ],
+    "kicad_version": "10.0.6",
+    "schematic_parity": [],
+    "source": "pro.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Bottom GND pour' [GND] on B.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4402ef27-1a06-4a2d-8f75-a1d469733075"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                },
+                {
+                    "description": "Zone 'L2 continuous GND' [GND] on In1.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ad83366a-e477-4e47-be22-ec96f92b23ee"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone 'L2 continuous GND' [GND] on In1.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ad83366a-e477-4e47-be22-ec96f92b23ee"
+                },
+                {
+                    "description": "Zone 'Top GND pour' [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "ff939d48-379e-43cf-843c-b71c2c79c33e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C7 on F.Cu",
+                    "pos": {
+                        "x": 108.125,
+                        "y": 153.636
+                    },
+                    "uuid": "d42b7be1-a313-4074-ac75-3bde4e01b3d3"
+                },
+                {
+                    "description": "Pad 5 [3V3] of U5 on F.Cu",
+                    "pos": {
+                        "x": 108.9,
+                        "y": 155.636
+                    },
+                    "uuid": "72815428-8fe6-428d-b649-56e6605ae0de"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 5 [3V3] of U5 on F.Cu",
+                    "pos": {
+                        "x": 108.9,
+                        "y": 155.636
+                    },
+                    "uuid": "72815428-8fe6-428d-b649-56e6605ae0de"
+                },
+                {
+                    "description": "Pad 1 [3V3] of R1 on F.Cu",
+                    "pos": {
+                        "x": 123.175,
+                        "y": 153.0
+                    },
+                    "uuid": "f9e1c8ec-14a3-4885-b4fa-f898d637976b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R10 on F.Cu",
+                    "pos": {
+                        "x": 123.175,
+                        "y": 143.0
+                    },
+                    "uuid": "583cd473-00b2-4926-919e-e32db02e9055"
+                },
+                {
+                    "description": "Pad 1 [3V3] of R2 on F.Cu",
+                    "pos": {
+                        "x": 143.175,
+                        "y": 133.0
+                    },
+                    "uuid": "36968ea5-1734-4891-8caa-5810ede80e8b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R1 on F.Cu",
+                    "pos": {
+                        "x": 123.175,
+                        "y": 153.0
+                    },
+                    "uuid": "f9e1c8ec-14a3-4885-b4fa-f898d637976b"
+                },
+                {
+                    "description": "Pad 1 [3V3] of R10 on F.Cu",
+                    "pos": {
+                        "x": 123.175,
+                        "y": 143.0
+                    },
+                    "uuid": "583cd473-00b2-4926-919e-e32db02e9055"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 4 [3V3] of U6 on F.Cu",
+                    "pos": {
+                        "x": 123.5625,
+                        "y": 157.75
+                    },
+                    "uuid": "b427fd88-ba96-47d8-8a16-30178fca19a5"
+                },
+                {
+                    "description": "Pad 1 [3V3] of R1 on F.Cu",
+                    "pos": {
+                        "x": 123.175,
+                        "y": 153.0
+                    },
+                    "uuid": "f9e1c8ec-14a3-4885-b4fa-f898d637976b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R2 on F.Cu",
+                    "pos": {
+                        "x": 143.175,
+                        "y": 133.0
+                    },
+                    "uuid": "36968ea5-1734-4891-8caa-5810ede80e8b"
+                },
+                {
+                    "description": "Track [3V3] on F.Cu, length 0.9750 mm",
+                    "pos": {
+                        "x": 146.95,
+                        "y": 140.25
+                    },
+                    "uuid": "4012cc93-7255-45fb-800f-509cd8324f7a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [3V3] on F.Cu, length 0.8132 mm",
+                    "pos": {
+                        "x": 147.925,
+                        "y": 140.25
+                    },
+                    "uuid": "9a05ae4b-9156-41f3-aa35-818726977b0f"
+                },
+                {
+                    "description": "Pad 1 [3V3] of C5 on F.Cu",
+                    "pos": {
+                        "x": 151.55,
+                        "y": 137.0
+                    },
+                    "uuid": "62f0f6d8-57f5-4082-91a5-e54fb1cb40b8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [3V3] on F.Cu, length 0.8132 mm",
+                    "pos": {
+                        "x": 147.925,
+                        "y": 140.25
+                    },
+                    "uuid": "9a05ae4b-9156-41f3-aa35-818726977b0f"
+                },
+                {
+                    "description": "Pad 2 [3V3] of L1 on F.Cu",
+                    "pos": {
+                        "x": 148.5,
+                        "y": 144.0
+                    },
+                    "uuid": "e5682517-998f-4eae-9356-a36b4fb557eb"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R8 on F.Cu",
+                    "pos": {
+                        "x": 153.175,
+                        "y": 123.0
+                    },
+                    "uuid": "6057b9c5-c4c7-4e7d-86b3-5272b6298a5c"
+                },
+                {
+                    "description": "Pad 1 [3V3] of C5 on F.Cu",
+                    "pos": {
+                        "x": 151.55,
+                        "y": 137.0
+                    },
+                    "uuid": "62f0f6d8-57f5-4082-91a5-e54fb1cb40b8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R8 on F.Cu",
+                    "pos": {
+                        "x": 153.175,
+                        "y": 123.0
+                    },
+                    "uuid": "6057b9c5-c4c7-4e7d-86b3-5272b6298a5c"
+                },
+                {
+                    "description": "Pad 1 [3V3] of C10 on F.Cu",
+                    "pos": {
+                        "x": 155.475,
+                        "y": 105.0
+                    },
+                    "uuid": "bd7f8e7a-db58-4e7a-b9ed-9f842eab4844"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 35 [3V3] of J3 on F.Cu",
+                    "pos": {
+                        "x": 153.75,
+                        "y": 103.0
+                    },
+                    "uuid": "4f2e8474-2f9f-405c-9477-8b95b1990da9"
+                },
+                {
+                    "description": "Track [3V3] on F.Cu, length 1.0517 mm",
+                    "pos": {
+                        "x": 156.25,
+                        "y": 103.0
+                    },
+                    "uuid": "088caa6f-1334-4d1a-98a2-43ef7771eb8a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 35 [3V3] of J3 on F.Cu",
+                    "pos": {
+                        "x": 153.75,
+                        "y": 103.0
+                    },
+                    "uuid": "4f2e8474-2f9f-405c-9477-8b95b1990da9"
+                },
+                {
+                    "description": "Track [3V3] on F.Cu, length 1.0517 mm",
+                    "pos": {
+                        "x": 140.75,
+                        "y": 103.0
+                    },
+                    "uuid": "2d79de40-25e2-4bf0-8bd4-a4082baf677f"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C10 on F.Cu",
+                    "pos": {
+                        "x": 155.475,
+                        "y": 105.0
+                    },
+                    "uuid": "bd7f8e7a-db58-4e7a-b9ed-9f842eab4844"
+                },
+                {
+                    "description": "Track [3V3] on F.Cu, length 1.0517 mm",
+                    "pos": {
+                        "x": 156.25,
+                        "y": 103.0
+                    },
+                    "uuid": "088caa6f-1334-4d1a-98a2-43ef7771eb8a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C11 on F.Cu",
+                    "pos": {
+                        "x": 158.8,
+                        "y": 105.5
+                    },
+                    "uuid": "a3742c3b-e60e-4488-b5ec-34cc7ec318a0"
+                },
+                {
+                    "description": "Track [3V3] on F.Cu, length 1.0517 mm",
+                    "pos": {
+                        "x": 157.25,
+                        "y": 103.0
+                    },
+                    "uuid": "e798af1e-d847-49da-a4eb-49cb0840c4f1"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of R9 on F.Cu",
+                    "pos": {
+                        "x": 163.175,
+                        "y": 133.0
+                    },
+                    "uuid": "f556eb81-9735-4e7e-837f-1ab253b76ea0"
+                },
+                {
+                    "description": "Pad 1 [3V3] of C5 on F.Cu",
+                    "pos": {
+                        "x": 151.55,
+                        "y": 137.0
+                    },
+                    "uuid": "62f0f6d8-57f5-4082-91a5-e54fb1cb40b8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C2 on F.Cu",
+                    "pos": {
+                        "x": 166.85,
+                        "y": 173.015
+                    },
+                    "uuid": "07ad1b07-8e2a-4197-9cfe-8fe21ecf600e"
+                },
+                {
+                    "description": "Pad 2 [3V3] of U1 on F.Cu",
+                    "pos": {
+                        "x": 164.85,
+                        "y": 175.24
+                    },
+                    "uuid": "6349d297-4c4d-4d0d-9232-1e0b880fe4fc"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C2 on F.Cu",
+                    "pos": {
+                        "x": 166.85,
+                        "y": 173.015
+                    },
+                    "uuid": "07ad1b07-8e2a-4197-9cfe-8fe21ecf600e"
+                },
+                {
+                    "description": "Pad 2 [3V3] of L1 on F.Cu",
+                    "pos": {
+                        "x": 148.5,
+                        "y": 144.0
+                    },
+                    "uuid": "e5682517-998f-4eae-9356-a36b4fb557eb"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [3V3] of C3 on F.Cu",
+                    "pos": {
+                        "x": 170.85,
+                        "y": 176.19
+                    },
+                    "uuid": "6b93b2d7-b950-4dc3-ad9d-ecad155b8c56"
+                },
+                {
+                    "description": "Pad 1 [3V3] of C2 on F.Cu",
+                    "pos": {
+                        "x": 166.85,
+                        "y": 173.015
+                    },
+                    "uuid": "07ad1b07-8e2a-4197-9cfe-8fe21ecf600e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [ROW3] on B.Cu, length 5.7943 mm",
+                    "pos": {
+                        "x": 154.3907,
+                        "y": 173.4448
+                    },
+                    "uuid": "9275ff22-ee42-4895-a31a-d11fa68d530a"
+                },
+                {
+                    "description": "Pad 1 [ROW3] of D14 on F.Cu",
+                    "pos": {
+                        "x": 176.925,
+                        "y": 172.575
+                    },
+                    "uuid": "e6f7f46d-1e9b-4f55-965a-2a3394a4c066"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 2 [KEY14] of SW14 on B.Cu",
+                    "pos": {
+                        "x": 164.485,
+                        "y": 175.655
+                    },
+                    "uuid": "91d365ae-387d-4e4c-be3d-db0eb78df1e1"
+                },
+                {
+                    "description": "Pad 2 [KEY14] of D14 on F.Cu",
+                    "pos": {
+                        "x": 180.225,
+                        "y": 172.575
+                    },
+                    "uuid": "3ef5df8f-2aea-48de-a119-84eb4110886e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.5000 mm; actual 0.4565 mm)",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 106.215485,
+                        "y": 100.0
+                    },
+                    "uuid": "50e28b5d-9252-4a84-94aa-e48e44bdf777"
+                },
+                {
+                    "description": "Via [TFT_BLK] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 140.9926,
+                        "y": 100.7565
+                    },
+                    "uuid": "c840c9d3-6618-45f0-b4ba-791e87440f02"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        },
+        {
+            "description": "Isolated copper fill",
+            "items": [
+                {
+                    "description": "Zone 'L3 3V3' [3V3] on In2.Cu, priority 0",
+                    "pos": {
+                        "x": 100.0,
+                        "y": 100.0
+                    },
+                    "uuid": "4e93ac0b-4abc-4dfa-ba1b-c5e16cc63ca5"
+                }
+            ],
+            "severity": "warning",
+            "type": "isolated_copper"
+        }
+    ]
+}

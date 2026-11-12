@@ -1,0 +1,37 @@
+[
+  {
+    "sku": "pro",
+    "read_date": "2026-11-12",
+    "router": "Freerouting official 1.9.0 JAR",
+    "jar_sha256": "9084a4888937a7f31f857ecc12aa7a37407f51160e4d2892dff9c9bb47ae3102",
+    "java_version": "openjdk version \"17.0.19\" 2026-04-21\nOpenJDK Runtime Environment Homebrew (build 17.0.19+0)\nOpenJDK 64-Bit Server VM Homebrew (build 17.0.19+0, mixed mode, sharing)",
+    "network": "OS sandbox denies network*",
+    "pid": 804,
+    "command": [
+      "/usr/bin/sandbox-exec",
+      "-p",
+      "(version 1) (allow default) (deny network*)",
+      "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home/bin/java",
+      "-Xmx2048m",
+      "-jar",
+      "/private/tmp/xorrpad-p1-tools/freerouting-1.9.0.jar",
+      "-de",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.dsn",
+      "-do",
+      "/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/pro.ses",
+      "-mp",
+      "100",
+      "-mt",
+      "0",
+      "-da",
+      "-dl",
+      "-dct",
+      "0"
+    ],
+    "dsn_sha256": "40dc8b37c5bac1090d63cff7f319fb99fee6877e7f00e89d86e1903594115240",
+    "elapsed_seconds": 67.885,
+    "exit_code": 0,
+    "stop_reason": "",
+    "session_created": true
+  }
+]

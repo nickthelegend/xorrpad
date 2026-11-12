@@ -12,6 +12,8 @@ from pathlib import Path
 import wx
 app = wx.App(False)
 import pcbnew as k
+from shapely.geometry import Point, LineString, box
+from shapely.ops import unary_union, polygonize
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / 'generated'
@@ -126,8 +128,61 @@ def import_session():
     zone(b,k.F_Cu,'GND','Top GND pour')
     zone(b,k.B_Cu,'GND','Bottom GND pour')
     k.SaveBoard(str(OUT/'pro.kicad_pcb'),b)
+    project=json.loads((OUT/'pro-route-input.kicad_pro').read_text())
+    project['meta']['filename']='pro.kicad_pro'
+    (OUT/'pro.kicad_pro').write_text(json.dumps(project,indent=2)+'\n')
+
+def stitch():
+    b=k.LoadBoard(str(OUT/'pro.kicad_pcb'))
+    ground=b.FindNet('GND').GetNetCode()
+    def xy(p): return (k.ToMM(p.x),k.ToMM(p.y))
+    edges=[LineString([xy(s.GetStart()),xy(s.GetEnd())]) for s in b.GetDrawings()
+           if s.GetLayer()==k.Edge_Cuts]
+    interior=unary_union(list(polygonize(edges))).buffer(-.81)
+    blockers=[]
+    for f in b.GetFootprints():
+        for z in f.Zones():
+            if z.GetIsRuleArea():
+                r=z.GetBoundingBox()
+                blockers.append(box(k.ToMM(r.GetX()),k.ToMM(r.GetY()),
+                                    k.ToMM(r.GetRight()),k.ToMM(r.GetBottom())).buffer(.31))
+        for p in f.Pads():
+            # Conservative pad bounds cover rotated/rounded/oblong shapes.
+            if p.GetNetCode()!=ground or p.GetDrillSize().x:
+                r=p.GetBoundingBox()
+                blockers.append(box(k.ToMM(r.GetX()),k.ToMM(r.GetY()),
+                                    k.ToMM(r.GetRight()),k.ToMM(r.GetBottom())).buffer(.56))
+    for t in b.GetTracks():
+        if isinstance(t,k.PCB_VIA):
+            blockers.append(Point(xy(t.GetPosition())).buffer(k.ToMM(t.GetWidth())/2+.56))
+        elif t.GetNetCode()!=ground:
+            blockers.append(LineString([xy(t.GetStart()),xy(t.GetEnd())]).buffer(k.ToMM(t.GetWidth())/2+.46))
+    blocked=unary_union(blockers)
+    candidates=[(x,y) for x in range(102,183,5) for y in range(102,183,5)]
+    # Local return vias next to ground pads supplement the uniform mesh.
+    for f in b.GetFootprints():
+        for p in f.Pads():
+            if p.GetNetCode()==ground:
+                x,y=xy(p.GetPosition())
+                candidates.extend((x+dx,y+dy) for dx,dy in [(1,0),(-1,0),(0,1),(0,-1)])
+    placed=[]
+    for x,y in candidates:
+        p=Point(x,y)
+        if not interior.covers(p) or blocked.intersects(p):continue
+        if any(math.hypot(x-u,y-w)<1 for u,w in placed):continue
+        via=k.PCB_VIA(b);via.SetPosition(v(x,y));via.SetWidth(k.FromMM(.6))
+        via.SetDrill(k.FromMM(.3));via.SetViaType(k.VIATYPE_THROUGH)
+        via.SetLayerPair(k.F_Cu,k.B_Cu);via.SetNetCode(ground);b.Add(via)
+        placed.append((x,y))
+    project=(OUT/'pro.kicad_pro').read_text()
+    k.SaveBoard(str(OUT/'pro.kicad_pcb'),b)
+    (OUT/'pro.kicad_pro').write_text(project)
+    (OUT/'pro-stitching.json').write_text(json.dumps(dict(
+        via_size_mm=.6,drill_mm=.3,grid_pitch_mm=5,added_count=len(placed),
+        coordinates_mm=placed),indent=2)+'\n')
+    print('Added ground stitching vias:',len(placed))
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('step',choices=['prepare','export','import'])
+    p=argparse.ArgumentParser();p.add_argument('step',choices=['prepare','export','import','stitch'])
     args=p.parse_args()
-    {'prepare':prepare,'export':export,'import':import_session}[args.step]()
+    {'prepare':prepare,'export':export,'import':import_session,'stitch':stitch}[args.step]()
