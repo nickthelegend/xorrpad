@@ -6,6 +6,14 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S5 manufacturing
+
+- Physical 01+14 boot self-test: all fourteen keys, knob, mic meter, speaker
+  sweep, TFT bars/grid, LED RGB, Wi-Fi scan and BLE advertising; signed unit
+  reports with explicit failure/timeouts and serial PASS/FAIL verification.
+- Physical 01+13 ten-second reset countdown with cancellation, suspended trade
+  inputs, checked erasure of default/profile NVS and fresh pairing after reboot.
+
 ### Added — firmware 2.0.0, S4 health
 
 - Panic-enabled task/idle watchdog, SDK brownout reset handling, bounded NVS

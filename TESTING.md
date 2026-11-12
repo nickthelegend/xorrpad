@@ -590,3 +590,24 @@ accounts). An initial full run timed out in the existing live book-strategy
 market-data test; that unchanged test passed in **68.14 s** on the final run.
 All seven S4 desk tests and existing v2 pairing, OTA, kill, replay, profile and
 live devnet signal/verified historical receipt cases passed.
+
+## Firmware v2 — S5 manufacturing (2026-11-12)
+
+**Compiled, not yet flashed.** Eight new native cases cover the actual factory
+state machine: fixed matrix numbering/unused cells, unique presses, ordered
+knob/mic/inspection steps, RGB observation time, explicit NO failure, scan plus
+advertising requirements, timeout wrap and uninterrupted/cancelled reset holds.
+The isolated factory snapshot passes **159 cases / 1,055 assertions**. Five
+new desk tests verify real Ed25519 signed reports, CRC, serial and public-key
+binding, incomplete/inconsistent reports, per-component FAIL, bounded fragmented serial framing and forged signatures
+with attacker-recomputed CRC. They pass without accessing hardware or secrets.
+The keys used by those tests are ephemeral cryptographic test material.
+
+Hardware is still required for chord wiring, all key switches, knob direction,
+mic calibration, sweep audibility, TFT pixels/colours, LED channels, Wi-Fi/BLE,
+CDC reconnect and default/profile NVS erasure across reboot. No physical flash,
+factory reset, production security provisioning or eFuse operation was run.
+
+The isolated manufacturing feature compiles normally at **1,748,267 bytes flash /
+64,340 bytes static RAM** (ESP32 core 3.3.10). Final normal/release evidence for
+S5 follows below.

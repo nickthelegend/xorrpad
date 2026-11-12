@@ -385,6 +385,21 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
 static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   c.fillScreen(BG);
   c.setTextWrap(false);
+  if (pad.factory) {
+    text(c,12,8,2,INK,"FACTORY / SELF TEST");
+    wrap(c,12,34,296,1,INK,pad.factoryInstruction,3);
+    if (pad.factoryStage == 2) {
+      text(c,12,90,2,INK,"MIC LEVEL"); c.drawRect(12,120,296,24,INK);
+      c.fillRect(14,122,292*pad.factoryMic/100,20,UP);
+    }
+    if (pad.factoryStage == 4) {
+      const uint16_t bars[]={0xf800,0x07e0,0x001f,0xffff,0x0000};
+      for(int i=0;i<5;i++) c.fillRect(i*64,72,64,70,bars[i]);
+      for(int x=0;x<W;x+=8) c.drawLine(x,150,x,239,INK);
+      for(int y=150;y<H;y+=8) c.drawLine(0,y,319,y,INK);
+    }
+    return;
+  }
   if (pad.killed) {
     text(c,12,20,4,DOWN,"KILLED");
     wrap(c,12,72,296,2,INK,"Trading is latched off",2);

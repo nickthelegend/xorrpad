@@ -474,3 +474,38 @@ and fsyncs before acknowledging its digest and size. The pad retains flash
 until that exact acknowledgment; disconnects, transport changes, fresh pairing
 and lost acknowledgments restart safely. Dumps remain local to the paired desk.
 No crash is deliberately triggered or hardware brownout induced by this step.
+
+## v2 S5 factory test (2026-11-12)
+
+**Compiled, not yet flashed.** Hold **01+14 at boot** to enter an isolated
+self-test. Numbers follow the fixed keymap in `logic/safety.h`: 01=(0,0),
+13=(3,2), 14=(3,3); unused cells are (0,3) and (1,3). Verify the assembled
+board's labels/wiring before flashing. Factory mode suppresses trade inputs,
+OTA commands, provisioning and backend polling. Reset exits the mode.
+
+Press all fourteen keys, turn and click the knob, speak above the mic meter's
+threshold, listen to the tone sweep, inspect TFT colour bars/dead-pixel grid,
+and observe red/green/blue LED phases. Fresh YES presses acknowledge the
+speaker/TFT/LED; NO fails inspection. The firmware then scans Wi-Fi and checks
+BLE advertising. A completed scan with zero nearby APs is valid. Missing steps
+time out after three minutes and produce FAIL, never an assumed PASS.
+
+For a separately authorized physical manufacturing run, use
+`firmware/factory.sh SERIAL_PORT esp32-<12 hex eFuse MAC> [ED25519_PUBLIC_KEY]`.
+It writes the merged image using esptool at offset zero, opens 115200-baud serial,
+and prompts for the boot chord. The expected serial is mandatory; an optional
+public identity key pins the signer. Without that pin, signature validation
+provides self-consistency, not independent device authenticity or freshness.
+The monitor verifies CRC, Ed25519, serial, firmware and every boolean verdict;
+it prints PASS/FAIL per check and per serial, returning nonzero on any failure,
+disconnect or four-minute timeout. The signed report repeats over serial so CDC
+reconnection cannot lose it; a paired desk can also receive it. No secret is
+read by the monitor. Signing uses the device's existing identity internally.
+
+Hold **01+13 for ten uninterrupted seconds** to reset, with a TFT countdown;
+release cancels. Trade inputs are suspended during the gesture. A completed
+reset stops radios, erases both default and profile NVS (identity/pairing,
+legacy consent, Wi-Fi, settings, keymaps, profiles, safety and reset history),
+then reboots. Erase failure leaves the unit offline with an error, never a
+success/reboot claim. Flash firmware, eFuses and the separate crash partition
+are untouched. Re-pair and provision after reset; identity keys regenerate.

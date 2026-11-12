@@ -15,6 +15,8 @@
 // the whole model the firmware holds: it keeps no opinion of its own about what
 // is armed or what is in hand, because the backend is the only thing that knows.
 struct PadState {
+  bool factory=false; int factoryStage=0, factoryMic=0;
+  String factoryInstruction;
   bool listening=false;
   int waveform[32]={};
   String profile="Scalper", layer="Spot", knobMode="size";

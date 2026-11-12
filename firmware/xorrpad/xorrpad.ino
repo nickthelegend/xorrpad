@@ -28,6 +28,7 @@
 #include "keymap.h"
 #include "link.h"
 #include "matrix.h"
+#include "factory.h"
 #include "audio.h"
 #include "telnet.h"
 #include "net.h"
@@ -38,6 +39,8 @@
 #include "knob.h"
 #include "health.h"
 
+Factory factory;
+xorr::FactoryReset factoryReset;
 Display    screen;            // the display pod
 ChartState chartNow;
 uint32_t   nextChart   = 0;
@@ -131,6 +134,7 @@ void ledFromState() {
 
 // Messages are applied on loop(), including BLE callbacks queued by link.h.
 void onPadMessage(JsonVariantConst d) {
+  if (factory.active || factoryReset.active) return;
   String type=d["type"] | "";
   if(type=="crash_saved") health.crashSaved(d);
   else if (type == "kill_sync") { latchKill(); }
@@ -298,6 +302,8 @@ void sendKey(const KeyBind &kb) {
 }
 
 void onKey(uint8_t r, uint8_t c, bool pressed) {
+  if (factory.active) { factory.key(r,c,pressed); return; }
+  if (factoryReset.active) return;
   const KeyBind &kb = keyAt(r, c);
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
     telnet.logf("  [KEY] row=%u col=%u  = %s\n", r, c, kb.label ? kb.label : "unbound");
@@ -441,6 +447,7 @@ void setup() {
   led(0, 0, 60);                        // blue = booting
 
   matrix.begin();
+  factory.boot();
   Preferences safety;
   bool safetyOK=safety.begin("xorrsafety",false);
   bool readable=safetyOK && (!safety.isKey("killed") || safety.getType("killed")==PT_U8);
@@ -452,13 +459,16 @@ void setup() {
   knob.begin();
   health.begin(screen.begin());                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
-  if (!audio.begin()) Serial.println("!! audio init failed");
+  bool audioOK = audio.begin();
+  factory.hardware(health.displayUp, audioOK);
+  if (!audioOK) Serial.println("!! audio init failed");
   recBuf = (int16_t *)ps_malloc(REC_CAP * sizeof(int16_t));
   if (!recBuf) Serial.println("!! PSRAM alloc failed — enable Tools → PSRAM: OPI PSRAM");
 
   settings.load();
   net.begin(&settings, &padlink.legacy);
   padlink.begin(&settings,onPadMessage);
+  if (factory.active) { WiFi.mode(WIFI_STA); return; }
   Serial.printf("xorrpad firmware %s\n",XORR_FW_VERSION);
 
   bool forcePortal = talkKeyHeldAtBoot();
@@ -504,7 +514,54 @@ void setup() {
   Serial.println("Ready. An agent or market key sets the hand; BUY/SELL propose; ✓ executes.");
 }
 
+// Reset is physical only. Suspend input/network work throughout the countdown.
+bool serviceFactoryReset() {
+  static bool failed = false;
+  bool due = factoryReset.tick(Factory::resetHeld(), millis());
+  if (!factoryReset.active && !failed) return false;
+  matrix.scan(nullptr); // Consume chord edges without dispatching actions.
+  if (esp_task_wdt_status(nullptr) == ESP_OK) esp_task_wdt_reset();
+  padlink.stopInputs();
+  recording = recStreaming = pad.listening = false;
+  pad.pending = pad.armed = pad.autoAccept = false; pad.signalId = "";
+  killSwitch.confirmKey(false,millis(),false);
+  PadState reset;
+  reset.factory = true;
+  reset.factoryInstruction = failed ? "RESET FAILED - keep unit offline; reboot and retry"
+      : "Hold 01+13: " + String(factoryReset.remaining(millis())) + "s; release to cancel";
+  screen.draw(reset, chartNow);
+  rgbLedWrite(STATUS_LED, 64, 20, 0);
+  if (due && !failed) {
+    WiFi.disconnect(true, true);
+    WiFi.mode(WIFI_OFF);
+    NimBLEDevice::deinit(true);
+    nvs_flash_deinit_partition("profiles");
+    nvs_flash_deinit();
+    esp_err_t profilesErased = nvs_flash_erase_partition("profiles");
+    esp_err_t nvsErased = nvs_flash_erase();
+    if (profilesErased == ESP_OK && nvsErased == ESP_OK) ESP.restart();
+    failed = true; // Never resume trade inputs or claim success after a failed wipe.
+  }
+  return true;
+}
+
 void loop() {
+  if (!factory.active && serviceFactoryReset()) { delay(1); return; }
+  if (factory.active) {
+    matrix.scan(onKey);
+    auto event = knob.tick();
+    padlink.tick();
+    health.keysScanned = true;
+    health.tick(padlink);
+    factory.tick(padlink, audio, event == Knob::Turn, event == Knob::Click);
+    PadState test;
+    test.factory = true; test.factoryInstruction = factory.instruction;
+    test.factoryStage = factory.currentStage(); test.factoryMic = factory.micLevel();
+    static uint32_t drawAt = 0;
+    if (millis() - drawAt >= 100) { drawAt = millis(); screen.draw(test, chartNow); }
+    delay(1); return;
+  }
+
   health.tick(padlink);
   padlink.killed = killSwitch.killed;
   provision.poll();padlink.tick();
