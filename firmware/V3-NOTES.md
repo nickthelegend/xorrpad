@@ -1,3 +1,83 @@
+# Firmware 3.0.0 — V7 validation and hardware research
+
+**Compiled, not yet flashed.** V7 labels the firmware `3.0.0`, adds the
+[item-8 hardware research](HARDWARE-REV2.md), and supplies a repeatable
+[full v3 scenario runner](../tools/padsim/v3.mjs). Exact final test totals,
+commands, source scope and normal/release sizes are recorded in the V7 section
+of [TESTING.md](../TESTING.md) and [README.md](README.md).
+Final native totals are 273 cases / 2,676 assertions in the working tree and
+259 / 2,623 in the isolated source. Desk: 208 pass / 9 setup skips (217 total),
+plus one excluded persistent-key-file scenario. V3 runner: 54/54 working and
+40/40 isolated; its live clear-review/signature checks pass in both, while
+unfunded broadcast is BLOCKED. All final executed tests have zero failures.
+
+This version label is not a claim that every V3-SPEC acceptance criterion is
+complete. The checkout already contained unfinished attestation and other
+changes when V7 began. They are preserved outside V7's commits. Validation
+separately covers the combined working tree and the isolated staged source;
+working-tree attestation evidence does not imply committed attestation delivery.
+The isolated runner explicitly reports that missing feature as BLOCKED.
+
+## What V7 establishes
+
+- Real legacy/v0 builder fixtures, exact-message review/fingerprints, blind-sign
+  refusal, real Ed25519 pad signing and durable rolling cap refusal across a
+  simulated reboot are exercised by the native and encrypted-link suites.
+- The working-tree attestation suite covers valid factory chains, foreign and
+  absent chains, challenge replay, identity substitution and portable XOR
+  verifier parity. It cannot establish an installed phone-app integration,
+  production factory trust root or measured firmware authenticity.
+- The actual wasm3 interpreter refuses developer-signed forbidden signing/trade
+  imports and memory/fuel/host-call attacks. Two encrypted pads independently
+  approve the same full message hash before the coordinating desk releases its
+  2-of-2 gate. This is desk-enforced crew policy, not on-chain multisig.
+- OTA regressions can select the newly compiled 3.0.0 image using
+  `XORR_OTA_TEST_IMAGE`; both patch and image signatures, base binding, channel
+  opt-in, cohort rollout and full-image fallback are checked. Test signing
+  identities are generated in RAM; no release signing-key file is opened.
+- The live simulator path verifies the actual devnet genesis and collateral
+  mint, obtains a live blockhash, builds a real SDK token self-transfer, and
+  verifies the production native pad's signature over those same message bytes.
+  Broadcast remains explicitly BLOCKED without funding/provider access. Its
+  exact public signer and ATA appear in the final V7 evidence. Keys exist only
+  for the life of that process; they are not saved or reusable after exit.
+- Hardware research compares ATECC608B's P-256 limit with the specific SE050E
+  Ed25519 configuration, identifies a BLDC/encoder/driver, battery/charger and
+  PD sink, and records enclosure and radio compliance work. The 1k BOM worksheet
+  distinguishes quoted catalog tiers, arithmetic extensions and unresolved RFQs.
+  Its subtotal is not finished-product COGS; custom geometry and vendor prices
+  are not invented.
+
+## Remaining acceptance and hardware work
+
+Fund a live simulator while `--funding-wait=300` is active to prove a new devnet
+broadcast; an unsigned builder fixture or historical receipt is not a new fill.
+Commit/review the pending attestation implementation separately, provision
+factory public trust anchors and verify the real XOR phone connection. A factory
+identity challenge does not measure firmware, nor can software-held identity
+keys alone defeat a device whose firmware/keys have been copied.
+
+Lookup-table evidence supplied by the desk remains unauthenticated chain state
+and therefore blind. Unpriced/rent-bearing instructions and Phoenix packets
+without independently verified leverage remain refused by session signing.
+Caps bound supported nominal collateral input, excluding SOL network fees;
+rolling age conservatively counts powered uptime across simulated reboot.
+Those limits are retained rather than silently trusting host prices or leverage.
+
+A board must still establish physical TFT review/holds and knob pin mapping,
+BLE/Wi-Fi timing, USB/audio, watchdog behavior, PSRAM pressure, NVS power-cut
+atomicity, actual key recovery, offline TLS/SNTP, charging/motor EMC and OTA
+inactive-slot writes, boot health and rollback. Host simulations do not establish
+these properties. Production secure boot/flash encryption remain documented,
+not enabled; no image is flashed, no production image is signed, no eFuse is
+changed, no existing private key or `.env` is opened, and nothing is pushed.
+
+## Historical implementation record
+
+The following sections retain the earlier incremental evidence and limitations.
+Version/status statements inside them describe those earlier steps; the V7
+section above and final TESTING/README evidence describe the current label.
+
 # Firmware v3 — V1 clear signing and V2 session signing
 
 V1 implements V3-SPEC item 1; V2 adds the conservative item-2 implementation described below. **Compiled, not yet flashed.** This is an incremental

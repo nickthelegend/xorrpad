@@ -6,6 +6,17 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 3.0.0, V7 validation and hardware research
+
+- Rev 2 research with exact secure-element, haptic knob, battery/charger and
+  USB-C PD candidates, distributor price links, a 1k sourcing worksheet,
+  enclosure DFM and FCC/CE integration paths; unresolved costs remain RFQ.
+- Repeatable v3 padsim regression and live native-pad devnet signing runner,
+  with exact public funding addresses and explicit BLOCKED broadcast reporting.
+- Firmware label `3.0.0`, normal/release compile evidence and complete test
+  totals in TESTING.md; compiled, not yet flashed. Pending attestation source,
+  funded broadcast and physical-board acceptance remain explicit in V3-NOTES.md.
+
 ### Added — firmware 3.0.0, V6 OTA channels
 
 - Per-pad stable/beta opt-in saved in NVS, signed channel/percentage rollout

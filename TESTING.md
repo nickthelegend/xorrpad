@@ -1187,3 +1187,141 @@ application and paired encrypted padsim, without replacing protocol endpoints.
 Physical BLE throughput, NVS power-loss behavior, inactive-slot flash failure,
 TFT progress and pending-verify rollback still require the board. Deterministic
 rollout is staging rather than version-freshness/anti-rollback enforcement.
+
+## Firmware v3 — V7 3.0.0 validation and hardware research (2026-11-12)
+
+**Compiled, not yet flashed.** V7 adds item-8 research, a repeatable v3 scenario
+runner, the firmware version bump and these release notes. Existing unfinished
+attestation and other working-tree edits remain outside V7's commits. The
+combined working tree and isolated staged source are reported separately.
+The version label does not imply that all full-v3 acceptance criteria are met.
+
+| Final verification | Total | Passed | Skipped / blocked | Failed |
+| --- | ---: | ---: | --- | ---: |
+| Working native `firmware/test/run.sh` | 273 cases / 2,676 assertions | all | 0 | 0 |
+| Isolated native `firmware/build/v7-snapshot/firmware/test/run.sh` | 259 cases / 2,623 assertions | all | 0 | 0 |
+| Working desk suite, command below | 217 | 208 | 9 setup/provider skips; one additional legacy key-file test excluded | 0 |
+| `npm test --prefix site` | 14 | 14 | 0 | 0 |
+| `npm test --prefix keeper` | 9 | 7 | 2 setup skips | 0 |
+| Live `node tools/padsim/price-alerts.mjs` | 1 HTTPS smoke check | 1 | 0 | 0 |
+| Working v3 padsim runner (desk subset) | 54 | 54 | broadcast BLOCKED: unfunded | 0 |
+| Isolated v3 padsim runner (desk subset) | 40 | 40 | attestation absent; broadcast BLOCKED: unfunded | 0 |
+
+The native source difference is the original unfinished attestation work. The
+nine desk skips are: unavailable localhost Ollama; absent environment-only
+Anthropic/Deepgram credentials; missing Electron binary; a real Meteora RPC 429;
+missing public keeper metadata; two unfunded/unregistered Phoenix-owner cases;
+and missing funded pm-AMM devnet test-owner setup (the RPC faucet returned 410).
+Keeper skips are a real Hermes HTTP 401 requiring PYTH_API_KEY and absent keeper
+key-permission setup. Skips are not successful live executions.
+
+The separately excluded legacy test is named `key → live devnet signal → accept
+→ actual confirmed receipt (funded test wallet required)`. It would open the
+persistent `desk/.t4-devnet` wallet; the explicit no-existing-key-access rule
+therefore takes priority. No test source was deleted or weakened to exclude it.
+The new v3 live path uses the native pad's RAM-only identity instead, with an
+exact public funding address. Other unit tests use their own disposable test
+identities; no existing wallet, production signing key or `.env` is loaded.
+
+Final desk command (217 tests are the runner's reported total; the CLI-excluded
+case is not included in that number):
+
+```sh
+TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' XORR_OTA_TEST_IMAGE="$PWD/firmware/build/v7-normal-out/xorrpad.ino.bin" node --test --test-concurrency=1 --test-skip-pattern='funded test wallet required' desk/test/*.test.mjs
+```
+
+The temporary directory was created with
+`mktemp -d '/Volumes/Extreme SSD/xorrpad-v7.XXXXXX'`, outside the repository.
+The initial desk attempt used `firmware/build/v7-tmp` and reported 217 total,
+207 pass, 9 skips and one failure: the existing factory-keygen destination test
+correctly refused its purported external destination because TMPDIR was inside
+the repo. The complete corrected run above supersedes it: 208 pass, no failures,
+475,037.849 ms. The protection and test were unchanged.
+
+| ESP32-S3 source / mode | Program bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Working normal | 1,950,594 | 68,188 |
+| Working `XORR_RELEASE=1` | 1,948,430 | 68,116 |
+| Isolated normal | 1,940,938 | 67,932 |
+| Isolated `XORR_RELEASE=1` | 1,938,806 | 67,852 |
+
+Arduino CLI 1.5.1, ESP32 core 3.3.10. Exact FQBN and commands are in
+[firmware/README.md](firmware/README.md#v7--firmware-300-validation-and-hardware-research).
+The isolated index export is `firmware/build/v7-snapshot`; it contains only
+committed source plus the staged V7 changes. Dependencies and public compiled
+OTA fixtures are symlinked, without copying user wallets or secret files.
+Runtime heap/PSRAM is additional to static RAM. Outputs/logs are ignored
+`firmware/build/v7-*`; no release signing or flash command is run.
+
+The [hardware research](firmware/HARDWARE-REV2.md) records actual orderable
+parts, distributor price links and tier/multiple-aware extensions for 1,000
+units. The subtotal explicitly excludes unresolved custom/retained parts and
+manufacturing costs; there is no fabricated complete COGS. Physical TFT review,
+holds/knob mapping, BLE/Wi-Fi/audio, NVS power loss/key recovery, offline TLS,
+watchdog/PSRAM behavior, OTA flash/boot rollback and production factory trust
+provisioning remain unproven. Secure boot/flash encryption are not enabled.
+
+### V7 padsim v3 scenarios
+
+| Working-tree scenario file | Total | Pass | Skip | Fail |
+| --- | ---: | ---: | ---: | ---: |
+| `clear-sign.test.mjs` | 4 | 4 | 0 | 0 |
+| `pad-signer.test.mjs` | 5 | 5 | 0 | 0 |
+| `attestation.test.mjs` | 14 | 14 | 0 | 0 |
+| `abilities.test.mjs` | 5 | 5 | 0 | 0 |
+| `price-alerts.test.mjs` | 2 | 2 | 0 | 0 |
+| `crew.test.mjs` | 10 | 10 | 0 | 0 |
+| `ota.test.mjs` | 14 | 14 | 0 | 0 |
+| **Aggregate** | **54** | **54** | **0** | **0** |
+
+These 54 regressions are a subset of the full desk suite; do not add them
+again to the desk total. They cover blind-sign refusal, incomplete/short review,
+exact-message signing and real Ed25519, rolling-cap refusal after reboot,
+attestation pass/fail/replay, signed sandbox escape refusal, 2-of-2 approval,
+offline alert rules and signed OTA channel/rollout/delta/fallback checks.
+
+Working command: `TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' node tools/padsim/v3.mjs`.
+The separate live path passes real-devnet genesis/mint/blockhash reads, native
+clear review and exact-message pad signing, with fingerprint **57Yd6Z**.
+New devnet broadcast: **BLOCKED**, unfunded session identity:
+
+```text
+public key: 4gVz8qoE4gZi2tJWTBY6LbszvFUNocaAZxum47zQepmS
+token ATA:  F16j1hGdwvmdZSQDXg9rF1JNBX6JDmcysPAfYJYkrWHz
+```
+
+That was the exact public identity observed in this run; its private material
+was never saved and was lost when the process exited. To fund a new run, use
+`node tools/padsim/v3.mjs --funding-wait=300` and the newly printed public key
+and ATA while that process is alive. Supply 0.01 devnet SOL and collateral in
+its existing ATA (the instruction asks for 1 mUSDC). The only broadcast path is
+a one-base-unit self-transfer; no real trade/fill or token-account creation is
+claimed. The pinned-root live Jupiter smoke is a separate 1/1 check above.
+
+Isolated command:
+`TMPDIR='/Volumes/Extreme SSD/xorrpad-v7.GIXX3g' node firmware/build/v7-snapshot/tools/padsim/v3.mjs`.
+It passes **40/40**, zero test skips/failures: clear-sign 4, signer 5, abilities 5,
+alerts 2, crew 10 and OTA 14. The fourteen attestation tests are absent from
+that committed-source candidate and reported **BLOCKED**, not passed or silently
+counted as skips. Live devnet reads, clear review and pad signing pass here too,
+with fingerprint **HWCwog**; broadcast remains **BLOCKED** for the exact signer:
+
+```text
+public key: BkQb1zKjoB612KYe2uCvKteJPN69m3vbAqUXB9PeBYuV
+token ATA:  BFdEvF5RYUEMUQk8fFKn5jZFAThWJRvzk6UdKXEn3VwB
+```
+
+This second RAM-only identity also ceased to exist at process exit. No new
+transaction was broadcast by either V7 live path, and no historical receipt is
+presented as a new fill. Working-tree attestation is validated but still needs
+its own reviewed feature commit and real factory/phone provisioning. The
+isolated scenario totals reuse the same tests, so they are not additional
+independent coverage to sum into a grand total.
+
+Final logs: `firmware/build/v7-{native,desk-final,site,keeper,live-alerts,padsim}.log`,
+`v7-isolated-{native,padsim}.log` and `v7-{normal,release,isolated-normal,isolated-release}.log`.
+`node --check tools/padsim/v3.mjs`, `git diff --check` and staged whitespace
+checks also pass. The only new OTA-test change permits an explicit compiled
+image path; the complete final desk and both scenario runs use the corresponding
+new 3.0.0 image. Existing assertions are retained. No production image is signed,
+no flash/eFuse operation is performed, and nothing is pushed.

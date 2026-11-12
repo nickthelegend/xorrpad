@@ -760,3 +760,42 @@ attestation changes. Its identical FQBN/flags use source
 installed dependencies are reused; no secret files are loaded. Results and
 physical-board limits are recorded in TESTING.md. No signing, flash, fuse or
 push commands are part of V6 verification.
+
+## V7 — firmware 3.0.0 validation and hardware research
+
+**Compiled, not yet flashed.** See [HARDWARE-REV2.md](HARDWARE-REV2.md) for item 8
+and [V3-NOTES.md](V3-NOTES.md) for proven behavior and remaining acceptance work.
+Arduino CLI 1.5.1; installed ESP32 core 3.3.10. These commands compile unsigned
+images directly; `build.sh` is deliberately not invoked because it loads a
+release signing key. No board is flashed and no production fuse is changed.
+
+```sh
+mkdir -p firmware/build/v7-tmp
+TMPDIR="$PWD/firmware/build/v7-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v7-normal" --output-dir firmware/build/v7-normal-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+TMPDIR="$PWD/firmware/build/v7-tmp" arduino-cli compile --jobs 3 --build-path "$PWD/firmware/build/v7-release" --output-dir firmware/build/v7-release-out --fqbn 'esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc' --build-property 'compiler.cpp.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' --build-property 'compiler.c.extra_flags=-DXORR_RELEASE=1 -DCORE_DEBUG_LEVEL=0 -DCONFIG_BT_NIMBLE_SM_SC_ONLY=1' firmware/xorrpad
+```
+
+| Tested source | Normal flash / static RAM | Release flash / static RAM |
+| --- | ---: | ---: |
+| Combined working tree | 1,950,594 B / 68,188 B | 1,948,430 B / 68,116 B |
+| Isolated staged V7 + committed features | 1,940,938 B / 67,932 B | 1,938,806 B / 67,852 B |
+
+App capacity is 3,145,728 B; static RAM capacity is 327,680 B. Runtime heap and
+PSRAM allocations are additional. The isolated source was exported from the
+index into `firmware/build/v7-snapshot`, excluding the original unfinished
+attestation and other edits. Its commands use the identical FQBN and flags,
+source `firmware/build/v7-snapshot/firmware/xorrpad`, build paths
+`firmware/build/v7-isolated-{normal,release}` and output paths
+`firmware/build/v7-isolated-{normal,release}-out`. Only installed dependencies
+and earlier public compiled OTA fixtures are symlinked into that snapshot.
+
+Run `firmware/test/run.sh` before the desk/scenario suites. The complete v3
+scenario command is `node tools/padsim/v3.mjs`; it reports every constituent
+file's TAP totals and an aggregate `V3 TOTAL`. The live path uses a RAM-only
+signer, prints the exact public funding address/ATA, reviews/signs a real devnet
+message and broadcasts only if funded. Use `--funding-wait=300` to keep that
+identity alive during funding. See [padsim instructions](../tools/padsim/README.md).
+Full totals and exact final test commands are in [TESTING.md](../TESTING.md).
+The regression runner uses loopback 8725–8727 and must run sequentially with
+the desk suite. Use an external-to-repository `TMPDIR` for attestation tests:
+the offline key-generation destination test intentionally rejects repo paths.
