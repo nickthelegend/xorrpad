@@ -1,0 +1,20 @@
+{
+  "source": "True three.js renders of cad/assembly.py + 2.8-inch CAD display pod. Not photographs or generated device geometry.",
+  "info": {
+    "triangles": 166550,
+    "renderer": "WebKit WebGL"
+  },
+  "stills": {
+    "width": 2400,
+    "height": 1800
+  },
+  "turntable": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "frames": 180,
+    "seconds": 6,
+    "loop": "Periodic camera-relative model angle 2π*i/180, endpoint excluded"
+  },
+  "errors": []
+}
