@@ -48,6 +48,8 @@ const routes = [
   ["/pad/clear-sign", "POST"],
   ["/pad/crew", "GET"],
   ["/pad/crew", "POST"],
+  ["/pad/price-alerts", "GET"],
+  ["/pad/price-alerts", "POST"],
   ["/events", "GET"],
 ];
 const output = new URL("../../docs/screens/v3/", import.meta.url);
@@ -119,6 +121,7 @@ test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad sta
     ["/pad/abilities", { device: "absent", action: "remove", slot: 0 }],
     ["/pad/session", { device: "absent", policy: {} }],
     ["/pad/clear-sign", { device: "absent" }],
+    ["/pad/price-alerts", { device: "absent", alerts: [] }],
   ]) {
     const response = await fetch(origin + route, {
       method: "POST",
@@ -141,6 +144,9 @@ test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad sta
   const session = await fetch(origin + "/pad/session?device=absent", { headers });
   assert.ok(session.status >= 400);
   assert.equal((await session.json()).error, "Setup required: select one paired, online, rearmed pad");
+  const alerts = await fetch(origin + "/pad/price-alerts?device=absent", { headers });
+  assert.ok(alerts.status >= 400);
+  assert.equal((await alerts.json()).error, "Setup required: select one paired, online, rearmed pad");
   const crew = await (await fetch(origin + "/pad/crew", { headers })).json();
   assert.deepEqual(crew.rounds, []);
   assert.equal(crew.policy.enabled, false);

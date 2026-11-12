@@ -22,7 +22,10 @@ export class SessionPadSimulator extends PadSimulatorV2 {
     this.on('message',message=>{this.work=this.work.then(()=>this.sessionMessage(message)).catch(error=>this.emit('protocol_error',error));});
   }
   async sessionMessage(m){
-    if(m.type==='session_status'){
+    if(m.type==='price_alerts'){
+      const state=await this.driver.call({command:'alerts',...(m.alerts===undefined?{}:{alerts:m.alerts})});
+      this.send({type:'price_alerts_state',requestId:m.requestId,...state});
+    }else if(m.type==='session_status'){
       const state=await this.driver.call({command:'status'});
       this.send({type:'session_state',requestId:m.requestId,...state,configured:!!this.policy});
     }else if(m.type==='session_policy'){this.policyRequest=m;}

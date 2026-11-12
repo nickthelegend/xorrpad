@@ -1,6 +1,7 @@
 // Native pad simulator: production parser, approval, policy, counter and Ed25519.
 // Only public accounting is written to disk. Ephemeral signing material stays in RAM.
 #include "../xorrpad/logic/session-sign.h"
+#include "../xorrpad/logic/price-alerts.h"
 #include <Ed25519.h>
 #include <iostream>
 #include <fstream>
@@ -11,6 +12,7 @@ int main(int argc,char **argv){
  uint8_t seed[32],pub[32];arc4random_buf(seed,32);Ed25519::derivePublicKey(pub,seed);
  solana::Key owner;std::copy(pub,pub+32,owner.begin());session::Policy policy;session::Counter counter;
  solana::Approval approval;solana::Request request;std::string text;
+ std::vector<prices::Alert> alerts;
  auto load=[&](){std::ifstream file(argv[1]);if(!file.good())return true;std::string disk((std::istreambuf_iterator<char>(file)),{});JsonDocument d;return !deserializeJson(d,disk) && counter.restore(d["usage"]) && session::parsePolicy(d["policy"],policy);};
  auto save=[&](const session::Counter &next){JsonDocument d;d.to<JsonObject>();next.json(d["usage"].to<JsonArray>());session::policyJson(d["policy"].to<JsonObject>(),policy);std::string disk;serializeJson(d,disk);std::string tmp=std::string(argv[1])+".tmp";std::ofstream f(tmp);f<<disk;f.close();return bool(f) && std::rename(tmp.c_str(),argv[1])==0;};
  bool healthy=load();
@@ -22,6 +24,11 @@ int main(int argc,char **argv){
    out["ok"]=healthy;out["publicKey"]=solana::address(owner);out["configured"]=healthy && policy.valid();
    if(healthy)out["spentToday"]=counter.spent();
    if(policy.valid())session::policyJson(out["policy"].to<JsonObject>(),policy);
+  }
+  else if(command=="alerts"){
+   bool ok=true;
+   if(!in["alerts"].isNull())ok=prices::parse(in["alerts"],alerts);
+   out["ok"]=ok;if(ok)prices::json(out["alerts"].to<JsonArray>(),alerts);else out["error"]="Invalid alerts";
   }
   else if(command=="policy"){
    session::Policy next;bool ok=healthy && in["heldMs"].as<unsigned>()>=3800 && session::parsePolicy(in["policy"],next);

@@ -3,6 +3,7 @@ import { useDesk, useRead, State, Empty, Field, money } from "../core";
 import { Icon } from "../brand/Icon";
 import { mountChart } from "../../../renderer/ui/price-chart.mjs";
 import { SignalCard } from "../signals";
+import { PadPriceAlerts } from "../components/PadPriceAlerts";
 function Chart({ market, kind, venue }) {
   const { api } = useDesk(),
     root = useRef(),
@@ -39,6 +40,7 @@ export function Markets() {
     [routing, setRouting] = useState(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [alert, setAlert] = useState(null);
   const seq = useRef(0);
   useEffect(() => {
     seq.current++;
@@ -243,6 +245,7 @@ export function Markets() {
               <option key={s}>{s}</option>
             ))}
           </datalist>
+          <button type="button" disabled={!market.trim()} onClick={() => setAlert({ market: market.trim(), kind })}>Alert on pad</button>
           <div className="direction-pills">
             {(kind === "spot"
               ? ["buy", "sell"]
@@ -426,6 +429,7 @@ export function Markets() {
           )}
         </section>
       </div>
+      {alert && <PadPriceAlerts {...alert} onClose={() => setAlert(null)} />}
     </section>
   );
 }

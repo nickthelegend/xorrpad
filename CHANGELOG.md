@@ -6,6 +6,21 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Desktop v3 D4, Markets
+
+- Final D4 verification: 236 desk tests, 226 passed, 10 setup/provider skips,
+  zero failures; app build passes. Twenty inspected desktop/mobile screenshots
+  and full evidence are recorded in TESTING.md.
+
+- Added Alert on pad to the selected market ticket. The existing sheet reads,
+  saves and removes up to eight token-USD alert rules through `/pad/price-alerts`,
+  preserving the other rules. It explains pad power/Wi-Fi/time requirements,
+  re-arming on save, underlying-token limits and “Nothing will trade”.
+- Added native parser-backed encrypted padsim browser coverage for both alert
+  directions, stored readback, removal and device isolation, plus authenticated
+  route/no-pad checks and inspected 1440/375 px empty/stored screenshots.
+  No new CSS, fonts, colors or libraries; no signing or trading action is sent.
+
 ### Added — Desktop v3 D4, Activity
 
 - Activity now shows authenticated clear-sign results, fingerprints, hashes,

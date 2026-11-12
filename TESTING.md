@@ -1709,3 +1709,55 @@ broadcast. Native tests pass **269/269 cases, 2,669 assertions**. Ten inspected
 Activity screenshots cover empty, verbatim error, actual clear results, crew policy
 and approved round at **1440/375 px**; no horizontal overflow or short added controls.
 Build passes. Full-suite evidence is recorded after the Markets screen.
+
+### D4 — Markets
+
+The selected market ticket opens the existing Sheet for Alert on pad. Rules are
+read from and saved to the selected pad through `/pad/price-alerts`: token mint,
+USD threshold and above/below direction, with an eight-rule limit and removal.
+The UI preserves the remaining rules, explains that saves re-arm them, and states
+“Nothing will trade”. Offline alerts require pad power, Wi-Fi and valid network
+time; perpetual prices and outcome probabilities are not claimed as supported.
+
+The focused Markets browser regression passes **1/1** through real encrypted USB-CRC
+padsim and the native firmware alert parser: empty/readback, both directions,
+preserving/removing rules, invalid trading-field rejection, two-device selection
+and disconnect without write redirection. Browser assertions confirm that every
+write is a price-alert request, with no signing or trading route invoked. Four
+inspected screenshots cover empty/stored alerts at **1440/375 px**, with no overflow
+and 44 px added targets. The built-route regression now covers every v3 brief
+route, authentication, method allowlists and real no-pad errors; `/classic` works.
+No test was removed, weakened or excluded.
+
+### D4 — Final verification
+
+The complete desk suite ran alone, with no test filter, in an isolated source
+copy excluding existing environment files, wallets, private keys and `.loom`.
+It shared the installed desk and render3d dependencies, the repo Python venv,
+public compiled firmware images, SDK WASM and all five public native drivers.
+An initial isolation attempt lacked render3d's installed `gltf-validator`; that
+dependency link was corrected before this complete rerun. No test was weakened,
+deleted or excluded.
+
+```sh
+SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+```
+
+Final complete run: **236 tests, 226 passed, 10 setup/provider skips, zero failures
+or cancellations**, **615,955.764542 ms**. Skips cover unavailable Ollama/API keys,
+Electron safeStorage, a rate-limited Meteora request, keeper setup, unfunded devnet
+wallets and unconfigured Phoenix accounts. No transaction was broadcast by D4.
+After that run, the final mode-specific Agent status text was verified by the
+focused native-backed Agent browser test: **1/1 passed**, zero failures or skips,
+27,898.095917 ms. `npm run build:app --prefix desk` passes on the final app source.
+
+Native verification passes **269/269 cases and 2,669 assertions**. All **20 D4
+screenshots** in `docs/screens/v3/` were inspected at 1440/375 px; added controls
+meet 44 px targets, including checkbox labels, and reduced motion is honored.
+No new CSS, font, color or library was introduced. Existing desktop layout and
+navigation remain intact. The mechanical UI detector returned no findings.
+
+Logs: `firmware/build/desktop-v3-d4-{desk,build,native,agent-final}.log`.
+Public firmware spend/review telemetry was native-tested; older firmware uses
+honest unavailable states. No board was flashed, no existing secret was opened,
+and nothing was pushed. D4 is recorded as one local commit per screen.

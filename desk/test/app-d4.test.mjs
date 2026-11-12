@@ -227,3 +227,50 @@ test('Activity renders actual clear-sign results, retained events, crew policy a
   } finally { await browser.close(); await pad.close(); for (const p of crewPads) await p.close(); }
 });
 
+test('Markets saves native-backed pad alerts, preserves other rules, removes and never trades', { timeout: 120000 }, async () => {
+  const browser = await chromium.launch({ headless: true, args: ['--disable-gpu'] });
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  const errors = [], writes = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('request', (r) => { if (r.method() === 'POST') writes.push(new URL(r.url()).pathname); });
+  const pad = new SessionPadSimulator({ device: 'esp32-d4alerts123', serial: true, sessionStateFile: path.join(dir, 'alerts-public.json') });
+  let other;
+  try {
+    await page.goto(origin + '/?token=isolated-d4-browser-test#markets');
+    await page.getByRole('button', { name: 'Alert on pad', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Alert on pad · SOL', exact: true });
+    await sheet.getByRole('heading', { name: 'No pad connected', exact: true }).waitFor();
+    await capture(page, 'markets', 'alert-empty', sheet);
+    const peer = await pair(pad, 8726);
+    await sheet.getByText('No price alerts stored on this pad.', { exact: true }).waitFor();
+    assert.equal(await sheet.getByLabel('Alert token mint', { exact: true }).inputValue(), 'So11111111111111111111111111111111111111112');
+    await sheet.getByLabel('Alert price (USD)', { exact: true }).fill('100');
+    await sheet.getByLabel('Alert direction', { exact: true }).selectOption('above');
+    await sheet.getByRole('button', { name: 'Save alert on pad', exact: true }).click();
+    await sheet.getByRole('heading', { name: 'At or above 100 USD', exact: true }).waitFor();
+    await sheet.getByLabel('Alert direction', { exact: true }).selectOption('below');
+    await sheet.getByLabel('Alert price (USD)', { exact: true }).fill('90');
+    await sheet.getByRole('button', { name: 'Save alert on pad', exact: true }).click();
+    await sheet.getByRole('heading', { name: 'At or below 90 USD', exact: true }).waitFor();
+    const stored = await server.padlink.priceAlerts(pad.device);
+    assert.deepEqual(stored.alerts.map(({ usd, above }) => ({ usd, above })), [{ usd: 100, above: true }, { usd: 90, above: false }]);
+    await capture(page, 'markets', 'alerts-stored', sheet);
+    // Invalid-rule error uses the authenticated real route; nothing is intercepted.
+    const invalid = await fetch(origin + '/pad/price-alerts', { method: 'POST', headers, body: JSON.stringify({ device: pad.device, alerts: [{ ...stored.alerts[0], action: 'buy' }] }) });
+    assert.equal(invalid.status, 400); assert.equal((await invalid.json()).error, 'invalid price alert');
+    await sheet.getByRole('button', { name: 'Remove alert ' + stored.alerts[0].id, exact: true }).click();
+    await sheet.getByText('1 of 8 alerts stored on this pad. Saving changes re-arms the remaining alerts.', { exact: true }).waitFor();
+    assert.equal((await server.padlink.priceAlerts(pad.device)).alerts[0].id, stored.alerts[1].id);
+    other = new SessionPadSimulator({ device: 'esp32-d4alerts456', serial: true, sessionStateFile: path.join(dir, 'alerts-other-public.json') });
+    await pair(other, 8728);
+    await sheet.getByLabel('Alert pad', { exact: true }).selectOption(other.device);
+    await sheet.getByText('No price alerts stored on this pad.', { exact: true }).waitFor();
+    await sheet.getByLabel('Alert pad', { exact: true }).selectOption(pad.device);
+    await sheet.getByRole('heading', { name: 'At or below 90 USD', exact: true }).waitFor();
+    peer.close(); await pad.close();
+    await sheet.getByRole('heading', { name: 'Selected pad disconnected', exact: true }).waitFor();
+    assert.equal(await sheet.getByRole('button', { name: 'Save alert on pad', exact: true }).count(), 0);
+    assert.ok(writes.every((p) => p === '/pad/price-alerts'), 'Alert UI must not propose, sign, or trade');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); await pad.close(); await other?.close(); }
+});
