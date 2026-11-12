@@ -35,7 +35,8 @@ for (const [name, l] of Object.entries(STUDIO)) {
       near: 1,
       far: 700,
     });
-    light.shadow.bias = -0.0001;
+    light.shadow.bias = -0.0005;
+    light.shadow.normalBias = 0.2;
     light.shadow.radius = 4;
   }
   scene.add(light);
@@ -224,19 +225,24 @@ window.ready = (async () => {
     renderer.setClearColor("#030304", dark ? 1 : 0);
     scene.background = dark ? new THREE.Color("#030304") : null;
     model.updateWorldMatrix(true, true);
-    let bounds = new THREE.Box3().setFromObject(model, true);
+    let bounds = new THREE.Box3().setFromObject(model, true),
+      sweepPoints;
     if (view === "turntable") {
       root.rotation.y = 0;
       root.updateWorldMatrix(true, true);
       const fixed = new THREE.Box3().setFromObject(model, true),
         corners = boxCorners(fixed),
         sweep = new THREE.Box3();
+      sweepPoints = [];
       for (let i = 0; i < 180; i++) {
         const rotation = new THREE.Matrix4().makeRotationY(
           (i * Math.PI * 2) / 180,
         );
-        for (const p of corners)
-          sweep.expandByPoint(p.clone().applyMatrix4(rotation));
+        for (const p of corners) {
+          const q = p.clone().applyMatrix4(rotation);
+          sweepPoints.push(q);
+          sweep.expandByPoint(q);
+        }
       }
       bounds = sweep;
       root.rotation.y = angle;
@@ -251,6 +257,7 @@ window.ready = (async () => {
             : HERO_DIRECTION,
       aspect: innerWidth / innerHeight,
       padding: 0.08,
+      ...(sweepPoints ? { points: sweepPoints } : {}),
     });
     renderer.setSize(innerWidth, innerHeight);
     renderer.render(scene, camera);

@@ -266,7 +266,8 @@ export default function PadScene(p) {
             shadow-camera-top={150}
             shadow-camera-bottom={-150}
             shadow-camera-far={700}
-            shadow-bias={-0.0001}
+            shadow-bias={-0.0005}
+            shadow-normalBias={0.2}
             shadow-radius={4}
           />
         ))}

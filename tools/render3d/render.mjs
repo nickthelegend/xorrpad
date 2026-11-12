@@ -69,21 +69,38 @@ try {
   await page.goto("http://127.0.0.1:8724");
   await page.waitForFunction(() => !!window.ready);
   const info = await page.evaluate(() => window.ready);
-  for (const [file, view, dark] of [
+  const framing = [];
+  for (const [file, view, dark, offline = false] of [
     ["hero-34.png", "hero", false],
     ["hero-34-dark.png", "hero", true],
     ["top.png", "top", false],
     ["side.png", "side", false],
     ["exploded.png", "exploded", false],
+    ["offline.png", "hero", true, true],
   ]) {
-    await page.evaluate((o) => window.renderFrame(o), { view, dark });
+    const frame = await page.evaluate((o) => window.renderFrame(o), {
+      view,
+      dark,
+      offline,
+    });
+    framing.push({ file, ...frame });
+    if (file === "hero-34.png") {
+      const file = resolve(repo, "desk/app/public/models/xorrpad-layout.json"),
+        layout = JSON.parse(await readFile(file, "utf8"));
+      layout.camera = frame.camera;
+      layout.target = frame.target;
+      layout.posterAspect = 4 / 3;
+      layout.keys.forEach((k) => (k.posterUV = frame.hotspots[k.name]));
+      layout.knobUV = frame.hotspots.knob;
+      await writeFile(file, JSON.stringify(layout, null, 2) + "\n");
+    }
     await page.screenshot({ path: resolve(out, file), omitBackground: !dark });
     console.log("Rendered " + file);
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
   for (let i = 0; i < 180; i++) {
     await page.evaluate(
-      (angle) => window.renderFrame({ angle, dark: true }),
+      (angle) => window.renderFrame({ angle, dark: true, view: "turntable" }),
       (i * Math.PI * 2) / 180,
     );
     await page.screenshot({
@@ -123,7 +140,9 @@ try {
     );
     if (r.status !== 0) throw Error(r.stderr);
   }
-  await page.evaluate(() => window.renderFrame({ dark: true }));
+  const turntableFraming = await page.evaluate(() =>
+    window.renderFrame({ dark: true, view: "turntable" }),
+  );
   await page.screenshot({ path: resolve(out, "turntable-poster.png") });
   if (errors.length) throw Error(errors.join("\n"));
   await writeFile(
@@ -133,6 +152,17 @@ try {
         source:
           "True three.js renders of cad/assembly.py + 2.8-inch CAD display pod. Not photographs or generated device geometry.",
         info,
+        screen: snapshot,
+        framing,
+        turntableFraming,
+        lighting: {
+          source: "shared studio-quality.mjs",
+          environment: "offline PMREM RoomEnvironment",
+          toneMapping: "ACES Filmic",
+          output: "sRGB",
+          ambientOcclusion: "CAD BVH-baked vertex AO + contact footprint",
+          reflectiveFloor: "7.5% hero dark / turntable only",
+        },
         stills: { width: 2400, height: 1800 },
         turntable: {
           width: 1920,

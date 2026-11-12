@@ -148,6 +148,61 @@ test(
       });
       assert.equal(wasm, hash);
       console.log("Actual offline firmware RGB565 SHA-256:", hash);
+      const snapshot = JSON.parse(
+        await readFile(
+          path.join(repo, "desk/app/public/media/pad/SCREEN-SNAPSHOT.json"),
+          "utf8",
+        ),
+      );
+      assert.ok(snapshot.price > 0 && snapshot.quote.contextSlot > 0);
+      const home = spawnSync(binary, [
+        String(snapshot.price),
+        (snapshot.chart?.closes || []).join(","),
+        String(snapshot.chart?.change24h || 0),
+      ]);
+      assert.equal(home.status, 0);
+      const nativeHomeHash = createHash("sha256")
+        .update(home.stdout)
+        .digest("hex");
+      const wasmHomeHash = await page.evaluate(async (snapshot) => {
+        const { default: create } = await import("/firmware-screen.js"),
+          m = await create();
+        m._screen_reset();
+        const fields = {
+          ok: 1,
+          market: "SOL",
+          price: snapshot.price,
+          chain: "solana",
+          chainOk: 1,
+          agent: "Custom",
+          link: "STUDIO SNAPSHOT",
+          remembers: 1,
+          armed: 0,
+          hoursState: "CRYPTO",
+          marketOpen: 1,
+          hoursNote: "public price snapshot",
+        };
+        for (const [k, v] of Object.entries(fields))
+          m.ccall("screen_set", null, ["string", "string"], [k, String(v)]);
+        if (snapshot.chart?.closes?.length) {
+          for (const v of snapshot.chart.closes) m._screen_close(v);
+          m.ccall(
+            "screen_chart",
+            null,
+            ["string", "number", "number", "number"],
+            ["SOL", snapshot.price, snapshot.chart.change24h || 0, 1],
+          );
+        }
+        const ptr = m._screen_render(),
+          bytes = new Uint8Array(m.HEAPU16.buffer, ptr, 320 * 240 * 2);
+        return Array.from(
+          new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+        )
+          .map((v) => v.toString(16).padStart(2, "0"))
+          .join("");
+      }, snapshot);
+      assert.equal(wasmHomeHash, nativeHomeHash);
+      console.log("Actual home firmware RGB565 SHA-256:", nativeHomeHash);
     } finally {
       await browser?.close();
       if (server) await new Promise((r) => server.close(r));
@@ -178,4 +233,29 @@ test("all sixteen commissioned art assets retain their dimensions and stay below
       assert.equal(a.height, 1024);
     }
   }
+});
+
+test("studio frames keep real CAD bounds inside padding and record genuine price provenance", async () => {
+  const dir = path.join(repo, "desk/app/public/media/pad"),
+    r = JSON.parse(await readFile(path.join(dir, "RENDERS.json"), "utf8"));
+  assert.ok(r.screen.price > 0 && r.screen.quote.contextSlot > 0);
+  assert.equal(
+    r.screen.quote.outputMint,
+    "So11111111111111111111111111111111111111112",
+  );
+  for (const f of r.framing)
+    for (const n of Object.values(f.margins))
+      assert.ok(n >= 0.08 - 1e-6, f.file + " clipped");
+  assert.ok(r.framing.some((f) => f.file === "offline.png"));
+  assert.equal(r.lighting.toneMapping, "ACES Filmic");
+  assert.equal(r.lighting.output, "sRGB");
+  const quality = JSON.parse(
+    await readFile(
+      path.join(repo, "desk/app/public/models/QUALITY.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(quality.materials.enclosure.clearcoat, 0.3);
+  assert.equal(quality.materials.enclosure.roughness, 0.45);
+  assert.ok(quality.reports.every((x) => x.rays > 100000));
 });

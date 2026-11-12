@@ -2,7 +2,7 @@
 
 `npm ci --prefix tools/render3d`, then `node tools/render3d/render.mjs`.
 The headless three.js/Playwright scene binds only 127.0.0.1:8724, loads the real
-meshopt/WebP GLB, renders five 2400×1800 stills, then 180 evenly spaced angles
+meshopt/WebP GLB, renders six 2400×1800 stills, then 180 evenly spaced angles
 into six-second, 1920×1080, 30 fps MP4 and WebM files with a poster. Every output
 is in desk/app/public/media/pad, with dimensions/provenance in RENDERS.json.
 These are **true renders from the real parametric CAD**, not product photographs
@@ -15,8 +15,10 @@ The turntable evaluates angle `2π * frame / 180`, excluding the duplicate endpo
 so the step across the loop boundary is the same as every other frame.
 
 The screen is the actual firmware ui.h and Adafruit_GFX compiled to WebAssembly,
-not a JavaScript approximation. Static studio renders deliberately show its
-truthful offline screen, with no invented price. Rebuild that module with
+not a JavaScript approximation. Hero, top and turntable use its real home screen with a fresh public SOL/USDC
+quote and real pool history, recorded in SCREEN-SNAPSHOT.json. Profile/link are
+explicit studio configuration, not an asserted hardware connection. offline.png
+alone carries the offline state. No price, position or fill is invented. Rebuild that module with
 `EMSDK=/path/to/emsdk tools/uipreview/build-web-screen.sh`; GFX defaults to the
 installed Arduino Adafruit_GFX_Library and can be set explicitly. The generated
 56 KB JS+WASM pair is bundled offline. The hardware is **compiled, not yet flashed**.
@@ -36,3 +38,9 @@ roughness / .3 clearcoat, caps .35 roughness, screen .12 roughness / .4 clearcoa
 Only the enclosure's existing blue is deepened. Hero dark shots have a subtle
 7.5% planar reflection; transparent/technical stills retain a transparent ground.
 `cad/export_web_glb.py` now invokes the quality baker after mesh export.
+
+Framing is solved from the exact model bounds: every corner has at least 8%
+viewport padding. The turntable uses one distance fitted across the complete
+rotation, with no zoom breathing. RENDERS.json records the actual camera,
+framing margins and price provenance. The renderer also updates poster key-hit
+coordinates from that actual hero camera, preserving mobile key selection.

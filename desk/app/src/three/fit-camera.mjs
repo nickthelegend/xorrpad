@@ -18,7 +18,12 @@ export function boxCorners(box) {
 export function fitCamera(
   camera,
   box,
-  { direction = HERO_DIRECTION, aspect = 1, padding = 0.08 } = {},
+  {
+    direction = HERO_DIRECTION,
+    aspect = 1,
+    padding = 0.08,
+    points = boxCorners(box),
+  } = {},
 ) {
   const center = box.getCenter(new THREE.Vector3()),
     back = new THREE.Vector3(...direction).normalize(),
@@ -31,7 +36,7 @@ export function fitCamera(
     tan = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2),
     usable = 1 - 2 * padding;
   let distance = 0;
-  for (const c of boxCorners(box)) {
+  for (const c of points.map((p) => p.clone())) {
     const v = c.sub(center),
       z = v.dot(back);
     distance = Math.max(
@@ -51,7 +56,8 @@ export function fitCamera(
   camera.lookAt(center);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
-  const uv = boxCorners(box)
+  const uv = points
+    .map((p) => p.clone())
     .map((p) => p.project(camera))
     .map((p) => [(p.x + 1) / 2, (1 - p.y) / 2]);
   const margins = {
