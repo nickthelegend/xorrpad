@@ -60,7 +60,15 @@ try {
       document.fonts.check('16px "Plus Jakarta Sans Variable"'),
     ),
   );
-  await page.getByRole("button", { name: /Configure key 1:/ }).click();
+  await page.locator('[data-model-ready="webgl"]').waitFor({ timeout: 60000 });
+  const hit = await page
+    .getByRole("button", { name: /Configure key 1:/ })
+    .boundingBox();
+  await page.mouse.click(hit.x + hit.width / 2, hit.y + hit.height / 2);
+  await page.getByRole("dialog", { name: "Make this key yours" }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Configure key 1:/ }).focus();
+  await page.keyboard.press("Enter");
   await page.getByLabel("Key label", { exact: true }).fill("LIVE PREVIEW");
   assert.equal(await page.locator(".key-preview").innerText(), "LIVE PREVIEW");
   assert.notEqual((await api("/pad/keymap")).keys[0].label, "LIVE PREVIEW");
@@ -92,6 +100,60 @@ try {
   });
   await page.reload();
   await page.locator(".physical-key:not([disabled])").first().waitFor();
+  await page.locator('[data-model-ready="webgl"]').waitFor();
+  const keyHit = await page
+    .getByRole("button", { name: /Configure key 1:/ })
+    .boundingBox();
+  await page.mouse.move(
+    keyHit.x + keyHit.width / 2,
+    keyHit.y + keyHit.height / 2,
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".real-pad").dataset.hoverKey === "key-01" &&
+      Number(document.querySelector(".real-pad").dataset.hoverLift) > 1,
+  );
+  await page.mouse.move(20, 20);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const sample = () =>
+    page
+      .locator(".real-pad")
+      .evaluate((n) => ({
+        frames: Number(n.dataset.frames),
+        at: performance.now(),
+        sway: Number(n.dataset.sway),
+      }));
+  const start = await sample();
+  await page.waitForTimeout(2200);
+  const end = await sample();
+  const performanceSample = {
+    fps: ((end.frames - start.frames) * 1000) / (end.at - start.at),
+    frames: end.frames - start.frames,
+    elapsedMs: end.at - start.at,
+    scope:
+      "Actual animated CAD scene in headless Chromium; hardware renderer recorded below",
+  };
+  performanceSample.renderer = await page
+    .locator(".model-canvas canvas")
+    .evaluate((c) => {
+      const gl = c.getContext("webgl2") || c.getContext("webgl"),
+        e = gl.getExtension("WEBGL_debug_renderer_info");
+      return e
+        ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL)
+        : gl.getParameter(gl.RENDERER);
+    });
+  assert.notEqual(start.sway, end.sway, "Idle sway uses real scene frames");
+  await writeFile(
+    path.join(output, "model-performance.json"),
+    JSON.stringify(performanceSample, null, 2) + "\n",
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(
+    () => Number(document.querySelector(".real-pad").dataset.sway) === 0,
+  );
+  checks.push(
+    "CAD raycasting and keyboard controls open the existing sheet; real hover lift and idle sway stop under reduced motion",
+  );
   const hello = await fetch(origin + "/padlink?device=v2-ui-simulator", {
     method: "POST",
     headers: { ...headers, "content-type": "application/x-ndjson" },
@@ -108,7 +170,9 @@ try {
     .locator(".device-island")
     .filter({ hasText: "v2-ui-simulator" })
     .waitFor();
-  const before = await page.locator(".premium-knob>span").getAttribute("style");
+  const before = await page
+    .locator(".real-pad")
+    .getAttribute("data-knob-radians");
   await fetch(origin + "/padlink?device=v2-ui-simulator", {
     method: "POST",
     headers: { ...headers, "content-type": "application/x-ndjson" },
@@ -117,7 +181,8 @@ try {
   });
   await page.waitForFunction(
     (s) =>
-      document.querySelector(".premium-knob>span").getAttribute("style") !== s,
+      document.querySelector(".real-pad").getAttribute("data-knob-radians") !==
+      s,
     before,
   );
   for (const peer of server.padlink.peers)
@@ -207,8 +272,16 @@ try {
           .evaluate((n) => getComputedStyle(n).objectFit),
         "contain",
       );
-    if (name === "device")
+    if (name === "device") {
       await page.locator(".physical-key:not([disabled])").first().waitFor();
+      await page
+        .locator(
+          page.viewportSize().width === 375
+            ? '[data-model-ready="poster"]'
+            : '[data-model-ready="webgl"]',
+        )
+        .waitFor();
+    }
   }
   async function capture(name, width) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 812 });
@@ -234,6 +307,12 @@ try {
           bottom: n.getBoundingClientRect().bottom,
         }));
       assert.equal(nav.position, "fixed");
+      if (name === "device")
+        assert.equal(
+          await page.locator(".model-canvas canvas").count(),
+          0,
+          "Mobile uses a true poster without a WebGL context",
+        );
       assert.ok(
         nav.top > 650 && nav.bottom <= 812,
         "Mobile navigation is a reachable bottom bar",

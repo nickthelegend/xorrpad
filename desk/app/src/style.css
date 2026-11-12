@@ -2635,3 +2635,80 @@ summary {
     bottom: calc(94px + env(safe-area-inset-bottom));
   }
 }
+
+/* Only the pad object changes: profiles, island, stage, sheets and page layout stay put. */
+.real-pad {
+  height: 500px;
+  transform: none;
+  filter: none;
+}
+.real-pad::before {
+  display: none;
+}
+.real-pad .model-canvas {
+  position: absolute !important;
+  inset: 0;
+}
+.model-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.model-access {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.real-pad .model-hit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  min-height: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+.real-pad .model-hit:focus-visible {
+  opacity: 1;
+  background: #030304;
+  outline: 2px solid #c8f53c;
+  z-index: 5;
+  width: max-content;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.real-pad.poster-mode .model-hit {
+  pointer-events: auto;
+  width: 30px;
+  height: 30px;
+}
+.model-setup {
+  position: absolute;
+  bottom: 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 700px) {
+  .real-pad {
+    height: 400px;
+    transform: none;
+    width: 292px;
+  }
+}

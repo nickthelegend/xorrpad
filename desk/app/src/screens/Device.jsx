@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDesk, useRead, State, Sheet, Field, money } from "../core";
+import { PadModel } from "../three/PadModel";
 import { BlurWords } from "../brand/BlurWords";
 import { Icon } from "../brand/Icon";
 const fixed = ["mic", "kill", "yes", "no"];
@@ -127,110 +128,15 @@ export function Device() {
           )}
         </div>
         <div className="pad-perspective">
-          <div className="premium-pad">
-            <div className="pad-surface">
-              <div className="pad-top">
-                <div className="device-tft" aria-label="Live pad screen">
-                  {pending ? (
-                    <>
-                      <div className="tft-row">
-                        <span>{pending.proposal.signal.side}</span>
-                        <b>
-                          CONFIRM ·{" "}
-                          {Math.ceil((pending.expiresAt - now) / 1000)}s
-                        </b>
-                      </div>
-                      <strong>{pending.proposal.signal.symbol}</strong>
-                      <span>{money(pending.proposal.verdict.sizeUsd)}</span>
-                      <small>{pending.proposal.verdict.why.join(" · ")}</small>
-                      <div className="tft-row">
-                        <span>YES</span>
-                        <span>NO</span>
-                      </div>
-                    </>
-                  ) : device ? (
-                    <>
-                      <div className="tft-row">
-                        <span>LIVE / {device.link}</span>
-                        <span>
-                          {device.status.armed ? "ARMED" : "DISARMED"}
-                        </span>
-                      </div>
-                      <strong>{device.status.market || "No market"}</strong>
-                      <span>{money(device.status.sizeUsd)}</span>
-                      <small>
-                        {device.status.agent} ·{" "}
-                        {device.status.autoAccept ? "AUTO" : "MANUAL"}
-                      </small>
-                    </>
-                  ) : (
-                    <>
-                      <span className="tft-brand">
-                        xorr<span>↗</span>
-                      </span>
-                      <strong>Make it yours.</strong>
-                      <small>
-                        Setup required: connect your pad
-                        <br />
-                        USB · BLE · Wi-Fi
-                      </small>
-                    </>
-                  )}
-                </div>
-                <button
-                  className="premium-knob"
-                  aria-label="Configure size knob"
-                  onClick={() => setEdit("knob")}
-                >
-                  <span style={{ transform: `rotate(${angle}deg)` }} />
-                  <i />
-                </button>
-              </div>
-              <div className="premium-keys">
-                {(
-                  map.data?.keys ||
-                  Array.from({ length: 14 }, (_, i) => ({
-                    row:
-                      i < 6 ? Math.floor(i / 3) : Math.floor((i - 6) / 4) + 2,
-                    col: i < 6 ? i % 3 : (i - 6) % 4,
-                    label: "—",
-                    action: "unavailable",
-                  }))
-                ).map((k, i) => (
-                  <button
-                    key={i}
-                    style={{ gridRow: k.row + 1, gridColumn: k.col + 1 }}
-                    className={`physical-key key-${k.action} ${pressed === k.action ? "depressed" : ""} ${edit?.row === k.row && edit?.col === k.col ? "selected" : ""}`}
-                    disabled={!map.data}
-                    aria-label={"Configure key " + (i + 1) + ": " + k.label}
-                    onClick={() => choose(k)}
-                  >
-                    <small>{String(i + 1).padStart(2, "0")}</small>
-                    <span>
-                      {edit?.row === k.row && edit?.col === k.col
-                        ? label
-                        : k.label}
-                    </span>
-                    {fixed.includes(k.action) && (
-                      <Icon
-                        name={
-                          k.action === "mic"
-                            ? "wave"
-                            : k.action === "kill"
-                              ? "shield"
-                              : "check"
-                        }
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="pad-engraving">
-                <b>xorrpad</b>
-                <span>ONE PAD. EVERY VENUE.</span>
-              </div>
-            </div>
-          </div>
+          <PadModel
+            keys={map.data?.keys}
+            device={device}
+            pending={pending}
+            angle={angle}
+            pressed={pressed}
+            onKey={choose}
+            onKnob={() => setEdit("knob")}
+          />
         </div>
         <div className="device-floor" />
         <div className="device-caption">
@@ -253,7 +159,10 @@ export function Device() {
           <Icon name="arrowUpRight" />
         </a>
         <div>
-          <img src="/desktop/media/pad.jpg" alt="The real xorrpad prototype" />
+          <img
+            src="/desktop/media/pad/hero-34.png"
+            alt="True render of the real xorrpad CAD"
+          />
           <span>
             Built for your desk.
             <small>ESP32-S3 · compiled, not yet flashed</small>

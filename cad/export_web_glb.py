@@ -69,7 +69,20 @@ def export(exploded,tmp):
  assert out.stat().st_size < 3*1024*1024
  print(out.relative_to(ROOT),out.stat().st_size,'bytes')
 
+
+def export_layout():
+ camera=np.array([170.,155.,230.]);target=np.array([0.,43.,-10.]);forward=target-camera;forward/=np.linalg.norm(forward);right=np.cross(forward,[0,1,0]);right/=np.linalg.norm(right);up=np.cross(right,forward)
+ def uv(point):
+  v=np.array(point)-camera;depth=np.dot(v,forward);f=math.tan(math.radians(34)/2)
+  return [(np.dot(v,right)/(depth*f*(4/3))+1)/2,(1-np.dot(v,up)/(depth*f))/2]
+ by={k['id']:k for k in pl.key_layout()};keys=[]
+ for i,action in enumerate(KEYS):
+  k=by[action];point=[k['x'],pl.CAP_Z0+7.5,-k['y']];keys.append({'name':f'key-{i+1:02d}','action':action,'point':point,'posterUV':uv(point)})
+ knob=[pl.KNOB_POS[0],pl.KNOB_Z0+10,-pl.KNOB_POS[1]]
+ (OUT/'xorrpad-layout.json').write_text(json.dumps({'camera':camera.tolist(),'target':target.tolist(),'posterAspect':4/3,'keys':keys,'knob':knob,'knobUV':uv(knob)},indent=2)+'\n')
+
 if __name__=='__main__':
  OUT.mkdir(parents=True,exist_ok=True)
  with tempfile.TemporaryDirectory(prefix='xorr-cad-') as d:
   for exploded in [False,True]: export(exploded,Path(d))
+ export_layout()

@@ -250,7 +250,7 @@ export function createServer(mem) {
       if(!name || name.split('/').some(p=>p==='..'||p==='.'||!p) || name.includes('\\'))return send(400,{error:'invalid app asset'});
       try {
         const file=new URL('../app/dist/'+name,import.meta.url),bytes=await readFile(file);
-        const ext=name.split('.').pop(),type={html:'text/html; charset=utf-8',js:'text/javascript',css:'text/css',woff2:'font/woff2',webp:'image/webp',jpg:'image/jpeg',webm:'video/webm',mp4:'video/mp4',svg:'image/svg+xml'}[ext]||'application/octet-stream';
+        const ext=name.split('.').pop(),type={html:'text/html; charset=utf-8',js:'text/javascript',css:'text/css',wasm:'application/wasm',glb:'model/gltf-binary',png:'image/png',woff2:'font/woff2',webp:'image/webp',jpg:'image/jpeg',webm:'video/webm',mp4:'video/mp4',svg:'image/svg+xml'}[ext]||'application/octet-stream';
         res.writeHead(200,{'content-type':type,'cache-control':ext==='html'?'no-store':'public, max-age=3600'});return res.end(bytes);
       }catch(e){return send(['ENOENT','ENOTDIR','EISDIR'].includes(e.code)?404:500,{error:'Setup required: npm run build:app --prefix desk'});}
     }
