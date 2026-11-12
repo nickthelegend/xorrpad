@@ -45,7 +45,17 @@ async function capture(page, screen, state, area) {
     }
     await assertReadableLayout(page, area, `${screen} ${state} ${width}`);
     await page.screenshot({ path: path.join(output, `${screen}-${state}-${width}.png`), fullPage: true, animations: 'disabled' });
-
+    // A long existing Sheet scrolls within the viewport. Capture its lower
+    // controls as well, so a full-page image cannot hide an unreachable action.
+    if (screen === 'markets' && state === 'alerts-stored') {
+      const save = area.getByRole('button', { name: 'Save alert on pad', exact: true });
+      await save.scrollIntoViewIfNeeded();
+      const box = await save.boundingBox();
+      assert.ok(box && box.y >= 0 && box.y + box.height <= 1001, 'Alert save reachable within sheet');
+      await assertReadableLayout(page, area, `Markets form ${width}`);
+      await page.screenshot({ path: path.join(output, `markets-alerts-form-${width}.png`), fullPage: true, animations: 'disabled' });
+      await area.evaluate((node) => { node.scrollTop = 0; });
+    }
   }
 }
 before(async () => {
