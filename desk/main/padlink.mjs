@@ -78,7 +78,7 @@ export const DEFAULT_KEYMAP = {
     row,
     col,
     action: ACTIONS[i],
-    label: ACTIONS[i].toUpperCase(),
+    label: ACTIONS[i] === "base" ? "SCAN" : ACTIONS[i].toUpperCase(),
   })),
 };
 export function validateKeymap(map) {
@@ -1147,7 +1147,7 @@ export class PadLink extends EventEmitter {
         this.send(p, { type: "rearm_complete" });
         return;
       }
-      if (this.killed.has(p.device)) throw Error("pad kill latch active");
+      if (this.killed.has(p.device)) throw Error("Killed: re-arm on the pad to trade");
     }
     p.last = Date.now();
     if (m.type === "ping") {
@@ -1176,7 +1176,7 @@ export class PadLink extends EventEmitter {
     if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
-    if (p.secure && this.killed.has(p.device)) throw Error("pad kill latch active");
+    if (p.secure && this.killed.has(p.device)) throw Error("Killed: re-arm on the pad to trade");
     if (m.type === "hello") {
       if (
         typeof m.device !== "string" ||

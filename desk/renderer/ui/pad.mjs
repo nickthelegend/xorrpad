@@ -31,7 +31,7 @@ export async function mount({ el, api, subscribe, signal }) {
       "Program a key. Turn an idea into an action. Every trade still passes through your permissions.",
       "14 KEYS / 1 KNOB",
     ) +
-    `<div class="grid"><div class="stack">${panel("Pad mirror", `<div id="mirror">${loading()}</div>`, "", "ESP32-S3")}${panel("Selected key", `<div id="key-settings">${loading()}</div>`)}</div><div class="stack">${panel("Action library", `<div class="panel-body"><p class="muted">Drag an action onto a key, or select a key and choose an action below.</p><div class="action-library">${actions.map((a) => `<button class="action-item" draggable="true" data-action="${a}">${esc(a[0].toUpperCase() + a.slice(1))}<small>KEY ACTION ↗</small></button>`).join("")}</div></div>`)}${panel("A deliberate safety layer", '<div class="panel-body"><h3>Four controls stay where they belong.</h3><p class="muted">Accept, Refuse, hold-to-talk and hold-to-kill keep their measured positions. Assignments push to every connected pad after the desk validates the full keymap.</p><a class="button" href="#permissions">Review permissions →</a></div>')}</div></div>`;
+    `<div class="grid"><div class="stack">${panel("Pad mirror", `<div id="mirror">${loading()}</div>`, "", "ESP32-S3")}${panel("Selected key", `<div id="key-settings">${loading()}</div>`)}</div><div class="stack">${panel("Action library", `<div class="panel-body"><p class="muted">Drag an action onto a key, or select a key and choose an action below.</p><div class="action-library">${actions.map((a) => `<button class="action-item" draggable="true" data-action="${a}">${esc(a === "base" ? "SCAN" : a[0].toUpperCase() + a.slice(1))}<small>KEY ACTION ↗</small></button>`).join("")}</div></div>`)}${panel("A deliberate safety layer", '<div class="panel-body"><h3>Four controls stay where they belong.</h3><p class="muted">Accept, Refuse, hold-to-talk and hold-to-kill keep their measured positions. Assignments push to every connected pad after the desk validates the full keymap.</p><a class="button" href="#permissions">Review permissions →</a></div>')}</div></div>`;
   let map,
     selected = 0,
     link = { devices: [] },
@@ -121,7 +121,7 @@ export async function mount({ el, api, subscribe, signal }) {
     const k = map.keys[selected],
       fixed = locked.has(k.action);
     $("#key-settings", el).innerHTML =
-      `<form class="panel-body" id="key-form"><div class="fields"><label>Key ${selected + 1} · label<input name="label" maxlength="16" pattern="[ -~]{1,16}" required value="${esc(k.label)}"></label><label>Action<select name="action" ${fixed ? "disabled" : ""}>${options([...new Set([k.action, ...actions])], k.action)}</select></label>${!fixed ? '<label class="wide">Custom action (optional)<input name="custom" placeholder="pmamm:market-public-key:yes" maxlength="96"></label>' : ""}</div><div class="actions"><button class="primary">Save & push keymap</button><span class="hint">${fixed ? "Safety action is fixed. You can edit its label." : "Changes apply after saving."}</span></div></form>`;
+      `<form class="panel-body" id="key-form"><div class="fields"><label>Key ${selected + 1} · label<input name="label" maxlength="16" pattern="[ -~]{1,16}" required value="${esc(k.label)}"></label><label>Action<select name="action" ${fixed ? "disabled" : ""}>${options([...new Set([k.action, ...actions])].map((id) => ({ id, name: id === "base" ? "SCAN" : id })), k.action)}</select></label>${!fixed ? '<label class="wide">Custom action (optional)<input name="custom" placeholder="pmamm:market-public-key:yes" maxlength="96"></label>' : ""}</div><div class="actions"><button class="primary">Save & push keymap</button><span class="hint">${fixed ? "Safety action is fixed. You can edit its label." : "Changes apply after saving."}</span></div></form>`;
     $("#key-form", el).onsubmit = (e) => {
       e.preventDefault();
       action(e.submitter, async () => {
@@ -149,7 +149,7 @@ export async function mount({ el, api, subscribe, signal }) {
     const field = form.elements.action;
     if ([...field.options].some((o) => o.value === a)) {
       field.value = a;
-      form.elements.label.value = a.toUpperCase();
+      form.elements.label.value = a === "base" ? "SCAN" : a.toUpperCase();
       notice("Action selected. Save & push to apply.");
     }
   }

@@ -2827,3 +2827,10 @@ summary {
 .device-controls progress::-moz-progress-bar {
   background: var(--accent);
 }
+
+/* Match the existing 20px field rhythm in the v3 pad forms. */
+.pad-session .field,
+.pad-price-alerts .field,
+.pad-activity .field {
+  margin-top: calc(var(--spacing) * 5);
+}

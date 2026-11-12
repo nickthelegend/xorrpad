@@ -106,7 +106,7 @@ function Model(p) {
         !n ||
         !p.layout ||
         (k.action === p.layout.keys[i].action &&
-          k.label === k.action.toUpperCase())
+          k.label === (k.action === "base" ? "SCAN" : k.action.toUpperCase()))
       )
         continue;
       n.traverse((c) => {

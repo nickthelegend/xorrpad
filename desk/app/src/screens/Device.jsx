@@ -306,7 +306,7 @@ export function Device() {
                         .map((a) => "ability:" + a.id) || []),
                     ]),
                   ].map((a) => (
-                    <option key={a}>{a}</option>
+                    <option key={a} value={a}>{a === "base" ? "SCAN" : a}</option>
                   ))}
                 </select>
               </Field>

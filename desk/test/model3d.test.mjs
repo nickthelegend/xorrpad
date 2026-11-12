@@ -259,3 +259,38 @@ test("studio frames keep real CAD bounds inside padding and record genuine price
   assert.equal(quality.materials.enclosure.roughness, 0.45);
   assert.ok(quality.reports.every((x) => x.rays > 100000));
 });
+
+test('white key keeps the base action with compiled firmware SCAN label and the actual CAD magnifier in both GLBs', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'xorr-scan-key-'));
+  try {
+    const binary = path.join(dir, 'scan-key');
+    const compile = spawnSync('c++', ['-std=c++17', '-I'+path.join(repo,'tools/uipreview/shim'), '-I'+repo, '-x','c++','-','-o',binary], {
+      encoding:'utf8', input:'#include "firmware/xorrpad/agents.h"\n#include <cstring>\nint main(){const auto &k=defaultKeyAt(2,3); return strcmp(k.id,"base") || strcmp(k.label,"SCAN");}\n'
+    });
+    assert.equal(compile.status,0,compile.stderr);
+    assert.equal(spawnSync(binary).status,0);
+    const expected = spawnSync(path.join(repo,'cad/.venv/bin/python'), ['-c', `import sys,json;sys.path.insert(0,'cad');import partlib as pl,part_caps;key=next(k for k in pl.key_layout() if k['id']=='base');assert key['glyph']=='scan';m=next(m for n,m,c in part_caps.build() if n=='base-legend');print(json.dumps({'triangles':len(m.F),'bounds':[[min(v[i] for v in m.V),max(v[i] for v in m.V)] for i in range(3)]}))`], {cwd:repo,encoding:'utf8'});
+    assert.equal(expected.status,0,expected.stderr);
+    const cad=JSON.parse(expected.stdout);
+    const THREE=req('three');
+    const {NodeIO}=req('@gltf-transform/core'), {ALL_EXTENSIONS}=req('@gltf-transform/extensions'), {MeshoptDecoder}=req('meshoptimizer');
+    await MeshoptDecoder.ready;
+    const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.decoder':MeshoptDecoder});
+    for (const name of ['xorrpad.glb','xorrpad-exploded.glb']) {
+      const doc=await io.read(path.join(repo,'desk/app/public/models',name));
+      const key=doc.getRoot().listNodes().find(n=>n.getName()==='key-10');
+      assert.equal(key.getExtras().action,'base');
+      const legend=key.listChildren().find(n=>n.getName()==='base-legend');
+      assert.ok(legend,'Magnifier legend remains attached to SCAN');
+      const p=legend.getMesh().listPrimitives()[0], pos=p.getAttribute('POSITION');
+      assert.equal((p.getIndices()?.getCount() || pos.getCount())/3,cad.triangles);
+      // Exported positions retain the full CAD legend, including the ring and handle.
+      for(let axis=0;axis<3;axis++) {
+        const matrix=new THREE.Matrix4().fromArray(legend.getWorldMatrix());
+        const values=Array.from({length:pos.getCount()},(_,i)=>new THREE.Vector3().fromArray(pos.getElement(i,[])).applyMatrix4(matrix).getComponent(axis) - (axis===2 && name.includes('exploded') ? 40 : 0));
+        assert.ok(Math.abs(Math.min(...values)-cad.bounds[axis][0])<0.02);
+        assert.ok(Math.abs(Math.max(...values)-cad.bounds[axis][1])<0.02);
+      }
+    }
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});

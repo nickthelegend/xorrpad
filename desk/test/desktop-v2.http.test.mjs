@@ -59,6 +59,7 @@ test("profiles persist keymaps and preserve four safety controls", async () => {
   assert.equal(r.data.active, "Swing");
   const after = (await call("/pad/keymap")).data;
   assert.ok(after.revision > before.revision);
+  assert.ok(after.keys.filter((k) => k.action === "base").every((k) => k.label === "SCAN"));
   for (const a of ["yes", "no", "mic", "kill"])
     assert.deepEqual(
       after.keys.find((k) => k.action === a),
@@ -110,6 +111,8 @@ test("missing voice setup never installs fake capability or rebinds safety keys"
 test("firmware status cannot claim an unsigned update is ready", async () => {
   const r = await call("/desk/connection");
   assert.equal(r.data.firmware.available, false);
+  const config = await (await import("node:fs/promises")).readFile(new URL("../../firmware/xorrpad/config.h", import.meta.url), "utf8");
+  assert.equal(r.data.firmware.version, config.match(/#define XORR_FW_VERSION "([^"\n]+)"/)[1]);
   assert.match(r.data.firmware.setupRequired, /signed firmware/);
   assert.equal(r.data.host.backend, "reachable");
 });

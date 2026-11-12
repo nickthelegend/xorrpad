@@ -411,7 +411,7 @@ export function createServer(mem) {
       return send(400, { error: `request body is not valid JSON: ${body.__malformed}` });
 
     try {
-      if(url.pathname==='/desk/connection')return send(200,await connectionStatus());
+      if(url.pathname==='/desk/connection')return send(200,await connectionStatus(srv.padlink.snapshot()));
       if(url.pathname==='/desk/discover'){await srv.padlink.discover();return send(200,srv.padlink.snapshot());}
       if(url.pathname==='/abilities')return send(200,await abilities().list());
       const abilityMatch=url.pathname.match(/^\/abilities\/([a-z]+)(\/run)?$/);
@@ -1131,6 +1131,9 @@ export function createServer(mem) {
 /** The deck. Every physical key lands here — and so does every UI click, so a
  *  dead switch never blocks a demo. */
 async function onKey(mem, id, options = {}, signals, executor) {
+  if (!state.armed && ["buy", "sell", "long", "short", "scan", "base"].includes(id))
+    return { ok: false, error: "Killed: re-arm on the pad to trade", armed: false };
+
   const AGENTS = ["dca", "grid", "momentum", "rebalance", "yield", "risk"];
 
   if (AGENTS.includes(id)) {
@@ -1240,8 +1243,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
   // Stopping voids the decision on the table as well as disarming — the same
   // as POST /panic. A loaded ✓ left behind a kill switch is exactly what bites:
   // the operator stops, walks away, and a later re-arm makes a decision reasoned
-  // from stale prices executable again. Proposing while stopped is still
-  // allowed, and THAT proposal is held across a re-arm (see the yes/no branch).
+  // from stale prices executable again. Trade keys are refused while stopped.
   if (id === "kill")      { state.armed = false; await signals.cancelAll(); state.pending = null; note("KILL"); return { ok: true, armed: false }; }
   // The physical pad's mic key streams straight to POST /voice; the on-screen
   // one records in the browser and does the same. Neither routes through here,

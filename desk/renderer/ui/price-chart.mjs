@@ -25,6 +25,9 @@ export function mountChart({ root, api, signal, selection }) {
     markAt,
     historyAt,
     markError = null,
+    referencePrice = null,
+    referenceState = "Loading…",
+    markSequence = 0,
     sequence = 0,
     current = "",
     hovering = null;
@@ -34,7 +37,7 @@ export function mountChart({ root, api, signal, selection }) {
   function header() {
     const s = selection();
     $("#market-head", root).innerHTML =
-      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : `<span class="hint">${esc(s.venue || "phoenix")} live mark · perpetual</span>`}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / history reference</dt><dd>${fmt(change, "%")}</dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
+      `<div><h2>${esc(s.market || "Select a market")} <span class="tag">${esc(s.kind)}</span></h2><strong class="market-price mono">${fmt(live, "USD", 6)}</strong>${s.kind === "spot" ? '<span class="hint">Jupiter spot reference · 50 USDC input</span>' : `<span class="hint">${esc(s.venue || "phoenix")} live mark · perpetual</span>`}${markError ? `<span class="hint">Quote failed: ${esc(markError)}</span>` : ""}</div><dl><div><dt>24h / history reference</dt><dd>${fmt(change, "%")}<span class="hint">24h reference · ${esc(referenceState)}</span></dd></div><div><dt>${s.venue === "jupperps" ? "Borrow / hour" : "Funding / 8h"}</dt><dd>${s.kind === "spot" ? "Not applicable" : fmt(funding, "%")}</dd></div><div><dt>Venue</dt><dd>${esc(s.venue || (s.kind === "spot" ? "jupiter" : "phoenix"))}</dd></div></dl>`;
   }
   function draw() {
     if (canvas.hidden || !candles.length) return;
@@ -169,63 +172,57 @@ export function mountChart({ root, api, signal, selection }) {
     }
   }
   async function mark(n, s) {
-    const results = await Promise.allSettled([
-      s.kind === "spot"
-        ? api("/spot/quotes?" + new URLSearchParams({ symbols: s.market }))
-        : s.venue === "jupperps"
-          ? api(
-              "/route?" +
-                new URLSearchParams({
-                  kind: "perp",
-                  market: s.market,
-                  side: "long",
-                  size: 50,
-                  leverage: 1,
-                }),
-            )
-          : api("/perps/markets"),
-      api(
-        "/backtest/history?" +
-          new URLSearchParams({
-            symbol: s.market,
-            kind: s.kind,
-            resolution: "1",
-            from: Math.floor(Date.now() / 60000) * 60 - 86400,
-            to: Math.floor(Date.now() / 60000) * 60 - 86400 + 60,
-          }),
-      ),
-    ]);
-    if (n !== sequence || signal.aborted) return;
-    const [q, h] = results;
-    if (q.status === "fulfilled") {
-      const m =
-        s.kind === "spot"
-          ? q.value.quotes[0]
-          : s.venue === "jupperps"
-            ? [q.value.best, ...(q.value.alternatives || [])].find(
-                (m) => m?.venue === "jupperps",
-              )?.quote
-            : q.value.markets?.find((m) => m.market === s.market);
-      live = m?.price ?? m?.markPrice ?? null;
-      markError = m?.error || (live == null ? "Venue returned no mark" : null);
-      funding =
-        s.venue === "jupperps"
-          ? m?.borrowRateHourly == null
-            ? null
-            : m.borrowRateHourly * 100
-          : (m?.funding?.eightHourRatePercent ?? null);
-      markAt = new Date().toLocaleTimeString();
-    } else {
-      live = null;
-      markError = q.reason.message;
-      markAt = "unavailable: " + q.reason.message;
+    const request = ++markSequence;
+    const active = () => n === sequence && request === markSequence && !signal.aborted;
+    function render() {
+      change = live > 0 && referencePrice > 0 ? (live / referencePrice - 1) * 100 : null;
+      header();
+      draw();
     }
-    change =
-      h.status === "fulfilled" && live > 0
-        ? (live / h.value.candles[0].open - 1) * 100
-        : null;
-    header();
-    draw();
+    const quote = async () => {
+      try {
+        const q = await (s.kind === "spot"
+          ? api("/spot/quotes?" + new URLSearchParams({ symbols: s.market }))
+          : s.venue === "jupperps"
+            ? api("/route?" + new URLSearchParams({ kind: "perp", market: s.market, side: "long", size: 50, leverage: 1 }))
+            : api("/perps/markets"));
+        if (!active()) return;
+        const m = s.kind === "spot" ? q.quotes[0]
+          : s.venue === "jupperps" ? [q.best, ...(q.alternatives || [])].find((m) => m?.venue === "jupperps")?.quote
+          : q.markets?.find((m) => m.market === s.market);
+        live = m?.price ?? m?.markPrice ?? null;
+        markError = m?.error || (live == null ? "Venue returned no mark" : null);
+        funding = s.venue === "jupperps" ? m?.borrowRateHourly == null ? null : m.borrowRateHourly * 100
+          : (m?.funding?.eightHourRatePercent ?? null);
+        markAt = new Date().toLocaleTimeString();
+      } catch (e) {
+        if (!active()) return;
+        live = null;
+        markError = e.message;
+        markAt = "unavailable: " + e.message;
+      }
+      if (active()) render();
+    };
+    const reference = async () => {
+      const timeout = AbortSignal.timeout(8000);
+      try {
+        const h = await api("/backtest/history?" + new URLSearchParams({
+          symbol: s.market, kind: s.kind, resolution: "1",
+          from: Math.floor(Date.now() / 60000) * 60 - 86400,
+          to: Math.floor(Date.now() / 60000) * 60 - 86400 + 60,
+        }), undefined, { signal: AbortSignal.any([signal, timeout]) });
+        if (!active()) return;
+        const price = Number(h.candles?.[0]?.open);
+        referencePrice = Number.isFinite(price) && price > 0 ? price : null;
+        referenceState = referencePrice ? (h.source || "History") : "Unavailable: no candle";
+      } catch (e) {
+        if (!active()) return;
+        referencePrice = null;
+        referenceState = timeout.aborted ? "Timed out" : "Unavailable: " + e.message;
+      }
+      if (active()) render();
+    };
+    await Promise.allSettled([quote(), reference()]);
   }
   function update(force = false) {
     const s = selection(),
@@ -234,7 +231,8 @@ export function mountChart({ root, api, signal, selection }) {
     current = key;
     const n = ++sequence;
     live = change = funding = null;
-    markError = null;
+    markError = referencePrice = null;
+    referenceState = "Loading…";
     header();
     history(n, s);
     mark(n, s);

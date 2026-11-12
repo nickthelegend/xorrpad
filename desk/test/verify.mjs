@@ -213,9 +213,10 @@ section("G. propose -> gate -> confirm");
 
   // the kill switch, on the human path
   await j("/key", { method: "POST", body: JSON.stringify({ id: "kill" }) });
-  await j("/key", { method: "POST", body: JSON.stringify({ id: "buy" }) });
+  const stopped = await j("/key", { method: "POST", body: JSON.stringify({ id: "buy" }) });
+  chk("G8 trade key refuses while killed", stopped.b?.ok === false && stopped.b?.error === "Killed: re-arm on the pad to trade", `"${stopped.b?.error}"`);
   const killed = await j("/key", { method: "POST", body: JSON.stringify({ id: "yes" }) });
-  chk("G8 the kill switch stops ✓ too", killed.b?.ok === false && /disarm/i.test(killed.b?.error || ""),
+  chk("G8 the kill switch stops ✓ too", killed.b?.ok === false && /nothing pending|disarm/i.test(killed.b?.error || ""),
       `"${killed.b?.error}"`);
   const armed = await j("/arm", { method: "POST" });
   chk("G9 /arm brings it back", armed.b?.armed === true, "re-arming is its own deliberate act");

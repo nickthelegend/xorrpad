@@ -5,6 +5,8 @@ import { Icon } from "../brand/Icon";
 import { BlurWords } from "../brand/BlurWords";
 import { attestationState } from "../../../renderer/ui/device-attestation.mjs";
 
+const shortDevice = (id) => "xorrpad · " + id.slice(-6);
+
 function verification(peer) {
   return peer.secure && peer.attestation?.verified === true
     ? attestationState(true, peer.attestation.serial)
@@ -85,7 +87,8 @@ export function Connect() {
               )}
               {identity ? identity.label : "Let’s find your pad"}
             </span>
-            <h2>{found.length ? found[0].device : "A little closer."}</h2>
+            <h2>{found.length ? shortDevice(found[0].device) : "A little closer."}</h2>
+            {found.length > 0 && <small className="block font-mono text-xs break-all" title={found[0].device}>{found[0].device}</small>}
             <p>
               {found.length
                 ? `${found[0].link.toUpperCase()} · Firmware ${found[0].firmware}`
@@ -168,7 +171,8 @@ export function Connect() {
               <div className="found-device" key={peer.device + peer.link}>
                 <span className="status-dot live" />
                 <div>
-                  <b>{peer.device}</b>
+                  <b>{shortDevice(peer.device)}</b>
+                  <small className="block font-mono text-xs break-all" title={peer.device}>{peer.device}</small>
                   <p>
                     {peer.link.toUpperCase()} · {peer.secure ? "Encrypted v2" : "Legacy v1 · not encrypted"}
                     <br />
@@ -252,7 +256,7 @@ export function Connect() {
             Update firmware <Icon name="arrowUpRight" />
           </button>
           <details>
-            <summary>Firmware 1.0.0 release notes</summary>
+            <summary>Firmware {found[0]?.firmware || system.data?.firmware.version || "version unavailable"} release notes</summary>
             <ul>
               {system.data?.firmware.notes.map((n) => (
                 <li key={n}>{n}</li>

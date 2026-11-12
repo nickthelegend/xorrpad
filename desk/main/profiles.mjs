@@ -41,7 +41,7 @@ export class Profiles {
           ? {
               ...k,
               action: presets[name][i],
-              label: presets[name][i].toUpperCase(),
+              label: presets[name][i] === "base" ? "SCAN" : presets[name][i].toUpperCase(),
             }
           : k,
       );

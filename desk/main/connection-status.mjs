@@ -1,8 +1,11 @@
+import { readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { hostname, platform } from "node:os";
 const exec = promisify(execFile);
-export async function connectionStatus() {
+export async function connectionStatus({ devices = [] } = {}) {
+  const config = await readFile(new URL("../../firmware/xorrpad/config.h", import.meta.url), "utf8").catch(() => "");
+  const version = devices[0]?.firmware || config.match(/#define XORR_FW_VERSION "([^"\n]+)"/)?.[1] || null;
   let tailscale;
   try {
     const { stdout } = await exec("tailscale", ["status", "--json"], {
@@ -26,7 +29,7 @@ export async function connectionStatus() {
     host: { name: hostname(), platform: platform(), backend: "reachable" },
     tailscale,
     firmware: {
-      version: "1.0.0",
+      version,
       available: false,
       setupRequired:
         "Setup required: signed firmware file and verification manifest",

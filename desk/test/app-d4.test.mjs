@@ -44,6 +44,10 @@ async function capture(page, screen, state, area) {
       if (box) assert.ok(box.height >= 44, `${screen} ${state}: ${await control.getAttribute('name')} tap target ${box.height}`);
     }
     await assertReadableLayout(page, area, `${screen} ${state} ${width}`);
+    for (const field of await area.locator('.pad-session .field, .pad-price-alerts .field, .pad-activity .field, .sheet .field').all()) {
+      assert.equal(await field.evaluate((node) => getComputedStyle(node).marginTop), '20px', `${screen} ${state}: field top spacing`);
+    }
+
     await page.screenshot({ path: path.join(output, `${screen}-${state}-${width}.png`), fullPage: true, animations: 'disabled' });
     // A long existing Sheet scrolls within the viewport. Capture its lower
     // controls as well, so a full-page image cannot hide an unreachable action.
@@ -267,6 +271,16 @@ test('Markets saves native-backed pad alerts, preserves other rules, removes and
     await sheet.getByRole('heading', { name: 'At or below 90 USD', exact: true }).waitFor();
     const stored = await server.padlink.priceAlerts(pad.device);
     assert.deepEqual(stored.alerts.map(({ usd, above }) => ({ usd, above })), [{ usd: 100, above: true }, { usd: 90, above: false }]);
+    for (const alert of stored.alerts) {
+      const remove = sheet.getByRole('button', { name: 'Remove alert ' + alert.id, exact: true });
+      assert.equal(await remove.textContent(), 'Remove alert');
+      assert.equal(await remove.getAttribute('title'), alert.id);
+      const hash = sheet.locator('small').filter({ hasText: alert.id.slice(0, 8) + '…' + alert.id.slice(-6) });
+      assert.equal(await hash.textContent(), alert.id.slice(0, 8) + '…' + alert.id.slice(-6));
+      assert.equal(await hash.getAttribute('title'), alert.id);
+      assert.equal(await hash.getAttribute('aria-label'), alert.id);
+      assert.match(await hash.getAttribute('class'), /font-mono/);
+    }
     await capture(page, 'markets', 'alerts-stored', sheet);
     // Invalid-rule error uses the authenticated real route; nothing is intercepted.
     const invalid = await fetch(origin + '/pad/price-alerts', { method: 'POST', headers, body: JSON.stringify({ device: pad.device, alerts: [{ ...stored.alerts[0], action: 'buy' }] }) });

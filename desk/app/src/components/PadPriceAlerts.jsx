@@ -32,8 +32,8 @@ function AlertRules({ device, market, kind }) {
       {!alerts.length && <p>No price alerts stored on this pad.</p>}
       {alerts.map((a) => <article key={a.id}>
         <h3>{a.above ? "At or above" : "At or below"} {money(a.usd)}</h3>
-        <pre>{a.mint}</pre><p>{a.fired ? "Fired" : "Armed"} · {a.id}</p>
-        <button disabled={disabled} onClick={() => save(rules().filter((r) => r.id !== a.id))}>Remove alert {a.id}</button>
+        <pre>{a.mint}</pre><p>{a.fired ? "Fired" : "Armed"} · <small className="font-mono text-xs" title={a.id} aria-label={a.id}>{a.id.length > 14 ? a.id.slice(0, 8) + "…" + a.id.slice(-6) : a.id}</small></p>
+        <button disabled={disabled} onClick={() => save(rules().filter((r) => r.id !== a.id))} title={a.id} aria-label={"Remove alert " + a.id}>Remove alert</button>
       </article>)}
       <form onSubmit={(e) => {
         e.preventDefault(); const f = new FormData(e.currentTarget);
@@ -51,7 +51,9 @@ function AlertRules({ device, market, kind }) {
 }
 export function PadPriceAlerts({ market, kind, onClose }) {
   return <Sheet title={"Alert on pad · " + (market || "Market")} onClose={onClose}>
+    <div className="pad-price-alerts">
     <p>Stored on the pad. Alerts can still fire when the desk is off, with pad power, Wi-Fi and network time available. Nothing will trade.</p>
     <PadTarget label="Alert pad">{(device) => <AlertRules device={device} market={market} kind={kind} />}</PadTarget>
+    </div>
   </Sheet>;
 }

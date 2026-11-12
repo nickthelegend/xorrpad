@@ -53,6 +53,7 @@ test('framing handles fragmented Unicode, multiple lines, diagnostics and limits
 });
 test('keymap validation preserves all measured controls and every cell',() => {
  assert.deepEqual(validateKeymap(DEFAULT_KEYMAP),DEFAULT_KEYMAP);
+ assert.equal(DEFAULT_KEYMAP.keys.find(k=>k.action==='base').label,'SCAN');
  for(const change of [m=>m.keys.pop(),m=>m.keys[0].label='bad\nlabel',m=>m.keys[0].action='kill',m=>m.keys[0].row=7,m=>m.keys[0]=m.keys[1],m=>m.revision=-1]){
   const m=structuredClone(DEFAULT_KEYMAP);change(m);assert.throws(() => validateKeymap(m));
  }
@@ -178,3 +179,18 @@ test('receipt delivery replays a verified historical devnet confirmation, not a 
   console.log('Verified historical devnet receipt delivered through TCP; this is not evidence of a new pad trade');
  }catch(e){if(!unavailable(e))throw e;t.skip(e.message);}
 });
+
+// No live price request should be needed to refuse a stopped trade key.
+test('KILL refuses every proposal key at HTTP and pad ingress without creating signals', {timeout:30000}, async () => lab(async ({server,pad}) => {
+ const kill=pad.key('kill'); await pad.waitFor(m=>m.type==='result' && m.id===kill);
+ const before=server.signals.list().length;
+ for (const id of ['buy','sell','long','short','base','scan']) {
+  const response=await fetch(base+'/key',{method:'POST',headers,body:JSON.stringify({id})});
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{ok:false,error:'Killed: re-arm on the pad to trade',armed:false});
+  const key=pad.key(id);
+  const result=await pad.waitFor(m=>m.type==='result' && m.id===key);
+  assert.equal(result.ok,false); assert.equal(result.error,'Killed: re-arm on the pad to trade');
+  assert.equal(server.signals.list().length,before); assert.equal(state.pending,null);
+ }
+}));

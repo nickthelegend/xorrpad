@@ -282,11 +282,11 @@ test(
       await capture("empty");
 
       pad = new PadSimulatorV2({
-        device: "esp32-123456abcdef",
+        device: "padsim-" + "1234567890".repeat(5) + "abcdef",
         serial: true,
         fragmentBytes: 73,
       });
-      pad.firmware = "3.0.0";
+      pad.firmware = "2.0.0";
       await pad.listen(8726);
       let peer = server.padlink.attach(
         net.createConnection(8726, "127.0.0.1"),
@@ -319,6 +319,11 @@ test(
           .evaluate((node) => getComputedStyle(node).color),
         "rgb(255, 163, 173)",
       );
+      assert.equal((await (await fetch(origin + '/desk/connection', { headers })).json()).firmware.version, pad.firmware);
+      assert.equal(await page.locator('.pairing-copy h2').textContent(), 'xorrpad · ' + pad.device.slice(-6));
+      assert.equal(await page.locator('.pairing-copy small').textContent(), pad.device);
+      assert.match(await page.locator('.pairing-copy small').getAttribute('class'), /font-mono/);
+      await page.getByText('Firmware ' + pad.firmware + ' release notes', { exact: true }).waitFor();
       await capture("unverified");
       peer.close();
       await pad.close();
