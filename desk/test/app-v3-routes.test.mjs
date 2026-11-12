@@ -1,5 +1,5 @@
-/** D1: shipped Connect bundle + real authenticated HTTP and encrypted padsim.
- * Extend the route list as the remaining v3 screens land. No API interception.
+/** D5: all brief routes in the shipped bundle + real authenticated HTTP,
+ * encrypted padsim and responsive screenshots. No API interception.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -11,6 +11,8 @@ import net from "node:net";
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
+import { WebSocket } from "ws";
+import { assertReadableLayout } from "./app-v3-layout.mjs";
 import { PadSimulatorV2 } from "../../tools/padsim/v2.mjs";
 import { AbilityPadSimulator } from "../../tools/padsim/abilities.mjs";
 import { abilityText } from "../main/wasm-abilities.mjs";
@@ -35,10 +37,13 @@ const routes = [
   ["/pad/manifest", "POST"],
   ["/pad/ota", "POST"],
   ["/pad/ota-channel", "POST"],
+  ["/pad/ota-channel", "GET"],
   ["/pad/rearm", "POST"],
   ["/pad/profiles", "GET"],
+  ["/pad/profiles", "POST"],
   ["/pad/profile", "POST"],
   ["/pad/options", "GET"],
+  ["/pad/options", "POST"],
   ["/pad/abilities", "GET"],
   ["/pad/abilities", "POST"],
   ["/wallet/mode", "GET"],
@@ -79,7 +84,7 @@ after(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad states are honest", async () => {
+test("D5 built app references every brief route; auth, methods and no-pad states are honest", async () => {
   const assets = new URL("../app/dist/assets/", import.meta.url);
   const bundle = (
     await Promise.all(
@@ -91,6 +96,9 @@ test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad sta
   for (const [route, method] of routes) {
     assert.ok(bundle.includes(route), `Built app must use ${route}`);
     assert.equal((await fetch(origin + route, { method })).status, 401);
+    assert.equal((await fetch(origin + route, {
+      method, headers: { ...headers, authorization: "Bearer wrong-token" },
+    })).status, 401, `${method} ${route}: reject invalid auth`);
     assert.equal(
       (await fetch(origin + route, { method: "DELETE", headers })).status,
       405,
@@ -155,6 +163,67 @@ test("D1/D2/D3/D4 built app references real routes; auth, methods and no-pad sta
   assert.equal((await absent.json()).error, "Setup required: select one paired, online, rearmed pad");
 });
 
+test("D5 remaining no-pad reads and writes return actual settings or readable errors", async () => {
+  for (const [route, method, body] of [
+    ["/pad/ota-channel?device=absent", "GET"],
+    ["/pad/session", "POST", { device: "absent", policy: {} }],
+    ["/pad/crew", "POST", { enabled: true, aboveUsd: 100, required: 2, members: [] }],
+    ["/pad/profiles", "POST", { profiles: [] }],
+    ["/pad/options", "POST", { unknownSetting: true }],
+    ["/wallet/mode", "POST", { mode: "invented" }],
+  ]) {
+    const response = await fetch(origin + route, {
+      method, headers, ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    assert.ok(response.status >= 400 && response.status < 500, `${method} ${route}`);
+    const result = await response.json();
+    assert.equal(typeof result.error, "string");
+    assert.ok(result.error.trim().length > 0, `${route}: readable error`);
+  }
+  // These are persisted desk configuration, not a claim of a connected pad.
+  const mode = await fetch(origin + "/wallet/mode", { headers });
+  assert.equal(mode.status, 200);
+  assert.deepEqual(await mode.json(), { mode: "phone" });
+  const options = await fetch(origin + "/pad/options", { headers });
+  assert.equal(options.status, 200);
+  assert.deepEqual(await options.json(), server.padlink.options);
+  const crew = await fetch(origin + "/pad/crew", { headers });
+  assert.equal(crew.status, 200);
+  assert.deepEqual(await crew.json(), { policy: server.executor.crew.read(), rounds: [] });
+  assert.deepEqual(server.padlink.snapshot().devices, []);
+});
+
+test("D5 events require WebSocket authentication and begin with an honest empty snapshot", { timeout: 10000 }, async () => {
+  const url = origin.replace("http:", "ws:") + "/events";
+  for (const protocols of [[], ["xorrpad", "pad-token.wrong-token"]]) {
+    const ws = new WebSocket(url, protocols);
+    try {
+      await new Promise((resolve, reject) => {
+        ws.once("open", () => reject(Error("Unauthenticated events opened")));
+        ws.once("error", reject);
+        ws.once("unexpected-response", (_req, res) => {
+          res.resume();
+          try { assert.equal(res.statusCode, 401); resolve(); } catch (error) { reject(error); }
+        });
+      });
+    } finally { ws.terminate(); }
+  }
+  const http = await fetch(origin + "/events", { headers });
+  assert.equal(http.status, 426);
+  assert.equal((await http.json()).error, "use WebSocket at /events");
+  const ws = new WebSocket(url, ["xorrpad", "pad-token.isolated-app-v3-test"]);
+  try {
+    const snapshot = await new Promise((resolve, reject) => {
+      ws.once("error", reject);
+      ws.once("message", (data) => {
+        try { resolve(JSON.parse(data)); } catch (error) { reject(error); }
+      });
+    });
+    assert.deepEqual(snapshot, { type: "snapshot", signals: [] });
+    assert.equal(ws.protocol, "xorrpad");
+  } finally { ws.terminate(); }
+});
+
 test(
   "Connect pairs real USB CRC pads, separates attestation, clears trust and fits 375/1440",
   { timeout: 120000 },
@@ -192,6 +261,7 @@ test(
           if (bounds)
             assert.ok(bounds.height >= 44, `${state}: tap target below 44px`);
         }
+        await assertReadableLayout(page, page.locator(".connect-page"), `Connect ${state} ${width}`);
         await page.screenshot({
           path: path.join(
             fileURLToPath(output),
