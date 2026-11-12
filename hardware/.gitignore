@@ -1,0 +1,9 @@
+__pycache__/
+generated/*_sklib.py
+generated/circuit.log
+generated/circuit.erc
+generated/skidl.log
+generated/skidl.erc
+generated/*-backups/
+generated/*.kicad_prl
+generated/~*
