@@ -40,7 +40,8 @@ import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
-import { runOnce, getMarket, snapshot } from "./trader.mjs";
+import { runOnce, getMarket } from "./trader.mjs";
+import { portfolioSnapshot } from './portfolio.mjs';
 import { propose } from "./propose.mjs";
 import { evaluate, AGENT_KINDS } from "./agents.mjs";
 import { reflect, acceptRule, rejectRule, findContradictions, decayRules } from "./reflect.mjs";
@@ -1030,22 +1031,7 @@ export function createServer(mem) {
       // reporting "the Base node at :8545 did not answer" over a backend that
       // was happily quoting Jupiter the whole time.
       if (url.pathname === "/portfolio") {
-        const [info, bal, brief] = await Promise.all([
-          CHAIN.info().catch((e) => ({ chain: CHAIN.id, label: CHAIN.label, error: String(e.message || e) })),
-          CHAIN.balances().catch(() => ({})),
-          mem.recallBrief().catch(() => null),
-        ]);
-        // Price only what is actually held, and only from the venue in hand.
-        const prices = {};
-        await Promise.all(Object.keys(bal)
-          .filter((sym) => sym !== CHAIN.markets().quoteAsset)
-          .map(async (sym) => { const p = await chainPrice(sym); if (p) prices[sym] = p; }));
-        return send(200, {
-          chain: { ...info, mode: CHAIN.id, label: CHAIN.label, signing: "external" },
-          route: "jupiter",
-          balances: bal, memory: brief, agents: AGENT_KINDS, prices,
-          markets: CHAIN.markets(),
-        });
+        return send(200,await portfolioSnapshot(mem,executor));
       }
 
       if (url.pathname === "/tick" && req.method === "POST") {
@@ -1236,7 +1222,7 @@ async function onKey(mem, id, options = {}, signals, executor) {
   }
 
   if (id === "base") return onKey(mem, "scan", {}, signals, executor);   // the white key runs the book
-  if (id === "portfolio") return { ok: true, ...(await snapshot(mem)) };
+  if (id === "portfolio") return { ok: true, ...(await portfolioSnapshot(mem,executor)) };
   // Stopping voids the decision on the table as well as disarming — the same
   // as POST /panic. A loaded ✓ left behind a kill switch is exactly what bites:
   // the operator stops, walks away, and a later re-arm makes a decision reasoned

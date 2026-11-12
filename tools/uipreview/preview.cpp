@@ -14,6 +14,11 @@
 #include "shim/Arduino.h"
 #include <Adafruit_GFX.h>
 #include "../../firmware/xorrpad/ui.h"
+#define ARDUINOJSON_ENABLE_ARDUINO_STRING 0
+#define ARDUINOJSON_ENABLE_ARDUINO_STREAM 0
+#define ARDUINOJSON_ENABLE_PROGMEM 0
+#include "../../firmware/xorrpad/logic/portfolio.h"
+#include <fstream>
 
 #include <cstdio>
 #include <cstdlib>
@@ -122,6 +127,15 @@ int main(int argc, char **argv) {
       made++;
     } else printf("  FAILED to write %s\n", p);
   };
+
+  // Render an actual public desk portfolio record supplied by the caller.
+  if(argc>3) {
+    std::ifstream input(argv[3]);JsonDocument d;
+    if(!input || deserializeJson(d,input))return 2;
+    PadState p;ChartState ch;p.ok=true;
+    if(!xorr::parsePortfolio(d,p.portfolio))return 3;
+    ui::drawFrame(c,p,ch);shot("portfolio","actual supplied desk portfolio record");return made==1?0:4;
+  }
 
   // 1. boot
   ui::drawBoot(c, 1);

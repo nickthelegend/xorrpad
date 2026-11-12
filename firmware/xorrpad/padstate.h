@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <string>
 #include <vector>
+#include "logic/presentation.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // What the pad knows, as plain data.
@@ -21,6 +22,7 @@ struct PadPosition {
 };
 
 struct PadState {
+  xorr::Portfolio portfolio;
   bool alertsOnly=false;String alertNotice;uint32_t alertUntil=0;
   bool abilityReview=false;
   String abilityDeveloper,abilityWidget,abilityName;

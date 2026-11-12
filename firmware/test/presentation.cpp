@@ -1,7 +1,25 @@
 #include "doctest.h"
 #include "../xorrpad/logic/presentation.h"
+#include "../xorrpad/logic/portfolio.h"
 #include <numeric>
 #include "../xorrpad/logic/accessibility.h"
+
+TEST_CASE("portfolio preserves unknown USD and the honest no-wallet message") {
+  JsonDocument d;d["cluster"]="devnet";d["totalUsd"]=nullptr;
+  auto row=d["rows"].to<JsonArray>().add<JsonObject>();row["symbol"]="SOL";row["amount"]=2.;row["usd"]=nullptr;
+  xorr::Portfolio p;REQUIRE(xorr::parsePortfolio(d,p));CHECK(p.visible);CHECK_FALSE(p.hasTotal);
+  REQUIRE(p.rows.size()==1);CHECK(p.rows[0].amount==2);CHECK_FALSE(p.rows[0].hasUsd);
+  d.clear();d["message"]="Create your agent wallet in XOR Desktop";
+  REQUIRE(xorr::parsePortfolio(d,p));CHECK(p.rows.empty());CHECK(p.message=="Create your agent wallet in XOR Desktop");
+}
+TEST_CASE("portfolio parser bounds rows and refuses invalid numeric values without replacing data") {
+  JsonDocument d;d["cluster"]="mainnet-beta";d["totalUsd"]=4.5;
+  auto row=d["rows"].to<JsonArray>().add<JsonObject>();row["symbol"]="USDC";row["amount"]=4.5;row["usd"]=4.5;
+  xorr::Portfolio p;REQUIRE(xorr::parsePortfolio(d,p));CHECK(p.hasTotal);CHECK(p.totalUsd==4.5);CHECK(p.rows[0].hasUsd);
+  d["rows"][0]["amount"]=-1;CHECK_FALSE(xorr::parsePortfolio(d,p));CHECK(p.totalUsd==4.5);
+  d["rows"][0]["amount"]=1;d["totalUsd"]=INFINITY;CHECK_FALSE(xorr::parsePortfolio(d,p));
+  d["totalUsd"]=4.5;for(int i=0;i<5;i++)d["rows"].as<JsonArray>().add(d["rows"][0]);CHECK_FALSE(xorr::parsePortfolio(d,p));
+}
 
 TEST_CASE("reply scrolling preserves the entire bounded reply, including long words") {
   std::string reply(2000, 'x');

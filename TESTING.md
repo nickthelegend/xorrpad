@@ -1845,3 +1845,71 @@ Explicit local protocol fixtures separately check raw-unit aggregation, unknown
 mints, wrapped/native SOL separation, Jupiter failure and RPC failure.
 RPC and pricing formats: [Solana](https://solana.com/docs/rpc/http/gettokenaccountsbyowner),
 [Jupiter](https://github.com/jup-ag/api-examples/blob/main/apps/price-api/README.md).
+
+
+## Agent wallet W1 — part 3 (2026-11-12)
+
+Scope: brief parts 1 and 3. No desktop restyle, funding QR, firmware Fund
+screen or wallet-card work is included. Unrelated pre-existing working-tree
+changes were preserved and excluded from the W1 commits.
+
+- `firmware/test/run.sh`: **271 cases / 2686 assertions passed**, no skips.
+- Focused `agent-wallet.live.test.mjs` plus `portfolio.live.test.mjs`, run
+  sequentially with the repo Python venv: **3 passed, no skips**. Actual public
+  devnet SOL/SPL reads, idempotent creation, exact no-wallet instruction,
+  agent-wallet fallback, explicit phone precedence and the selected native
+  pad session public key all passed. The encrypted test proves the raw
+  transport contains encrypted frames and neither the public wallet address
+  nor a plaintext Portfolio record. No policy approval, funding or submission.
+- Explicit local protocol fixtures: **3 passed**, including SPL raw-unit
+  aggregation, unknown mints/unknown USD, RPC and price failures, native versus
+  wrapped SOL, and SOL/USDC plus exactly three other holdings.
+- `model3d.test.mjs` plus `portfolio-screen.test.mjs`: **7 passed**. Offline,
+  home, five-row Portfolio, unavailable USD and exact no-wallet firmware frames
+  agree with the shipped WASM byte for byte. WASM was rebuilt with the brief's
+  EMSDK path. Existing commissioned art/model checks remain present.
+- Standalone `npm run build:app --prefix desk` passed. Existing chunk-size and
+  mixed static/dynamic Device import warnings remain non-failing.
+
+Real public RPC limits initially rejected repeated reads; tests now space the
+integration reads and allow bounded route-read retries. A genuine failure
+stays an error. The encrypted integration test also found and verified the
+session-response queue deadlock fix. The final live run passed all three
+cases in 67,486.686625 ms. Earlier failed/interrupted diagnostic runs are not
+claimed as acceptance runs.
+
+The full desk suite runs alone in a disposable copy of the working source,
+with the repo Python venv, CAD Python venv, installed dependency links and public
+native/OTA/SDK artifacts. Existing key files, environment files and `.loom` are
+excluded. One incomplete attempt lacked the CAD venv required by the existing
+SCAN-model test; the missing environment was linked before restarting the full
+suite. Its log is retained as `firmware/build/w1-desk-incomplete-cad.log`.
+A later review retained Classic's live chain-slot/chain-ID metadata and added
+regression assertions; the suite was restarted on that final source. The
+interrupted pre-fix run is `firmware/build/w1-desk-before-slot.log`.
+
+The two Portfolio screenshots in `docs/screens/v3/` were rendered and inspected
+from actual captured records through `tools/uipreview`. The devnet wallet was
+unfunded; no positive balance is asserted. Mainnet signing authorization was
+unchanged. No existing secrets/environment files were inspected and no push
+was performed. Public logs live under `firmware/build/w1-{native,live,parity,build}.log`.
+
+
+Final isolated desk run on the complete final W1 source: **248 tests,
+238 passed, 10 skipped, zero failures/cancellations**, exit **0**,
+**849,288.373708 ms**. All new W1 cases passed without skips. Existing skips
+were unavailable Ollama/Anthropic/Deepgram setup, missing Electron binary,
+rate-limited Meteora, unconfigured keeper, unfunded disposable devnet receipt
+and pm-AMM simulation owners, and two unconfigured Phoenix account cases.
+The SCAN CAD comparison passed after linking the CAD venv; Classic's live
+chain slot and chain ID are retained and asserted. Twenty changed code/artifact
+files were checked byte for byte against the isolated suite source.
+
+```sh
+TMPDIR="$PWD/../runtime" XORR_USER_DATA="$PWD/../runtime/user" SIBYL_PY="$PWD/.venv/bin/python" npm test --prefix desk
+```
+
+The full run includes the app build and model3d/Portfolio parity tests. Its
+complete log is `firmware/build/w1-desk-final.log`. The standalone app build
+also passed. The disposable source/runtime copy was removed after verification;
+public acceptance logs and the two inspected pad captures remain in this repo.

@@ -5,6 +5,11 @@
 #include <vector>
 
 namespace xorr {
+struct PortfolioRow { std::string symbol; double amount=0,usd=0; bool hasUsd=false; };
+struct Portfolio {
+  bool visible=false,hasTotal=false; double totalUsd=0;
+  std::string cluster,message; std::vector<PortfolioRow> rows;
+};
 constexpr uint16_t rgb565(uint32_t rgb) {
   return uint16_t(((rgb >> 8) & 0xf800) | ((rgb >> 5) & 0x07e0) | ((rgb >> 3) & 0x001f));
 }

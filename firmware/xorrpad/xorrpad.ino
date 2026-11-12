@@ -359,6 +359,7 @@ void sendKey(const KeyBind &kb) {
 }
 
 void onKey(uint8_t r, uint8_t c, bool pressed) {
+  if(pressed)pad.portfolio.visible=false;
   if (factory.active) { factory.key(r,c,pressed); return; }
   if (factoryReset.active) return;
   bool consumed=accessibility.keyEvent(r,c,pressed,pad);

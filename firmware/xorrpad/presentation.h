@@ -3,6 +3,7 @@
 #include <cmath>
 #include "padstate.h"
 #include "logic/presentation.h"
+#include "logic/portfolio.h"
 
 inline bool presentationConfirmationVisible(const PadState &pad) {
   return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed,
@@ -12,15 +13,21 @@ inline bool presentationConfirmationVisible(const PadState &pad) {
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if (type == "error") {
+  if (type == "portfolio") {
+    pad.reply="";pad.labelUntil=0;pad.receiptUntil=0;
+    if(!xorr::parsePortfolio(d,pad.portfolio))pad.portfolio.visible=false;
+  } else if (type == "error") {
     pad.errorCode = d["code"] | "LINK_ERROR";
     pad.errorFix = d["fix"] | "Reconnect the desk";
   } else if (type == "reply") {
+    pad.portfolio.visible=false;
     pad.reply = d["text"].as<String>().substring(0, 2000);
     pad.replyAt = millis();
   } else if (type == "receipt") {
+    pad.portfolio.visible=false;
     pad.reply = ""; pad.errorCode = "";
   } else if (type == "signal") {
+    pad.portfolio.visible=false;
     pad.reply = "";
     auto trusted = d["trusted"];
     pad.fingerprint = d["fingerprint"] | "";

@@ -1138,8 +1138,11 @@ export class PadLink extends EventEmitter {
       this.send(p, this.getStatus(p));
       return;
     }
-    const work = p.tail.then(() => this.receive(p, m));
-    p.tail = work.catch(() => {});
+    // A PORTFOLIO key can be waiting on this public session-key response.
+    // Validate it through receive(), without queueing it behind that same key.
+    const sessionReply = m.type === 'session_state' && p.secure;
+    const work = sessionReply ? this.receive(p,m) : p.tail.then(() => this.receive(p, m));
+    if (!sessionReply) p.tail = work.catch(() => {});
     return work.catch((e) =>
       this.send(p, {
         type: "result",
@@ -1275,7 +1278,11 @@ export class PadLink extends EventEmitter {
             side: outcome[2],
             size: this.getStatus(p).sizeUsd,
           });
-        else await this.request("/key", { id: m.action, ...p.knobDefaults });
+        else {
+          const result = await this.request("/key", { id: m.action, ...p.knobDefaults });
+          if (m.action === 'portfolio' && result.portfolio)
+            this.send(p,{type:'portfolio',...result.portfolio});
+        }
       }
     } else if (m.type === "signal_state") {
       if (p.secure) throw Error("use trusted key confirmation");

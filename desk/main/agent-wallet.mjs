@@ -71,7 +71,8 @@ export class AgentWallet {
     for (const row of rows) row.usd = row.amount === 0 ? 0 : row.priceUsd == null ? null : row.amount * row.priceUsd;
     const unpriced = rows.filter(r => r.amount > 0 && r.usd == null);
     const pricedTotalUsd = rows.reduce((total,r) => total+(r.usd ?? 0),0);
-    return {address,source,cluster,solanaPay:`solana:${address}?label=xorrpad%20agent`,balances,
+    return {address,source,cluster,slot:Math.max(...accounts.map(r => r.context.slot)),
+      solanaPay:`solana:${address}?label=xorrpad%20agent`,balances,
       totalUsd:unpriced.length ? null : pricedTotalUsd,pricedTotalUsd,
       unpricedMints:unpriced.map(r => r.mint),priceErrors,
       valuation:cluster === 'devnet' ? 'Devnet tokens have no USD market value' : 'Jupiter USD prices',

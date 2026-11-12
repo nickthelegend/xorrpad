@@ -361,6 +361,29 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
   banner(c, WARN, "CONNECTING", "joining wifi, then the desk");
 }
 
+static void drawPortfolio(GFXcanvas16 &c, const xorr::Portfolio &p) {
+  c.fillScreen(BG);
+  text(c,12,10,2,INK,"PORTFOLIO");
+  if(!p.message.empty()) {
+    wrap(c,12,65,296,2,INK,String(p.message.c_str()),5);
+    banner(c,BLUE,"AGENT WALLET","Any key to close");return;
+  }
+  textR(c,308,34,1,MUTE,p.cluster.c_str());
+  char line[64];
+  if(p.hasTotal)snprintf(line,sizeof line,"$%.2f",p.totalUsd);
+  else snprintf(line,sizeof line,"USD unavailable");
+  text(c,12,45,2,p.hasTotal?UP:MUTE,line);
+  for(size_t i=0;i<p.rows.size() && i<5;++i) {
+    const auto &row=p.rows[i];int y=78+int(i)*23;
+    textClip(c,12,y,96,1,INK,String(row.symbol.c_str()));
+    snprintf(line,sizeof line,"%.6g",row.amount);textR(c,216,y,1,INK,line);
+    if(row.hasUsd)snprintf(line,sizeof line,"$%.2f",row.usd);
+    else snprintf(line,sizeof line,"--");
+    textR(c,308,y,1,MUTE,line);
+  }
+  banner(c,BLUE,p.cluster=="devnet"?"DEVNET":"LIVE BALANCES",p.cluster=="devnet"?"Test tokens / no USD market value":"Any key to close / -- unpriced");
+}
+
 static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
   c.fillScreen(BG);
     text(c,12,10,2,INK,"POSITIONS");
@@ -442,6 +465,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     wrap(c,12,124,W-24,1,MUTE,pad.receiptExplorer,4);
     banner(c,UP,"CONFIRMED","confirmed / explorer short sig");
   }
+  else if(pad.portfolio.visible) {drawPortfolio(c,pad.portfolio);return;}
   else if(pad.abilityWidget.length() && !pad.reply.length()) {
     textClip(c,12,18,296,1,MUTE,"ABILITY / "+pad.abilityName);
     wrap(c,12,58,296,2,INK,pad.abilityWidget,6);

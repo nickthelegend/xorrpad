@@ -6,6 +6,23 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Agent wallet W1, part 3
+
+- Final isolated desk suite: 248 tests, 238 passed, 10 existing setup/provider
+  skips, zero failures; native suite 271 cases passed, app build and native/WASM
+  frame parity passed. Classic's live chain slot/ID are retained and asserted.
+
+- PORTFOLIO and `/portfolio` use the existing agent wallet when `SOLANA_ADDRESS`
+  is unset; an explicit phone address still wins. With no wallet, they say
+  “Create your agent wallet in XOR Desktop” and return no invented balances.
+- The physical pad receives a Portfolio record over v1 or encrypted v2 and
+  shows total USD, SOL, USDC and the top three other holdings, preserving
+  unavailable USD values. Existing desktop components and styling are unchanged.
+- Added native parser tests, live devnet/TCP/encrypted-native-pad coverage,
+  native/WASM portfolio frame parity, and actual uipreview screenshots.
+  Session-state replies can complete a PORTFOLIO key waiting on the pad public
+  key without queueing behind that same key; response checks remain enforced.
+
 ### Added — Agent wallet W1, part 1
 
 - Authenticated GET/POST `/agent-wallet` reuses the existing desk session wallet

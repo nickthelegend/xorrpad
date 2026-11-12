@@ -48,3 +48,20 @@ scrolls vertically: `markets-alerts-form-*` shows the lower form and reachable
 Save action, complementing the top-of-sheet stored-alert captures.
 All images are visually inspected for wrapping, clipped labels, public hashes,
 verbatim errors and empty states. The approved components and styles are retained.
+
+
+### Agent wallet W1 — Portfolio only
+
+`agent-wallet-portfolio-devnet.png` and `agent-wallet-portfolio-no-wallet.png`
+render the actual public desk records captured by `portfolio.live.test.mjs`
+through `tools/uipreview/preview`, using the firmware's own `ui.h`. The devnet
+capture is a newly created, unfunded disposable agent wallet (SOL 0, USDC 0),
+not a funded-account demonstration. The empty capture shows the exact no-wallet
+instruction. Both were visually inspected at 2× native resolution. Desktop
+wallet-card and Fund-screen captures belong to the later brief parts.
+
+```sh
+make -C tools/uipreview
+tools/uipreview/preview firmware/build/w1-pad 2 firmware/build/w1-portfolio-devnet.json
+tools/uipreview/preview firmware/build/w1-pad 2 firmware/build/w1-portfolio-no-wallet.json
+```

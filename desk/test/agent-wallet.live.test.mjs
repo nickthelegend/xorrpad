@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {Connection,PublicKey} from '@solana/web3.js';
 import {Memory} from '../main/memory.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
 process.env.PAD_TOKEN = 'agent-wallet-w1-test';
 process.env.SOLANA_RPC = 'https://api.devnet.solana.com';
 delete process.env.SOLANA_ADDRESS;
@@ -18,7 +19,14 @@ test('agent-wallet authenticates, creates once and returns actual devnet SOL/SPL
  const mem = new Memory({db:path.join(dir,'memory.db')}), server = createServer(mem);
  await new Promise(r => server.listen(0,'127.0.0.1',r));
  const base = `http://127.0.0.1:${server.address().port}`;
- const post = body => fetch(base+'/agent-wallet',{method:'POST',headers,body:JSON.stringify(body)});
+ const request = async opts => {
+  for(let attempt=0;;attempt++) {
+   const r=await fetch(base+'/agent-wallet',opts);
+   if(r.status!==502 || attempt===2)return r;
+   await r.arrayBuffer();await delay(10000); // Public RPC may rate-limit repeated reads.
+  }
+ };
+ const post = body => request({method:'POST',headers,body:JSON.stringify(body)});
  try {
   for (const method of ['GET','POST']) {
    assert.equal((await fetch(base+'/agent-wallet',{method})).status,401);
@@ -33,6 +41,7 @@ test('agent-wallet authenticates, creates once and returns actual devnet SOL/SPL
   const response = await post({action:'create'}), created = await response.json();
   assert.equal(response.status,200,JSON.stringify(created));
   assert.equal(created.source,'desk'); assert.equal(created.cluster,'devnet');
+  assert.ok(Number.isInteger(created.slot) && created.slot > 0);
   assert.equal(created.solanaPay,`solana:${created.address}?label=xorrpad%20agent`);
   const connection = new Connection(process.env.SOLANA_RPC,{commitment:'confirmed',disableRetryOnRateLimit:true});
   const owner = new PublicKey(created.address);
@@ -43,7 +52,7 @@ test('agent-wallet authenticates, creates once and returns actual devnet SOL/SPL
   }
   const again = await post({action:'create'}); assert.equal(again.status,200);
   assert.equal((await again.json()).address,created.address);
-  const read = await (await fetch(base+'/agent-wallet',{headers})).json();
+  const read = await (await request({headers})).json();
   assert.equal(read.address,(await server.executor.wallet.info()).publicKey);
   assert.equal(read.address,created.address); assert.equal(read.balances.USDC.amount,0);
   assert.equal(read.balances.USDC.mint,'4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');

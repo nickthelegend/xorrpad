@@ -12,11 +12,12 @@ OUT ?= out
 SCALE ?= 2
 
 CXX ?= c++
-CXXFLAGS = -std=c++17 -O1 -w -DARDUINO=10819 -Ishim -I$(GFX)
+JSON ?= $(HOME)/Documents/Arduino/libraries/ArduinoJson/src
+CXXFLAGS = -std=c++17 -O1 -w -DARDUINO=10819 -Ishim -I$(GFX) -I$(JSON)
 
 SRC = preview.cpp $(GFX)/Adafruit_GFX.cpp
 
-preview: $(SRC) shim/Arduino.h ../../firmware/xorrpad/ui.h ../../firmware/xorrpad/padstate.h
+preview: $(SRC) shim/Arduino.h ../../firmware/xorrpad/ui.h ../../firmware/xorrpad/padstate.h ../../firmware/xorrpad/logic/portfolio.h
 	@test -d "$(GFX)" || { echo "Adafruit_GFX not found at $(GFX) — set GFX=/path/to/Adafruit_GFX_Library"; exit 1; }
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC)
 
