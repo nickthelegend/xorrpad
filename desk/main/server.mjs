@@ -35,6 +35,7 @@ import {verifyManifestSignature,verifyManifest} from "./pad-v2.mjs";
 import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
+import { AgentWallet, NO_AGENT_WALLET } from './agent-wallet.mjs';
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -187,6 +188,7 @@ export function createServer(mem) {
     },
   });
   const executor = new Executor({mem,signals,isArmed:() => state.armed});
+  const agentWallet = new AgentWallet(executor);
   signals.onAccepted = e => e.automatic ? executor.execute(e.id) : undefined;
   signals.on('event',e => {
     if (e.type === 'receipt') { state.lastFill = e.receipt; note(`Confirmed ${e.receipt.signature} · ${e.receipt.explorer}`); }
@@ -446,6 +448,17 @@ export function createServer(mem) {
       if (url.pathname === '/permissions') {
         try { return send(200,req.method === 'GET' ? permissions.read() : permissions.write(body)); }
         catch(e) { return send(400,{error:e.message}); }
+      }
+      if (url.pathname === '/agent-wallet') {
+        const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+        if (req.method === 'POST' && !local) return send(403,{error:'wallet configuration is local only'});
+        if (req.method === 'POST' && (body.action !== 'create' || Object.keys(body).some(k => k !== 'action')))
+          return send(400,{error:'Use {action:"create"} to create your agent wallet'});
+        try { return send(200,await agentWallet.get({create:req.method === 'POST'})); }
+        catch (e) {
+          const setup = e.message === NO_AGENT_WALLET || e.message.startsWith('Setup required:');
+          return send(setup ? 503 : 502,{error:setup ? e.message : 'Agent wallet unavailable: check local wallet storage and Solana RPC'});
+        }
       }
       if (url.pathname === '/session-wallet' || url.pathname === '/wallet/mode') {
         const local = ['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
@@ -1089,6 +1102,7 @@ export function createServer(mem) {
   });
   srv.signals = signals;
   srv.executor = executor;
+  srv.agentWallet = agentWallet;
   attachEvents(srv,signals,TOKEN);
   let padBrief=null;
   const refreshPadBrief=() => mem.recallBrief().then(b => {padBrief=b;}).catch(() => {padBrief=null;});
@@ -1332,7 +1346,7 @@ export async function briefing(mem) {
 const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
-  '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
+  '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/agent-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
   '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],

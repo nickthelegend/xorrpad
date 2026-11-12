@@ -1831,3 +1831,17 @@ the incomplete setup log is retained separately as
 Six local screen commits record the test/capture work; the acceptance
 documentation is a separate local commit. No existing secret was opened,
 no board was flashed, and nothing was pushed.
+
+
+## Agent wallet W1 — part 1 (2026-11-12)
+
+`SIBYL_PY="$PWD/.venv/bin/python" node --test desk/test/agent-wallet{,.live}.test.mjs`:
+3 passed, no skips. The live authenticated route created a disposable session
+wallet and independently checked SOL and both SPL programs against
+`https://api.devnet.solana.com` (SOL 0, USDC 0). Repeated create preserved the
+address; GET returned the executor's same public key. No airdrop, signing or
+submission. Existing wallet/key files and environment files were not inspected.
+Explicit local protocol fixtures separately check raw-unit aggregation, unknown
+mints, wrapped/native SOL separation, Jupiter failure and RPC failure.
+RPC and pricing formats: [Solana](https://solana.com/docs/rpc/http/gettokenaccountsbyowner),
+[Jupiter](https://github.com/jup-ag/api-examples/blob/main/apps/price-api/README.md).

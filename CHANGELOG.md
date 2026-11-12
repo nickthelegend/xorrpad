@@ -6,6 +6,15 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Agent wallet W1, part 1
+
+- Authenticated GET/POST `/agent-wallet` reuses the existing desk session wallet
+  or the selected pad session public key, creates only when missing, and never
+  returns secrets. Creation stays local and leaves the signing mode unchanged.
+- Live genesis-verified SOL, SPL and Token-2022 balances, mint-pinned USDC,
+  Jupiter USD prices where available, and explicit unknown/partial valuations.
+  RPC failures are errors; devnet units have no claimed USD market value.
+
 ### Added — Desktop v3 D5 acceptance
 
 - Final isolated desk suite: 238 tests, 228 passed, 10 setup/provider skips,

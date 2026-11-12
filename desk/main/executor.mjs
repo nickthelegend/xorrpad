@@ -45,6 +45,21 @@ export class Executor {
     });
   }
   mode() { return readJson(this.#settings,{mode:'phone'}).mode; }
+  async agentWalletIdentity({create = false} = {}) {
+    if (this.mode() === 'pad') {
+      if (!this.padSigner) throw Error('Setup required: paired pad signer');
+      const state = await this.padSigner.link.sessionStatus(readJson(this.#settings,{}).device);
+      if (!state.publicKey) throw Error('Setup required: pad session public key');
+      return {address:state.publicKey,source:'pad'};
+    }
+    try { return {address:(await this.wallet.info()).publicKey,source:'desk'}; }
+    catch (e) {
+      if (e.message !== 'Setup required: create or import a session wallet') throw e;
+      if (!create) throw Error('Create your agent wallet in XOR Desktop');
+      try { return {address:(await this.wallet.create()).publicKey,source:'desk'}; }
+      catch (e) { if (e.code !== 'EEXIST') throw e; return {address:(await this.wallet.info()).publicKey,source:'desk'}; }
+    }
+  }
   setMode(mode,device) {
     if (!['phone','session','pad'].includes(mode)) throw new Error('wallet mode must be phone, session or pad');
     if(device!==undefined && (typeof device!=="string" || !/^[\w-]{1,96}$/.test(device)))throw Error("invalid pad signer device");
