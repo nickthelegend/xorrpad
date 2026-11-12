@@ -840,5 +840,18 @@
     "exitCode": 0,
     "flash": "compiled, not yet flashed"
   },
-  "designDetectorFindings": 0
+  "designDetectorFindings": 0,
+  "browser": {
+    "command": "node desk/test/history-ui.mjs",
+    "capturedAt": "2026-11-11T23:57:46.434Z",
+    "captures": 18,
+    "checks": [
+      "All four timeframe chips draw real pool candles, including daily history",
+      "SOL perpetual uses its exact spot mint and labels the reference separately from the live Phoenix mark",
+      "Actual HTTP replay displays metrics, trade log and pool provenance"
+    ],
+    "runtimeErrors": [],
+    "layoutIssues": [],
+    "manifest": "docs/screens/v1/history-manifest.json"
+  }
 }

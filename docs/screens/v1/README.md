@@ -1,23 +1,32 @@
-# T9 browser captures
+# v1 browser captures
 
-Run `npm run test:ui --prefix desk` from the repository root. Playwright uses
-Chromium, the actual desk server on loopback **8727**, isolated SQLite/app
-storage, and real venue APIs. No responses are intercepted. The runner closes
-the browser, server and memory sidecar and removes its temporary app directory.
-Do not run it alongside the HTTP unit suites, which also use 8727.
+The matrix has all nine pages in Floor, Paper and Neon at 1440 and 375 pixels.
+**T10 refreshed Trade and Backtest's twelve images with real pool history.**
+The other 42 page variants retain their T9 captures. Financial values are
+point-in-time reads and model outputs, not executable quotes or actual fills.
 
-All **nine pages × three themes × two widths = 54 captures** below are from
-one final run. The [manifest](manifest.json) records timestamps, real setup/error
-states, integration checks, runtime errors and layout results. Each empty state
-is checked for its illustration, exact setup reason and one recovery action.
-The checks cover all four chart timeframes, spot quote completion, session/RPC
-status, theme persistence, key programming, knob rotation and key travel.
+## T10: working history
 
-The specified Pyth Benchmarks history service returned **HTTP 404** (and rate
-limiting during repeated reads). The chart displays that real error; there are
-no substitute candles. Jupiter references and perp marks are point-in-time
-reads, not quotes for later execution. The screenshots use an unfunded,
-unconfigured session wallet and disconnected hardware, honestly labelled.
+Run `node desk/test/history-ui.mjs` from the repository root. Playwright uses
+Chromium, the actual authenticated desk server on loopback **8727**, isolated
+SQLite/app storage and real APIs. It closes the browser/server/memory sidecar
+and removes its temporary app directory. Run it separately from the HTTP suites.
+No response is intercepted and no transaction is signed or submitted.
+
+The [T10 manifest](history-manifest.json) records **18 captures**, three
+integration groups, **0 runtime errors** and **0 layout issues**. The runner
+verifies all four timeframe controls render real canvas candles, the perp
+reference label and separate live mark, and a successful HTTP strategy replay.
+Twelve captures update Trade/Backtest below; six additional perp captures are
+linked in the next table. All use the existing fonts, palettes and components.
+
+GeckoTerminal supplies **SOL / USDC · Orca** candles. The selected pool/DEX is
+visible, and the chart retains the venue's live mark. The Backtest captures show
+an actual run of a declared rule on November 1–8, including its negative model
+PnL, trade log and source provenance. These are research estimates with the
+stated fee/funding/slippage assumptions. Pyth remains secondary; the prior 404
+states are preserved in [before-t10](before-t10/README.md). Older BTC archive
+limits and all measured test counts are in [TESTING.md](../../../TESTING.md).
 
 | Page | Floor 1440 / 375 | Paper 1440 / 375 | Neon 1440 / 375 |
 | --- | --- | --- | --- |
@@ -31,29 +40,43 @@ unconfigured session wallet and disconnected hardware, honestly labelled.
 | Backtest | [Desktop](backtest-floor-1440.png) / [Phone](backtest-floor-375.png) | [Desktop](backtest-paper-1440.png) / [Phone](backtest-paper-375.png) | [Desktop](backtest-neon-1440.png) / [Phone](backtest-neon-375.png) |
 | Link | [Desktop](link-floor-1440.png) / [Phone](link-floor-375.png) | [Desktop](link-paper-1440.png) / [Phone](link-paper-375.png) | [Desktop](link-neon-1440.png) / [Phone](link-neon-375.png) |
 
-## Real signal evidence
+## T10 perpetual reference evidence
 
-After the page captures, the runner uses a real live devnet pm-AMM quote to
-create a gated proposal and **refuses it**. No transaction is signed or submitted.
-The authenticated NDJSON pad simulator and `/events` stream carry the actual
-messages; this is host integration evidence, not a claim of flashed hardware.
+| View | Floor | Paper | Neon |
+| --- | --- | --- | --- |
+| SOL perp / 1440 | [Desktop](evidence/trade-perp-floor-1440.png) | [Desktop](evidence/trade-perp-paper-1440.png) | [Desktop](evidence/trade-perp-neon-1440.png) |
+| SOL perp / 375 | [Phone](evidence/trade-perp-floor-375.png) | [Phone](evidence/trade-perp-paper-375.png) | [Phone](evidence/trade-perp-neon-375.png) |
+
+The source is explicitly **spot reference for the perp**; Phoenix's live mark
+is separate. No historical perpetual executable prices are asserted.
+
+## Earlier T9 evidence
+
+`npm run test:ui --prefix desk` is the original all-page browser check.
+The [T9 manifest](manifest.json) records its 15 integration groups and original
+54-capture run, with 0 runtime/layout issues. Trade and Backtest images from
+that run are preserved in [before-t10](before-t10/README.md); the remaining
+page images in the matrix are unchanged. Disconnected hardware and absent
+wallet/chat data are truthful setup states.
+
+The T9 runner created a real quote-backed devnet proposal and **refused it**,
+checking the authenticated NDJSON pad simulator and `/events` without signing:
 
 - [Incoming signal on Chats](evidence/signal-toast-chats-375.png)
 - [Global decision drawer and countdown](evidence/signal-drawer-chats-375.png)
 - [Pad firmware-style confirmation screen](evidence/pad-confirm-375.png)
 
-If live devnet cannot return a liquid market, the manifest explicitly records
-that dependency failure rather than manufacturing a signal or capture.
+This is host integration evidence, not a claim of flashed hardware.
 
 ## Before / after
 
-The [26 original pre-T9 captures](before-t9/README.md) are preserved unchanged
-from the release baseline. Compare [Pad desktop before](before-t9/pad-floor-1440.png)
-and [phone before](before-t9/pad-floor-375.png) with the first row above;
-[Trade desktop before](before-t9/trade-floor-1440.png) and
-[phone before](before-t9/trade-floor-375.png) with the second row.
-Floor and Paper keep their original palette and typography. Neon intentionally
-uses the new black, cyan and magenta tokens. Original SVG geometry is generated
-by the renderer; no reference artwork or stock art is copied.
+T10 preserved all twelve prior Trade/Backtest variants unchanged:
+[Trade desktop before](before-t10/trade-floor-1440.png),
+[phone before](before-t10/trade-floor-375.png),
+[Backtest desktop before](before-t10/backtest-floor-1440.png), and
+[phone before](before-t10/backtest-floor-375.png). Compare with the matrix above.
 
+The [26 original pre-T9 captures](before-t9/README.md) also remain unchanged.
+Floor and Paper retain their palettes and typography; T9 intentionally changed
+Neon to black/cyan/magenta. Original renderer SVG geometry is not stock art.
 T7's separate landing captures remain in [site/README.md](site/README.md).

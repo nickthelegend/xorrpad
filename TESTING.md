@@ -47,8 +47,13 @@ Firmware compiled successfully using the exact command already recorded in
 `arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc firmware/xorrpad`.
 Sketch **1,476,455 bytes**, globals **59,060 bytes**. **Compiled, not yet flashed**.
 The source-label UI detector returned 0 findings; changed modules passed syntax
-and formatting checks. Browser evidence is recorded separately in the screen
-manifest after the real chart capture step. Nothing was pushed.
+and formatting checks. `node desk/test/history-ui.mjs` passes three browser
+integration groups and writes **18 real captures**: Trade spot, Trade perp and
+Backtest, each in all three themes at 1440 and 375. It verifies all four candle
+timeframes, the separate live mark and a successful replay. Runtime errors 0;
+layout issues 0. [T10 capture manifest](docs/screens/v1/history-manifest.json)
+and [before/after guide](docs/screens/v1/README.md). All started processes are
+closed; nothing was pushed.
 
 ---
 
