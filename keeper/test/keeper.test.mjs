@@ -60,7 +60,9 @@ test("desk modules do not load keeper signing code or its key",async()=>{
       else if(item.name.endsWith(".mjs")) {
         const source=await readFile(file,"utf8");
         assert.doesNotMatch(source,/\.keeper-devnet\.json|keeper\/(?:chain|run|keygen|fund)\.mjs/);
-        assert.doesNotMatch(source,/\.sign\(|\.partialSign\(|\.sendRawTransaction\(/);
+        // v1 (T2) adds exactly two opt-in signing modules to the desk, covered by the session-wallet tests.
+        // Every other desk module must still never sign or send.
+        if(!["executor.mjs","session-wallet.mjs"].includes(item.name)) assert.doesNotMatch(source,/\.sign\(|\.partialSign\(|\.sendRawTransaction\(/);
       }
     }
   }
