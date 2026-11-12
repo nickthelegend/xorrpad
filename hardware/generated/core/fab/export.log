@@ -1,0 +1,347 @@
+Local P3 engineering review exports; DO NOT ORDER.
+$ kicad-cli sch export netlist --format kicadxml -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/schematic-roundtrip.xml /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-review.kicad_sch
+
+$ kicad-cli sch export pdf -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-schematic.pdf /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-review.kicad_sch
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-schematic.pdf'.
+Done.
+
+$ kicad-cli pcb drc --format json --severity-all --exit-code-violations -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-drc.json /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Found 0 violations
+Found 0 unconnected items
+Saved DRC Report to /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-drc.json
+
+$ kicad-cli pcb export gerbers --layers F.Cu,In1.Cu,In2.Cu,B.Cu,F.Mask,B.Mask,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,Edge.Cuts -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/ /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-F_Cu.gtl'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-In1_Cu.g1'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-In2_Cu.g2'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-B_Cu.gbl'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-F_Paste.gtp'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-B_Paste.gbp'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-F_Silkscreen.gto'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-B_Silkscreen.gbo'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-F_Mask.gts'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-B_Mask.gbs'.
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/gerbers/core-Edge_Cuts.gm1'.
+
+$ kicad-cli pcb export drill --format excellon --drill-origin absolute --excellon-separate-th --generate-map --map-format pdf --generate-report -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/drill/ /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Created file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/drill/core-PTH.drl'
+Created file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/drill/core-NPTH.drl'
+Created file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/drill/core-PTH-drl_map.pdf'.
+Created file '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/drill/core-NPTH-drl_map.pdf'.
+Done.
+
+$ kicad-cli pcb export pdf --mode-multipage --layers F.Cu,In1.Cu,In2.Cu,B.Cu,F.Silkscreen,B.Silkscreen,F.Fab,B.Fab --common-layers Edge.Cuts --exclude-value --include-border-title --scale 1.6 -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-board.pdf /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Plotted to '/Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-board.pdf'.
+Done.
+
+$ kicad-cli pcb render --width 1600 --height 1200 --quality high --background opaque --side top -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-top.png /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Loading…
+Build board outline
+
+Create layers
+Create tracks and vias
+Create zones
+Build Tech layers
+Build Tech layer 11
+Build Tech layer 9
+Build Tech layer 15
+Build Tech layer 13
+Build Tech layer 7
+Build Tech layer 5
+Build Tech layer 3
+Build Tech layer 1
+Build Tech layer 17
+Build Tech layer 19
+Build Tech layer 21
+Build Tech layer 23
+Build Tech layer 39
+Build Tech layer 41
+Build Tech layer 43
+Build Tech layer 45
+Build Tech layer 47
+Build Tech layer 49
+Build Tech layer 51
+Build Tech layer 53
+Build Tech layer 55
+Build Tech layer 57
+Build Tech layer 59
+Build Tech layer 61
+Build Tech layer 63
+Build Tech layer 65
+Build Tech layer 67
+Build Tech layer 69
+Build Tech layer 71
+Build Tech layer 73
+Build Tech layer 75
+Build Tech layer 77
+Build Tech layer 79
+Build Tech layer 81
+Build Tech layer 83
+Build Tech layer 85
+Build Tech layer 87
+Build Tech layer 89
+Build Tech layer 91
+Build Tech layer 93
+Build Tech layer 95
+Build Tech layer 97
+Build Tech layer 99
+Build Tech layer 101
+Build Tech layer 103
+Build Tech layer 105
+Build Tech layer 107
+Build Tech layer 109
+Build Tech layer 111
+Build Tech layer 113
+Build Tech layer 115
+Build Tech layer 117
+Build Tech layer 119
+Build Tech layer 121
+Build Tech layer 123
+Build Tech layer 125
+Build Tech layer 127
+Simplifying copper layer polygons
+Calculating plated copper
+Simplify holes contours
+Build BVH for holes and vias
+Load Raytracing: board
+Load Raytracing: layers
+Loading 3D models...
+Reload time 0.182 s
+Rendering: 9 %
+Rendering: 11 %
+Rendering: 14 %
+Rendering: 17 %
+Rendering: 21 %
+Rendering: 23 %
+Rendering: 25 %
+Rendering: 27 %
+Rendering: 30 %
+Rendering: 32 %
+Rendering: 34 %
+Rendering: 36 %
+Rendering: 38 %
+Rendering: 40 %
+Rendering: 44 %
+Rendering: 47 %
+Rendering: 49 %
+Rendering: 54 %
+Rendering: 60 %
+Rendering: 63 %
+Rendering: 67 %
+Rendering: 71 %
+Rendering: 75 %
+Rendering: 77 %
+Rendering: 79 %
+Rendering: 81 %
+Rendering: 87 %
+Rendering: 89 %
+Rendering: 92 %
+Rendering: 94 %
+Rendering: 98 %
+Rendering: 100 %
+Rendering: Post processing shader
+Rendering time 13.952 s
+Successfully created 3D render image
+
+$ kicad-cli pcb render --width 1600 --height 1200 --quality high --background opaque --side bottom -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-bottom.png /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Loading…
+Build board outline
+
+Create layers
+Create tracks and vias
+Create zones
+Build Tech layers
+Build Tech layer 11
+Build Tech layer 9
+Build Tech layer 15
+Build Tech layer 13
+Build Tech layer 7
+Build Tech layer 5
+Build Tech layer 3
+Build Tech layer 1
+Build Tech layer 17
+Build Tech layer 19
+Build Tech layer 21
+Build Tech layer 23
+Build Tech layer 39
+Build Tech layer 41
+Build Tech layer 43
+Build Tech layer 45
+Build Tech layer 47
+Build Tech layer 49
+Build Tech layer 51
+Build Tech layer 53
+Build Tech layer 55
+Build Tech layer 57
+Build Tech layer 59
+Build Tech layer 61
+Build Tech layer 63
+Build Tech layer 65
+Build Tech layer 67
+Build Tech layer 69
+Build Tech layer 71
+Build Tech layer 73
+Build Tech layer 75
+Build Tech layer 77
+Build Tech layer 79
+Build Tech layer 81
+Build Tech layer 83
+Build Tech layer 85
+Build Tech layer 87
+Build Tech layer 89
+Build Tech layer 91
+Build Tech layer 93
+Build Tech layer 95
+Build Tech layer 97
+Build Tech layer 99
+Build Tech layer 101
+Build Tech layer 103
+Build Tech layer 105
+Build Tech layer 107
+Build Tech layer 109
+Build Tech layer 111
+Build Tech layer 113
+Build Tech layer 115
+Build Tech layer 117
+Build Tech layer 119
+Build Tech layer 121
+Build Tech layer 123
+Build Tech layer 125
+Build Tech layer 127
+Simplifying copper layer polygons
+Calculating plated copper
+Simplify holes contours
+Build BVH for holes and vias
+Load Raytracing: board
+Load Raytracing: layers
+Loading 3D models...
+Reload time 0.149 s
+Rendering: 9 %
+Rendering: 12 %
+Rendering: 15 %
+Rendering: 18 %
+Rendering: 21 %
+Rendering: 24 %
+Rendering: 26 %
+Rendering: 28 %
+Rendering: 31 %
+Rendering: 34 %
+Rendering: 36 %
+Rendering: 40 %
+Rendering: 42 %
+Rendering: 45 %
+Rendering: 48 %
+Rendering: 51 %
+Rendering: 57 %
+Rendering: 62 %
+Rendering: 65 %
+Rendering: 69 %
+Rendering: 75 %
+Rendering: 78 %
+Rendering: 81 %
+Rendering: 87 %
+Rendering: 90 %
+Rendering: 92 %
+Rendering: 96 %
+Rendering: 100 %
+Rendering: Post processing shader
+Rendering time 12.870 s
+Successfully created 3D render image
+
+$ kicad-cli pcb render --width 1600 --height 1200 --quality high --background opaque --side top --rotate -45,0,45 --perspective --zoom 0.75 -o /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core/fab/core-three-quarter.png /Volumes/Extreme SSD/Projects/xorrpad/hardware/generated/core.kicad_pcb
+Loading…
+Build board outline
+
+Create layers
+Create tracks and vias
+Create zones
+Build Tech layers
+Build Tech layer 11
+Build Tech layer 9
+Build Tech layer 15
+Build Tech layer 13
+Build Tech layer 7
+Build Tech layer 5
+Build Tech layer 3
+Build Tech layer 1
+Build Tech layer 17
+Build Tech layer 19
+Build Tech layer 21
+Build Tech layer 23
+Build Tech layer 39
+Build Tech layer 41
+Build Tech layer 43
+Build Tech layer 45
+Build Tech layer 47
+Build Tech layer 49
+Build Tech layer 51
+Build Tech layer 53
+Build Tech layer 55
+Build Tech layer 57
+Build Tech layer 59
+Build Tech layer 61
+Build Tech layer 63
+Build Tech layer 65
+Build Tech layer 67
+Build Tech layer 69
+Build Tech layer 71
+Build Tech layer 73
+Build Tech layer 75
+Build Tech layer 77
+Build Tech layer 79
+Build Tech layer 81
+Build Tech layer 83
+Build Tech layer 85
+Build Tech layer 87
+Build Tech layer 89
+Build Tech layer 91
+Build Tech layer 93
+Build Tech layer 95
+Build Tech layer 97
+Build Tech layer 99
+Build Tech layer 101
+Build Tech layer 103
+Build Tech layer 105
+Build Tech layer 107
+Build Tech layer 109
+Build Tech layer 111
+Build Tech layer 113
+Build Tech layer 115
+Build Tech layer 117
+Build Tech layer 119
+Build Tech layer 121
+Build Tech layer 123
+Build Tech layer 125
+Build Tech layer 127
+Simplifying copper layer polygons
+Calculating plated copper
+Simplify holes contours
+Build BVH for holes and vias
+Load Raytracing: board
+Load Raytracing: layers
+Loading 3D models...
+Reload time 0.149 s
+Rendering: 10 %
+Rendering: 18 %
+Rendering: 21 %
+Rendering: 24 %
+Rendering: 26 %
+Rendering: 28 %
+Rendering: 30 %
+Rendering: 32 %
+Rendering: 34 %
+Rendering: 37 %
+Rendering: 42 %
+Rendering: 48 %
+Rendering: 53 %
+Rendering: 61 %
+Rendering: 69 %
+Rendering: 77 %
+Rendering: 81 %
+Rendering: 85 %
+Rendering: 90 %
+Rendering: 95 %
+Rendering: 100 %
+Rendering: Post processing shader
+Rendering time 9.630 s
+Successfully created 3D render image

@@ -1,0 +1,17 @@
+Xorrpad CORE - P3 ENGINEERING DRAFT - DO NOT ORDER
+A human PCB designer must review this before any order.
+No manufacturing release: see ../../../README.md and ../../../FIT.md.
+Four layers: F.Cu signal / In1.Cu GND / In2.Cu 3V3 / B.Cu signal.
+Nominal board thickness 1.6 mm. No approved vendor impedance stackup.
+Gerbers and Excellon drills share the KiCad absolute origin; millimetres.
+CPL uses PCB (100,184) mm lower-left bounding origin, +Y upward; T/B.
+CPL angles are KiCad angles; assembler rotations/orientations unapproved.
+BOM includes blank supplier IDs and ILIM_VALUE_TBD. Not procurement-ready.
+Native review schematics were reconstructed from the SKiDL netlist.
+Round-trip named-net/pin parity passed; no new electrical sign-off.
+Source-open pins remain open; U8 and Pro J3 retain passive terminal models.
+Board PDF: eight pages, F.Cu/In1.Cu/In2.Cu/B.Cu/F.Silk/B.Silk/F.Fab/B.Fab,
+all viewed from above (bottom layers not mirrored), Edge.Cuts overlaid, 1.6x.
+Three PNGs are actual kicad-cli pcb render views; missing models are
+listed in manifest.json and prevent populated mechanical certification.
+Mounting/support/cage, Pro FPC, RF/USB/power and sourcing holds remain.
