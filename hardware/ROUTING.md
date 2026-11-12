@@ -56,3 +56,37 @@ Use KiCad's bundled Python 3.9, Shapely 2.0.7 and NumPy 1.26.4. Set `PYTHONPATH`
 4. Run `kicad-cli pcb drc --format json --severity-all --refill-zones --save-board --output hardware/generated/pro-p1-drc.json hardware/generated/pro.kicad_pcb`, then `audit-pro.py` and `python3 hardware/verify.py`.
 
 The finishing replay was checked on a separate copy of the actual imported/stitched board: **0 violations, 0 unconnected**. `audit-pro.py` checks physical key centres and layers, records DRC/board hashes and USB lengths, and regenerates Pro CPL and bypass distances. The offline artifact suite passes **8 tests**; it preserves historical failure evidence and verifies the current clean Pro result separately. A clean DRC is not electrical or production sign-off.
+
+
+## Core P2 final result — 2026-11-12
+
+**Core: 0 errors, 0 warnings, 0 unconnected.** Latest placement baseline: 0 errors, 0 warnings, 197 unconnected. Original historical baseline: 411 errors, 247 warnings, 195 unconnected (658 violations). Both original reports remain unchanged. **A human PCB designer must review this before any order.**
+
+- [Final board](generated/core.kicad_pcb), [project rules](generated/core.kicad_pro), [real final DRC](generated/core-p2-drc.json), [hashes, USB lengths and invariants](generated/core-p2-summary.json).
+- Shared `route-pro.py`, `reserve-pro-power.py` and `audit-pro.py` now accept `--sku core`; their default remains Pro. No Pro board, project, DSN, session or DRC artifact changed in P2. The JAR runner's `--result` option keeps the successful Pro evidence intact.
+- The input has F.Cu / In1.Cu GND / In2.Cu 3V3 / B.Cu, nominal 1.6 mm JLC04161H-3313 stack, minimum 0.15 mm trace/space, 0.6/0.3 mm vias and 0.5 mm copper-edge clearance. Inner layers carry planes only. Antenna keepout spans all copper layers and the module antenna ends at the board edge. All 14 CAD key centres and every manifest pad net/populated reference are verified. No DRC severities, exclusions or ignored checks were relaxed.
+- R1, R10, D10 and C27 move to clear the protected USB corridor. D14 rotates and U8 moves into the east corridor. Capacitor pad distances, including all 15 LED bypasses, and final Core CPL are regenerated.
+- **66 power-pad escapes** are reserved before routing. The real input DRC is 0 errors / 0 warnings / 119 unconnected. Ground fills on F.Cu, In1.Cu and B.Cu plus 3V3 on In2.Cu and **154 added ground stitching vias** complete the planes. The stitched final DRC remains zero.
+
+### Core official JAR evidence
+
+[core-jar-routing-result.json](generated/core-jar-routing-result.json), [log](generated/core-jar.log), [SES](generated/core.ses). Official Freerouting **2.5.0**, local OpenJDK **25.0.5.0.3**, JAR SHA-256 `f6f51bb02245e8e717f9359bd260cc9c5c0b1bc0acc8b7cb2cd5b8ffeb5de3c7` (the same already downloaded official release as P1). **73.013 s, exit 0, session created.** Analytics disabled, API disabled and macOS sandbox denies `network*`; no design upload or hosted router. No push or order.
+
+The router reports 3 open connections and 65 obstacle/plane findings; these are retained verbatim and are not KiCad DRC results. After actual SES import and zone fill, KiCad reports **15 errors / 15 warnings / 1 unconnected** in [core-import-drc.json](generated/core-import-drc.json). Local finishing raises ten router neck segments from 0.12 to 0.15 mm, adjusts the ENC_SW neck clearance, replaces five ROW2 edge tracks, removes fifteen unused vias and COL2 dead-end branches, and completes BUCK_SW with two vias and a bottom connection. U3 pin 6 gets a replacement 3V3 dogbone to free its neighbouring switch-node escape. No nets are renamed or suppressed. The original imported board is available at local commit `10da813`.
+
+### Core review limits and warnings
+
+Remaining KiCad warnings: **none (0)**; no waivers. USB uses the same locked nominal geometry and stack target documented for Pro above: 44.49 mm DP / 35.88 mm DN shortest A-contact paths including nominal via transitions. Uncoupled connector fanout and 8.61 mm path skew need human signal-integrity review; DRC does not establish 90 Ω manufactured impedance. The regulator switch-node copper uses two vias and 0.15 mm trace and requires power-layout/current/thermal review before powering. ILIM remains TBD. [FIT.md](FIT.md) records the measured wall/boss/skirt gaps and the prototype cage interference. Core has no FPC/display. The existing sourcing, support/Z design and electrical review gates remain; this is a routing step, not fabrication release.
+
+[Local top](generated/core/p2/core-top.png), [bottom](generated/core/p2/core-bottom.png) and [three-quarter](generated/core/p2/core-three-quarter.png) KiCad renders were generated. Missing models limit visual population checking; manifests and copper are checked separately. No Gerber/drill/schematic release is claimed by P2.
+
+### Reproduce Core locally
+
+Use the same KiCad Python + Shapely/NumPy environment as P1. Preserve the saved SES and any old attempt before rerouting; the JAR runner refuses to overwrite an existing session.
+
+1. `route-pro.py --sku core prepare`, then `reserve-pro-power.py --sku core`. Refill/save with `kicad-cli pcb drc --severity-all --refill-zones --save-board --format json --output hardware/generated/core-route-input-drc.json hardware/generated/core-route-input.kicad_pcb`, then `route-pro.py --sku core export`.
+2. To rerun the official router: `python3 hardware/route-jar.py --sku core --jar /path/freerouting-2.5.0.jar --java /opt/homebrew/opt/openjdk@25/bin/java --version 2.5.0 --modern --seconds 600 --passes 100 --result hardware/generated/core-jar-routing-result.json`. Reuse the saved final SES to avoid autorouter nondeterminism.
+3. `route-pro.py --sku core import`, then run the same refill/save DRC command against `core.kicad_pcb`, writing `core-import-drc.json`. Run `finalize-core.py cleanup`, `finalize-core.py escape`, `finalize-core.py routes`, and `finalize-core.py prune` in **separate KiCad Python processes**. Cleanup deliberately checks the saved session's expected repair count. Retaining removed SWIG objects until save avoids a KiCad Python lifetime crash.
+4. `route-pro.py --sku core stitch`; run the final refill/save DRC to `core-p2-drc.json`; `audit-pro.py --sku core`; `audit-fit.py --sku core`; `python3 hardware/verify.py`.
+
+The finishing workflow was replayed on an isolated copy of the real imported board and independently checked: [core-replay-drc.json](generated/core-replay-drc.json), **0 violations / 0 unconnected**. The 8 offline artifact tests pass for both boards and preserve the historical failed native router evidence. The replay check is local; no external service was contacted.

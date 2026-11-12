@@ -1,0 +1,35 @@
+{
+  "sku": "core",
+  "scope": "XY measurements; populated mounting Z/supports unverified",
+  "board_bounds_mm": [
+    -42.0,
+    -42.0,
+    42.0,
+    42.0
+  ],
+  "board_thickness_mm": 1.6,
+  "tray_inner_width_mm": 85.2,
+  "inside_tray_xy": true,
+  "minimum_tray_wall_gap_mm": 0.6000000000000014,
+  "boss_gaps_mm": [
+    0.8976433449153914,
+    0.897643336961714,
+    0.8976442808211234,
+    0.8976433449153982
+  ],
+  "inside_plate_skirt_xy": true,
+  "minimum_skirt_gap_mm": 0.49999999999999994,
+  "existing_cage_xy_overlap_mm2": 52.800000000000054,
+  "existing_cage_z_mm": [
+    16.0,
+    19.0
+  ],
+  "usb_origin_cad_mm": [
+    38.0,
+    3.0
+  ],
+  "usb_side_window_half_width_mm": 13.0,
+  "mounting_hole_count": 0,
+  "fpc": "Not populated on Core",
+  "conclusion": "Outline clears walls/bosses; new PCB supports and component/connector Z review required. Existing cage intersects a PCB at the prototype board Z; do not order."
+}
