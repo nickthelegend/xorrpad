@@ -56,7 +56,7 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {18, 17, 8, 14};  // columns revers
 
 // ---- The kill key is HELD, not tapped. A brush against a key that stops all
 //      trading is not acceptable, so it needs a deliberate hold. ----
-#define HOLD_TO_KILL_MS 600
+#define HOLD_TO_KILL_MS 2000
 
 // ---- Display pod: 2.8" ILI9341 320x240 on SPI — LCDwiki MSP2807, laid landscape
 //      with its header on the right (cad/part_display.py). Eight wires: VCC -> 3V3,

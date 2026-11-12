@@ -6,6 +6,14 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — firmware 2.0.0, S3 kill latch
+
+- A two-second physical KILL persists disarm in NVS, stops queued inputs and
+  voice, forces solid red, and refuses signals even while offline or rebooted.
+- Re-arm requires a paired desk request and a fresh 800 ms physical YES hold
+  within 15 seconds. Failed storage clears remain killed; disconnects revoke
+  consent. Native tests cover timers, reboot bytes and failed persistence.
+
 ### Added — firmware 2.0.0, S2 secure pairing and link reliability
 
 - TFT code/QR pairing with persistent device identities, fresh one-use device

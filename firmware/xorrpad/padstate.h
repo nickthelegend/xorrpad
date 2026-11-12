@@ -15,6 +15,8 @@
 // the whole model the firmware holds: it keeps no opinion of its own about what
 // is armed or what is in hand, because the backend is the only thing that knows.
 struct PadState {
+  bool killed = false, rearmRequested = false;
+  float rearmProgress = 0;
   String pairCode, pairQr;
   String keyLabels[14];uint32_t keymapUntil=0;
   bool autoAccept = false;

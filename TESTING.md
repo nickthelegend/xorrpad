@@ -460,3 +460,20 @@ were retained and no signing key was opened.
 Exact FQBN, commands and dependency versions are in
 [firmware/README.md](firmware/README.md). TFT/QR scan quality, BLE SMP/passkey
 interoperability, physical failover and NVS behavior still require the board.
+
+
+## Firmware v2 — S3 kill latch (2026-11-12)
+
+Status: **compiled, not yet flashed**. The isolated S3 feature snapshot passes
+106 native cases / 235 assertions. Fifteen new cases exercise the production
+kill state machine: 2-second threshold, release/tap cancellation, timer wrap,
+NVS latch-byte reboot restoration, corrupt/unavailable storage, offline signal
+refusal, fresh 800 ms consent, delayed completion after release, failed NVS
+clear, expiry, disconnect, and a second kill during re-arm. Hardware NVS
+power-cycle and physical controls still require the board.
+
+KILL discards queued inputs/retries and recording before notifying the desk.
+The latch wins over remote armed/auto-accept status and signal messages, and
+the TFT kill screen wins over pairing, stale quotes, receipts, and keymaps.
+Re-arm is authenticated, bound to its transport, and clears memory only after
+its NVS write succeeds. No signing key, flash operation, or push was used.

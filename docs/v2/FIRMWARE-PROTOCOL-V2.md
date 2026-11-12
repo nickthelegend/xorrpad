@@ -95,7 +95,13 @@ Holding KILL 2 s persists the local latch before sending `kill`. A latched pad
 refuses signals and trade keys, including offline. Desk `rearm_request` starts a
 15 s window; an 800 ms physical hold emits `rearm_confirm`, and desk
 `rearm_complete` permits the NVS latch to clear. Reboot reports the latch before
-new signals. Other killed pads keep global trading disarmed.
+new signals. Other killed pads keep global trading disarmed. The hold must
+start after the request; an already-held YES cannot grant consent. Releasing
+YES after confirmation allows the authenticated completion to arrive within
+the same window. Disconnect, transport change, another KILL, or window expiry
+revokes consent. The device clears the latch only after the NVS write succeeds.
+KILL cancels unsent key/voice/knob frames and their retries before sending the
+kill frame. Inputs that already reached the desk remain subject to its gate.
 
 ## Profiles, voice, health and OTA
 

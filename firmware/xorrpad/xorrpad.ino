@@ -33,6 +33,7 @@
 #include "net.h"
 #include "provision.h"
 #include "display.h"
+#include "logic/kill-switch.h"
 
 Display    screen;            // the display pod
 ChartState chartNow;
@@ -61,11 +62,44 @@ uint32_t   recAutoStopAt = 0;          // 0 = manual (hold); else a ms deadline
 // The backend's state, refreshed by the poll. The pad renders this and nothing
 // of its own — if the two ever disagree, the backend is right.
 PadState   pad;
+xorr::KillSwitch killSwitch;
+PadLink::Transport rearmTransport = PadLink::NONE;
+bool persistKill(bool killed) {
+  Preferences p;
+  if (!p.begin("xorrsafety", false)) return false;
+  bool ok = p.putUChar("killed", killed ? 1 : 0) == 1;
+  p.end();
+  return ok;
+}
+void showKillState() {
+  pad.killed = padlink.killed = killSwitch.killed;
+  pad.rearmRequested = killSwitch.requested;
+  pad.rearmProgress = killSwitch.progress(millis());
+  if (killSwitch.killed) { pad.armed = pad.autoAccept = pad.pending = false; }
+}
+void latchKill() {
+  killSwitch.kill();
+  persistKill(true); // Local disarm precedes every network operation.
+  padlink.stopInputs();
+  recording = recStreaming = false;
+  recLen = 0;
+  pad.signalId = "";
+  pad.receiptUntil = pad.keymapUntil = 0;
+  showKillState();
+  rgbLedWrite(STATUS_LED, 100, 0, 0);
+  screenHoldUntil = 0;
+  screenDirty = true;
+  JsonDocument d; d["type"] = padlink.secureReady() ? "kill" : "key";
+  d["action"] = "kill"; d["edge"] = "down"; d["id"] = padlink.eventId();
+  padlink.send(d);
+}
 uint32_t   nextPoll = 0;
 uint8_t    keyR = 0, keyG = 20, keyB = 0;   // colour of the last key that owned the light
-uint32_t   killHeldSince = 0;               // 0 = not held
 
-inline void led(uint8_t r, uint8_t g, uint8_t b) { rgbLedWrite(STATUS_LED, r, g, b); }
+inline void led(uint8_t r, uint8_t g, uint8_t b) {
+  if(killSwitch.killed)rgbLedWrite(STATUS_LED,100,0,0);
+  else rgbLedWrite(STATUS_LED,r,g,b);
+}
 
 // The status light, from real backend state. In order of what matters most:
 //   disarmed        → hard red, steady. Nothing can trade.
@@ -75,6 +109,7 @@ inline void led(uint8_t r, uint8_t g, uint8_t b) { rgbLedWrite(STATUS_LED, r, g,
 //   no backend       → dark blue pulse. The pad is alone.
 void ledFromState() {
   uint32_t t = millis();
+  if (killSwitch.killed) { led(100, 0, 0); return; }
   if (!pad.ok)            { uint8_t b = 8 + (t / 8 % 40); led(0, 0, b); return; }
   if (!pad.armed)         { led(90, 0, 0); return; }
   if (pad.pending)        { uint8_t b = 30 + (t / 6 % 70); led(b, (uint8_t)(b * 0.6f), 0); return; }
@@ -85,7 +120,15 @@ void ledFromState() {
 // Messages are applied on loop(), including BLE callbacks queued by link.h.
 void onPadMessage(JsonVariantConst d) {
   String type=d["type"] | "";
-  if(type=="keymap") {
+  if (type == "kill_sync") { latchKill(); }
+  else if (type == "rearm_request" && padlink.secureReady()) {
+    killSwitch.request(true, millis()); rearmTransport=padlink.active(); showKillState();
+  } else if (type == "rearm_complete") {
+    uint32_t now=millis();
+    bool online=padlink.secureReady() && !padlink.blePairing && rearmTransport==padlink.active();
+    if(killSwitch.canComplete(now,online))killSwitch.complete(now,online,persistKill(false));
+    showKillState();
+  } else if(type=="keymap") {
     uint32_t previousRevision=keymapRevision;
     bool ok=applyKeymap(d);
     JsonDocument ack;ack["type"]="keymap_state";ack["revision"]=d["revision"];ack["ok"]=ok;padlink.send(ack);
@@ -94,17 +137,18 @@ void onPadMessage(JsonVariantConst d) {
       pad.keymapUntil=millis()+4000;keymapShown=true;
     }
   } else if(type=="status") {
-    pad.ok=true;pad.armed=d["armed"] | false;pad.autoAccept=d["autoAccept"] | false;
+    pad.ok=true;pad.armed=!killSwitch.killed && (d["armed"] | false);pad.autoAccept=!killSwitch.killed && (d["autoAccept"] | false);
     pad.market=d["market"].as<String>();pad.agent=d["agent"].as<String>();pad.venue=d["venue"].as<String>();pad.link=padlink.name();
     if(d["remembers"].is<bool>())pad.remembers=d["remembers"];
   } else if(type=="signal") {
+    if(killSwitch.killed)return;
     pad.signalId=d["signalId"].as<String>();pad.signalState="awaiting";
     pad.signalDeadline=millis()+min((uint32_t)86400000,d["remainingMs"].as<uint32_t>());
     pad.pending=d["remainingMs"].as<uint32_t>()>0;pad.market=d["market"].as<String>();
     pad.verdict=d["side"].as<String>()+" $"+String(d["sizeUsd"].as<float>(),2)+" "+d["why"].as<String>();
     pad.venue=d["venue"].as<String>();pad.receiptUntil=0;
   } else if(type=="signal_state") {
-    if(d["signalId"].as<String>()==pad.signalId){pad.signalState=d["state"].as<String>();pad.pending=pad.signalState=="awaiting";}
+    if(d["signalId"].as<String>()==pad.signalId){pad.signalState=d["state"].as<String>();pad.pending=!killSwitch.killed && pad.signalState=="awaiting";}
   } else if(type=="receipt") {
     pad.pending=false;pad.receiptSignature=d["signature"].as<String>();pad.receiptExplorer=d["explorer"].as<String>();pad.receiptUntil=millis()+15000;
   } else if(type=="result" && d["ok"]==false) {
@@ -124,6 +168,7 @@ void onPadMessage(JsonVariantConst d) {
 bool sendLinkedKey(const String &action) {
   if (action == "yes" && padlink.blePairing)
     return true;
+  if(killSwitch.killed && action!="kill")return true;
   if(!padlink.ready())return false;
   JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]=action;d["edge"]="down";
   if(action=="yes" || action=="no") {
@@ -135,7 +180,7 @@ bool sendLinkedKey(const String &action) {
 
 // ── recording ────────────────────────────────────────────────────────────────
 void startRecording(uint32_t autoStopMs = 0) {
-  if (recording || (!padlink.ready() && !padlink.legacy)) return;
+  if (killSwitch.killed || recording || (!padlink.ready() && !padlink.legacy)) return;
   // No "select an agent first" gate: the backend always has one holding the
   // baton, so a spoken order is never homeless. Refusing here would invent a
   // rule the backend does not have.
@@ -150,6 +195,7 @@ void startRecording(uint32_t autoStopMs = 0) {
 
 void stopAndSend() {
   if (!recording) return;
+  if (killSwitch.killed) { recording=false; recLen=0; return; }
   recording = false;
   led(70, 40, 0);                       // amber = thinking
   audio.beep(700, 70);
@@ -182,6 +228,7 @@ void stopAndSend() {
 // backend says "disarmed" or "not in the allowlist" and the pad says it too,
 // out loud, rather than blinking something the operator has to interpret.
 void sendKey(const KeyBind &kb) {
+  if(killSwitch.killed)return;
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
   pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
   if(sendLinkedKey(kb.id))return;
@@ -206,21 +253,15 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
     telnet.logf("  [KEY] row=%u col=%u  = %s\n", r, c, kb.label ? kb.label : "unbound");
 
+  if(kb.role==ROLE_KILL) { killSwitch.killKey(pressed,millis()); return; }
+  if(kb.role==ROLE_CONFIRM) {
+    killSwitch.confirmKey(pressed,millis(),padlink.secureReady() && !padlink.blePairing);
+    if(killSwitch.killed)return;
+  }
+  if(killSwitch.killed)return;
   switch (kb.role) {
     case ROLE_MIC:
       if (pressed) startRecording(); else stopAndSend();
-      return;
-
-    // The kill switch is the one key a brush against must not fire. Hold it.
-    case ROLE_KILL:
-      if (pressed) { killHeldSince = millis(); telnet.logf("  (hold to stop trading…)\n"); }
-      else {
-        uint32_t held = killHeldSince ? millis() - killHeldSince : 0;
-        killHeldSince = 0;
-        if (held >= HOLD_TO_KILL_MS) { sendKey(kb); net.speak("Trading stopped.", audio); }
-        else telnet.logf("  … released after %ums — hold %ums to stop trading\n",
-                         held, (unsigned)HOLD_TO_KILL_MS);
-      }
       return;
 
     case ROLE_AGENT: case ROLE_MARKET: case ROLE_ACTION:
@@ -290,6 +331,8 @@ void onTelnetCommand(const String &line) {
                      st.agent.c_str(), st.market.c_str(), st.price, st.spentToday, st.dayLimit);
   } else if (cmd.startsWith("key ")) {
     String id = line.substring(4); id.trim();
+    if(id=="kill") { latchKill(); return; }
+    if(killSwitch.killed) { telnet.println("Kill latch active"); return; }
     String err;
     telnet.logf(net.key(id, err) ? "  ▸ %s ok\n" : "  ✗ %s refused: ", id.c_str());
     if (err.length()) telnet.logf("%s\n", err.c_str());
@@ -343,6 +386,12 @@ void setup() {
   led(0, 0, 60);                        // blue = booting
 
   matrix.begin();
+  Preferences safety;
+  bool safetyOK=safety.begin("xorrsafety",false);
+  bool readable=safetyOK && (!safety.isKey("killed") || safety.getType("killed")==PT_U8);
+  killSwitch.restore(readable?safety.getUChar("killed",0):1,readable);
+  if(safetyOK)safety.end();
+  showKillState();
   loadKeymap();
   screen.begin();                       // shows the test card while WiFi comes up
   screenHoldUntil = millis() + 3000;
@@ -383,7 +432,7 @@ void setup() {
   // something true rather than a generic chime: whether it is armed, and what
   // it still remembers. A pad that says "connected" while the store is wiped
   // has told the operator nothing they needed.
-  if (net.pad(pad)) {
+  if (!killSwitch.killed && net.pad(pad)) {
     Serial.printf("backend ok (%s, %s)\n", pad.mode.c_str(), pad.armed ? "armed" : "stopped");
     String hello = String("xorr pad connected. ") +
                    (pad.armed ? "Armed, " : "Trading is stopped, ") +
@@ -399,7 +448,13 @@ void setup() {
 }
 
 void loop() {
+  padlink.killed = killSwitch.killed;
   provision.poll();padlink.tick();
+  if(killSwitch.killDue(millis()))latchKill();
+  if(killSwitch.tick(millis(),padlink.secureReady() && !padlink.blePairing && rearmTransport==padlink.active())) {
+    JsonDocument d; d["type"]="rearm_confirm"; d["heldMs"]=800; padlink.send(d);
+  }
+  showKillState();
   pad.pairCode = padlink.secureReady() && !padlink.blePairing ? "" : padlink.identity.code;
   pad.pairQr = padlink.identity.qr();
   if(WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
@@ -412,7 +467,7 @@ void loop() {
 
   // One cheap poll a second keeps the light honest — armed, waiting on a ✓,
   // or forgotten. Skipped while recording so the mic never stutters.
-  if (!recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
+  if (!killSwitch.killed && !recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
     nextPoll = millis() + PAD_POLL_MS;
     PadState fresh;
     if (net.pad(fresh)) pad = fresh; else pad.ok = false;
@@ -440,16 +495,6 @@ void loop() {
   if (!recording && screenDirty && millis() >= screenHoldUntil) {
     screenDirty = false;
     screen.draw(pad, chartNow);
-  }
-
-  // Held long enough? Fire the kill switch without waiting for the release, so
-  // the operator sees it stop under their finger.
-  if (killHeldSince && millis() - killHeldSince >= HOLD_TO_KILL_MS) {
-    killHeldSince = 0;
-    String err;
-    if (sendLinkedKey("kill") || net.key("kill", err)) { telnet.logf("  ▸ TRADING STOPPED\n"); net.speak("Trading stopped.", audio); }
-    else telnet.logf("  ✗ kill refused: %s\n", err.c_str());
-    nextPoll = 0;
   }
 
   if (recording && recBuf) {

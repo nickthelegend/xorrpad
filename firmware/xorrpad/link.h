@@ -127,7 +127,17 @@ public:
   }
   bool ready() const { return active() != NONE; }
   String eventId() { return _boot + ":" + String(++_sequence); }
+  // A kill supersedes unsent inputs and retries; keep sequence counters intact.
+  void stopInputs() {
+    killed = true;
+    for (auto &s : _sessions) { s.queue.clear(); s.pending.clear(); }
+    _out = "";
+    newVoice();
+  }
   void send(JsonDocument &doc) {
+    String type = doc["type"] | "";
+    if (killed && (type == "knob" || type == "voice" ||
+        (type == "key" && doc["action"] != "kill"))) return;
     Transport via = active();
     if (via == NONE)
       return;

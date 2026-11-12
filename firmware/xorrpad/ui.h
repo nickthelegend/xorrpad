@@ -385,6 +385,16 @@ static void drawBoot(GFXcanvas16 &c, uint8_t rotation) {
 static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   c.fillScreen(BG);
   c.setTextWrap(false);
+  if (pad.killed) {
+    text(c,12,20,4,DOWN,"KILLED");
+    wrap(c,12,72,296,2,INK,"Trading is latched off",2);
+    wrap(c,12,130,296,1,INK,pad.rearmRequested
+      ? "Desk requested rearm. Hold YES for 800ms."
+      : "Request rearm from the desk, then hold YES on this pad.",4);
+    c.fillRect(12,190,(int)(296*pad.rearmProgress),8,WARN);
+    if(pad.pairCode.length()) text(c,12,220,1,INK,(String("PAIR CODE ")+pad.pairCode).c_str());
+    return;
+  }
   if(pad.pairCode.length()){
     text(c,6,12,2,INK,"PAIR");text(c,6,64,1,INK,"ENTER CODE");text(c,6,84,2,WARN,pad.pairCode.c_str());text(c,6,120,1,INK,"BLE PASSKEY");text(c,6,134,1,INK,"IS THE SAME");text(c,6,224,1,INK,"Scan with XOR app / desk");if(!pad.ok)text(c,6,208,1,MUTE,"offline: nothing will execute");return;
   }
