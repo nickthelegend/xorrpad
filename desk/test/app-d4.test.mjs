@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import net from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
+import { assertReadableLayout } from './app-v3-layout.mjs';
 import { SessionPadSimulator } from '../../tools/padsim/session.mjs';
 
 const dir = await mkdtemp(path.join(tmpdir(), 'xorr-d4-'));
@@ -42,7 +43,9 @@ async function capture(page, screen, state, area) {
       const box = await control.boundingBox();
       if (box) assert.ok(box.height >= 44, `${screen} ${state}: ${await control.getAttribute('name')} tap target ${box.height}`);
     }
+    await assertReadableLayout(page, area, `${screen} ${state} ${width}`);
     await page.screenshot({ path: path.join(output, `${screen}-${state}-${width}.png`), fullPage: true, animations: 'disabled' });
+
   }
 }
 before(async () => {
