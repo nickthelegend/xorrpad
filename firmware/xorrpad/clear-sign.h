@@ -67,12 +67,14 @@ public:
     if(!secure || blocked)return true;
     bool ok=false;
     if(type=="clear_begin"){
+      if(pad.killed && !pad.flatten.review(d["signalId"] | ""))return true;
       reset(pad);pad.pending=false;pad.signalId="";signal.state=xorr::SignalState::Empty;
       ok=d["size"].is<uint32_t>() && upload.begin(d["size"],d["sha256"] | "",epoch,millis());
     }else if(type=="clear_chunk"){
       ok=d["offset"].is<uint32_t>() && upload.chunk(d["offset"],d["data"] | "",epoch,millis());
     }else if(type=="clear_end"){
       xorr::solana::Request request;ok=upload.finish(request,epoch,millis());
+      if(ok && pad.killed && !pad.flatten.review(request.id))ok=false;
       if(ok && request.cosign){
         if(request.value.blind)ok=false;
         else request.value.rows.push_back("CREW APPROVAL / device signs message hash only");
@@ -135,7 +137,7 @@ public:
     if(secure && !responses.empty()){deserializeJson(out,responses.front());responses.pop_front();return true;}
     if(!active)return false;
     if(!signal.live(millis())){pad.pending=false;reset(pad);return false;}
-    if(signing && secure && approval.allowed(epoch)){
+    if(signing && secure && !pad.killed && approval.allowed(epoch)){
       auto e=signer.check(approval.get());
       if(!e.ok || e.automatic){
         if(e.ok && authorize && !authorize(signal.id)){hold.release();pad.holdProgress=0;return false;}

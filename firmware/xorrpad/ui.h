@@ -559,6 +559,21 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     return;
   }
   if(pad.killed){
+    if(pad.clearSigning && pad.flatten.review(std::string(pad.signalId.c_str())) && !pad.rearmRequested){drawConfirm(c,pad,ch);return;}
+    if(pad.flatten.visible() && !pad.rearmRequested){
+      const auto &f=pad.flatten;
+      text(c,12,12,3,DOWN,"FLATTEN ALL");
+      text(c,12,46,1,WARN,"KILLED / REDUCE ONLY / LATCH STAYS ON");
+      textClip(c,12,68,296,1,INK,String(f.orders)+" orders / "+String(f.perps)+" perps / "+String(f.outcomes)+" outcomes");
+      if(f.rows.empty())wrap(c,12,96,296,1,INK,f.message.c_str(),6);
+      else {
+        size_t pages=(f.rows.size()+3)/4,page=f.page%pages;
+        for(size_t i=0;i<4 && page*4+i<f.rows.size();++i)textClip(c,12,96+i*20,296,1,INK,f.rows[page*4+i].c_str());
+        textClip(c,12,180,296,1,MUTE,f.message.empty()?String("Page ")+String(unsigned(page+1))+"/"+String(unsigned(pages))+" / turn knob":String(f.message.c_str()));
+      }
+      textClip(c,12,202,296,1,f.live(millis())?UP:WARN,f.live(millis())?"HOLD YES 800ms: EXECUTE / NO: KEEP LATCH":String(f.state.c_str())+" / latch remains on");
+      c.fillRect(12,226,int(296*pad.holdProgress),4,WARN);return;
+    }
     text(c,12,20,4,DOWN,"KILLED");wrap(c,12,72,296,2,INK,"Trading is latched off",2);
     wrap(c,12,130,296,1,INK,pad.rearmRequested?"Desk requested rearm. Hold YES for 800ms.":"Request rearm from the desk, then hold YES on this pad.",4);
     c.fillRect(12,190,(int)(296*pad.rearmProgress),8,WARN);if(pad.pairCode.length())text(c,12,220,1,INK,(String("PAIR CODE ")+pad.pairCode).c_str());return;

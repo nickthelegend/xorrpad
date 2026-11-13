@@ -21,6 +21,14 @@ export async function drawFirmware(
     signalId: pending?.id || "",
     signalDeadline: pending ? Math.max(0, pending.expiresAt - now) : 0,
   };
+  fields.killed=device?.killed===true;
+  const flatten=device?.flatten;
+  if(flatten && fields.killed){
+    Object.assign(fields,{flattenId:flatten.id,flattenState:flatten.state,flattenMessage:flatten.message,
+      flattenOrders:flatten.orders,flattenPerps:flatten.perps,flattenOutcomes:flatten.outcomes,
+      flattenRemaining:Math.max(0,(flatten.remainingMs || 0)-(now-Date.parse(flatten.observedAt)))});
+    flatten.rows?.forEach((row,i)=>fields[`flattenRow${i}`]=row);
+  }
   const tilt=device?.tiltGuard;
   if(tilt) {
     const elapsed=Math.max(0,Math.floor((now-Date.parse(tilt.observedAt))/1000));

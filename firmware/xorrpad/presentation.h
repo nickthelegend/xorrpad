@@ -4,12 +4,13 @@
 #include "padstate.h"
 #include "logic/predict.h"
 #include "logic/perps.h"
+#include "logic/flatten.h"
 #include "logic/presentation.h"
 #include "logic/portfolio.h"
 #include "logic/fund.h"
 
 inline bool presentationConfirmationVisible(const PadState &pad) {
-  return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed,
+  return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed && !(pad.clearSigning && pad.flatten.review(std::string(pad.signalId.c_str()))),
     pad.updating,pad.errorCode.length(),pad.pairCode.length(),pad.tiltBlocked,pad.tiltAllowed);
 }
 inline bool presentationWalletVisible(const PadState &pad) {
@@ -35,7 +36,9 @@ inline bool presentationPredictVisible(const PadState &p) {
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if(type=="perps") {
+  if(type=="flatten") {
+    if(!xorr::parseFlatten(d,pad.flatten,millis()))pad.flatten=xorr::Flatten();
+  } else if(type=="perps") {
     if(!xorr::parsePerps(d,pad.perps,millis())){pad.perps=xorr::Perps();pad.perps.message="Setup required: refresh perp positions";}
   } else if(type=="liq_guard") {
     if(!xorr::parseLiqGuard(d,pad.liqGuard,millis()))pad.liqGuard=xorr::LiqGuard();

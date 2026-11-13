@@ -8,12 +8,20 @@ import * as meteora from './chains/meteora.mjs';
 import * as phoenix from './chains/phoenix.mjs';
 import * as jupperps from './chains/jupperps.mjs';
 import * as pmamm from './chains/pmamm.mjs';
+import {isFlattenLeg} from './panic-flatten.mjs';
 export async function propose(signal,brief,{price}={}) {
  const kind=signal.kind||(['LONG','SHORT'].includes(signal.side)?'perp':'spot');
  const sig={...signal,kind,...(kind==='perp'?{leverage:signal.leverage??1}:{})};
  let verdict=decide(sig,brief);
  if(sig.manualConfirmation || sig.reduceOnly)verdict.autoAccept=false;
  if(verdict.action!=='EXECUTE')return {signal:sig,verdict,routing:null};
+ if(sig.source==='pad-flatten') {
+  if(!isFlattenLeg(sig) || verdict.sizeUsd!==sig.sizeUsd)throw Error('invalid or capped Flatten all leg');
+  const adapter=sig.venue==='phoenix'?phoenix:sig.venue==='jupperps'?jupperps:pmamm;
+  const q=sig.flattenAction==='cancel'?null:sig.flattenAction==='perp'?await adapter.quoteClose(sig.closeInput):await pmamm.quoteReduce(sig);
+  return {signal:sig,verdict:{...verdict,autoAccept:false},routing:{best:{venue:sig.venue,network:sig.venue==='pmamm'?'devnet':'mainnet-beta',
+   market:sig.market,effectivePrice:q?.entryPrice ?? q?.price,fees:{usd:q?.fee},quote:q},alternatives:[]}};
+ }
  if(sig.reduceOnly) {
   const positions=(await readPerps()).positions;
   const input=reducePosition(sig,positions,verdict.sizeUsd);
@@ -44,6 +52,11 @@ export async function propose(signal,brief,{price}={}) {
 export async function buildRouted(proposal, {owner, request = true} = {}) {
  const {signal:sig,verdict,routing}=proposal,best=routing?.best;
  if(verdict.action!=='EXECUTE'||!best)throw new Error('proposal was not approved by the gate');
+ if(sig.source==='pad-flatten') {
+  assertSigningCluster(best.network);if(!isFlattenLeg(sig) || verdict.sizeUsd!==sig.sizeUsd || best.venue!==sig.venue || owner!==sig.owner)throw Error('invalid Flatten all route or owner');
+  const adapter=sig.venue==='phoenix'?phoenix:sig.venue==='jupperps'?jupperps:pmamm;
+  return sig.flattenAction==='cancel'?adapter.buildCancel(sig.cancelInput,{request}):sig.flattenAction==='perp'?adapter.buildClose(sig.closeInput,{request}):pmamm.buildReduce(sig,{request});
+ }
  if(sig.reduceOnly) {
   assertSigningCluster(best.network);
   if(!best.closeInput || best.closeInput.reducePct!==50)throw Error('invalid reduce-only route');

@@ -1,5 +1,29 @@
 #include "doctest.h"
 #include "../xorrpad/logic/kill-switch.h"
+#include "../xorrpad/logic/flatten.h"
+
+TEST_CASE("F4 flatten parser accepts only a bounded reduce-only plan with all rows accounted for") {
+ JsonDocument d;d["id"]="test-plan";d["state"]="awaiting";d["fingerprint"]=std::string(64,'a');d["reduceOnly"]=true;
+ d["remainingMs"]=60000;d["orders"]=1;d["perps"]=1;d["outcomes"]=1;
+ auto rows=d["rows"].to<JsonArray>();rows.add("LAYOUT TEST cancel");rows.add("LAYOUT TEST close perp");rows.add("LAYOUT TEST sell shares");
+ xorr::Flatten p;REQUIRE(xorr::parseFlatten(d,p,UINT32_MAX-1000));CHECK(p.live(58998));CHECK_FALSE(p.live(58999));
+ d["reduceOnly"]=false;CHECK_FALSE(xorr::parseFlatten(d,p,0));CHECK(p.id=="test-plan");
+ d["reduceOnly"]=true;d["orders"]=2;CHECK_FALSE(xorr::parseFlatten(d,p,0));d["orders"]=1;
+ d["remainingMs"]=60001;CHECK_FALSE(xorr::parseFlatten(d,p,0));d["remainingMs"]=60000;
+ d["state"]="open";CHECK_FALSE(xorr::parseFlatten(d,p,0));d["state"]="executing";
+ d["legId"]="accepted-child";d["legReduceOnly"]=false;REQUIRE(xorr::parseFlatten(d,p,0));CHECK_FALSE(p.review("accepted-child"));
+ d["legReduceOnly"]=true;REQUIRE(xorr::parseFlatten(d,p,0));CHECK(p.review("accepted-child"));CHECK_FALSE(p.review("other"));
+}
+TEST_CASE("F4 flatten YES requires a fresh 800ms hold; NO and every blocked state keep kill latched") {
+ xorr::KillSwitch kill;kill.kill();xorr::Flatten p;p.id="test";p.state="awaiting";p.ttl=60000;
+ xorr::FlattenConfirm c;c.offer(1);CHECK_FALSE(c.due(p,true,false,true,1,800));
+ c.key(true,true,1,1000);CHECK_FALSE(c.due(p,true,false,true,1,1799));CHECK(c.due(p,true,false,true,1,1800));
+ CHECK_FALSE(c.due(p,true,false,true,1,1801));CHECK(kill.killed);
+ for(int i=0;i<5;++i){c.offer(1);c.key(true,true,1,0);CHECK_FALSE(c.due(p,i!=0,i==1,i!=2,i==3?2:1,i==4?60000:800));CHECK(kill.killed);}
+ c.offer(1);c.key(true,true,1,0);c.key(false,true,1,799);CHECK_FALSE(c.due(p,true,false,true,1,800));
+ p.state="refused";c.key(true,true,1,1000);CHECK_FALSE(c.due(p,true,false,true,1,1800));CHECK(kill.killed);
+ p.state="awaiting";p.at=UINT32_MAX-1000;c.offer(2);c.key(true,true,2,UINT32_MAX-100);CHECK(c.due(p,true,false,true,2,699));CHECK(kill.killed);
+}
 using xorr::KillSwitch;
 TEST_CASE("S3 kill fires at two seconds without waiting for release") {
   KillSwitch s; s.killKey(true, 0);

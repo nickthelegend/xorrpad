@@ -147,6 +147,36 @@ export async function positions(authority, options = {}) {
   }));
 }
 export const balances = positions;
+// F4 reads a fresh snapshot, never a remembered trading journal.
+export async function flattenInventory() {
+ const authority=authorityKey(),traderPdaIndex=index(undefined,'PHOENIX_TRADER_PDA_INDEX');
+ const [state,twap]=await usingClient(c=>Promise.all([c.api.traders().getTraderStateSnapshot(authority,{traderPdaIndex}),c.api.traders().getTwap(authority,{traderPdaIndex})]));
+ if(twap.accounts.some(a=>a.order?.childOrdersRemaining>0))throw Error('Phoenix TWAP parents need external cancellation before Flatten all');
+ cache.delete(`trader:${authority}:${traderPdaIndex}`);
+ const ps=await positions(authority,{traderPdaIndex}),legs=[];
+ for(const sub of state.snapshot.subaccounts) {
+  if([...(sub.triggers || []),...sub.positions].some(t=>['takeProfitTriggers','stopLossTriggers','conditionalTakeProfitTriggers','conditionalStopLossTriggers'].some(k=>t[k]?.length)))
+   throw Error('Phoenix conditional orders need external cancellation before Flatten all');
+  if(sub.splines?.length)throw Error('Phoenix spline orders need external cancellation before Flatten all');
+  for(const group of sub.orders || [])for(const order of group.orders) {
+   if(!(BigInt(order.sizeRemainingLots)>0n))continue;
+   const m=await marketOf(group.symbol),sizeUsd=Math.abs(baseLotsToBaseUnits(BigInt(order.sizeRemainingLots),m.baseLotsDecimals))*Number(order.priceUsd);
+   legs.push({kind:'perp',venue:id,market:group.symbol,symbol:group.symbol,owner:authority,side:order.side==='bid'?'SHORT':'LONG',sizeUsd,
+    flattenAction:'cancel',orderId:`${authority}:${sub.subaccountIndex}:${group.symbol}:${order.orderSequenceNumber}`,
+    cancelInput:{authority,symbol:group.symbol,traderPdaIndex,traderSubaccountIndex:sub.subaccountIndex,
+      orders:[{priceInTicks:order.priceTicks,orderSequenceNumber:order.orderSequenceNumber}]}});
+  }
+ }
+ for(const p of ps)legs.push({kind:'perp',venue:id,market:p.market,symbol:p.market,owner:authority,side:p.side==='long'?'SHORT':'LONG',sizeUsd:p.notionalUsd,
+  flattenAction:'perp',positionId:`${authority}:${p.traderPdaIndex}:${p.subaccountIndex}:${p.market}`,reducePct:100,
+  closeInput:{authority,owner:authority,market:p.market,traderPdaIndex:p.traderPdaIndex,subaccountIndex:p.subaccountIndex,reducePct:100,expectedSide:p.side,expectedNotionalUsd:p.notionalUsd}});
+ return legs;
+}
+export async function buildCancel(input,{request=false}={}) {
+ const authority=authorityKey(input.authority);
+ const instruction=await usingClient(async c=>web3Instruction(await c.ixs.buildCancelOrdersById({...input,authority})));
+ return serialize(authority,instruction,{reduceOnly:true,cancel:true},()=>buildCancel(input,{request:false}),request);
+}
 function web3Instruction(ix) {
   if (ix.programAddress !== PROGRAM.toBase58()) throw new Error("unexpected program in Phoenix order instruction");
   return new TransactionInstruction({ programId:PROGRAM, data:Buffer.from(ix.data),

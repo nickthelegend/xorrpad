@@ -276,6 +276,7 @@ export class PadLink extends EventEmitter {
           sessionSigner: p.sessionState,
           profile: p.profileState,
           killed: this.killed.has(p.device),
+          flatten:p.flatten,
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
           perps:p.perps,
@@ -294,6 +295,7 @@ export class PadLink extends EventEmitter {
         ...this.status(),
         ...this.options,
         killed: this.killed.has(peer.device),
+        rearmRequested:this.killed.has(peer.device) && Date.now()<(peer.rearmUntil || 0),
         link: peer.name,
       };
     } catch {
@@ -643,6 +645,7 @@ export class PadLink extends EventEmitter {
     });
   }
   signal(p, e) {
+    if(e.proposal.signal.source==='pad-flatten')return; // One plan review; child IDs are signing grants, not new trade prompts.
     const remainingMs = Math.max(0, e.expiresAt - Date.now());
     if (this.killed.has(p.device)) return;
     if (e.state === "awaiting") {
@@ -694,9 +697,19 @@ export class PadLink extends EventEmitter {
       });
     }
   }
-  sessionPeer(device) {
+  startFlatten(p) {
+    if(!(Number(p.firmware?.split('.')[0])>=4) || !this.flatten)return;
+    this.flatten.begin(p.device).then(record=>{if(record && this.peers.has(p)){p.flatten=record;this.send(p,record);}})
+      .catch(error=>this.signals?.publish({type:'flatten_error',device:p.device,error:error.message}));
+  }
+  killedInput(p,m) {
+    const id=p.sessionRequest?.signalId || p.sessionRequest?.flattenSignal || p.clearReview?.id;
+    const review=['session_state','session_signature','clear_approval'].includes(m.type) && this.flatten?.allows(id,this.signals?.get(id)?.proposal,p.device);
+    return m.type==='ping' || m.type==='tilt_state' || review || (m.type==='key' && ['flatten:yes','flatten:no'].includes(m.action));
+  }
+  sessionPeer(device,signalId) {
     for(const p of this.peers)if(p.clearReview && Date.now()>=p.clearReview.expiresAt)p.clearReview=null;
-    const candidates=[...this.peers].filter(p=>p.secure && p.verified && this.preferred(p.device)===p && !this.killed.has(p.device) && Date.now()-p.last<15000 && (!device || p.device===device));
+    const candidates=[...this.peers].filter(p=>p.secure && p.verified && this.preferred(p.device)===p && (!this.killed.has(p.device) || this.flatten?.allows(signalId,this.signals?.get(signalId)?.proposal,p.device)) && Date.now()-p.last<15000 && (!device || p.device===device));
     if(candidates.length!==1)throw Error("Setup required: select one paired, online, rearmed pad");
     return candidates[0];
   }
@@ -728,13 +741,13 @@ export class PadLink extends EventEmitter {
     const p=this.sessionPeer(device),requestId=randomUUID();
     return this.waitSession(p,{type:"price_alerts_state",requestId},()=>this.send(p,{type:"price_alerts",requestId,...(alerts===undefined?{}:{alerts})}));
   }
-  sessionStatus(device) {
-    const p=this.sessionPeer(device),requestId=randomUUID();
+  sessionStatus(device,signalId) {
+    const p=this.sessionPeer(device,signalId),requestId=randomUUID();
     // The wallet card and session-policy controls read the same public state.
     // Share only an in-flight status read; policy/signature requests stay exclusive.
     if(p.sessionStatusRead?.secure===p.secure)return p.sessionStatusRead.promise;
     const read={secure:p.secure};
-    read.promise=this.waitSession(p,{type:"session_state",requestId},()=>this.send(p,{type:"session_status",requestId}))
+    read.promise=this.waitSession(p,{type:"session_state",requestId,flattenSignal:signalId},()=>this.send(p,{type:"session_status",requestId,signalId}))
       .finally(()=>{if(p.sessionStatusRead===read)delete p.sessionStatusRead;});
     p.sessionStatusRead=read;
     return read.promise;
@@ -745,13 +758,13 @@ export class PadLink extends EventEmitter {
   }
   async signSession(device,input) {
     assertSigningCluster(input.cluster);
-    const p=this.sessionPeer(device),secure=p.secure;
+    const p=this.sessionPeer(device,input.signalId),secure=p.secure;
     if(p.sessionRequest || p.clearReview)throw Error("pad busy reviewing a transaction");
     const prepared=await prepareClearSign({...input,sign:true});
-    if(this.sessionPeer(p.device)!==p || p.secure!==secure)throw Error("pad connection changed");
+    if(this.sessionPeer(p.device,input.signalId)!==p || p.secure!==secure)throw Error("pad connection changed");
     if(prepared.frames.length+(p.sendQueue?.length||0)>128)throw Error("pad busy");
     return this.waitSession(p,{type:"session_signature",signalId:input.signalId,messageHash:prepared.messageHash},()=>{
-      for(const frame of prepared.frames)this.send(p,frame);
+      for(const frame of prepared.frames)this.send(p,frame.type==='clear_begin'?{...frame,signalId:input.signalId}:frame);
     });
   }
   async clearSign(device, input) {
@@ -771,10 +784,13 @@ export class PadLink extends EventEmitter {
       (p) => p.device === device && p.secure && p.verified,
     );
     if (!peers.length) throw Error("connect the paired pad");
+    this.flatten?.cancel(device);
     for (const p of peers) {
       p.rearmUntil = Date.now() + 15000;
       this.send(p, { type: "rearm_request" });
+      this.send(p,this.getStatus(p));
     }
+    this.signals?.publish({type:'pad_link',...this.snapshot()});
     return { ok: true, pending: "Hold YES on the pad for 800ms" };
   }
   setProfiles(profiles) {
@@ -1110,6 +1126,7 @@ export class PadLink extends EventEmitter {
         if (this.killed.has(p.device)) {
           await this.request("/key", { id: "kill" });
           this.send(p, { type: "kill_sync" });
+          this.startFlatten(p);
         }
         this.pendingPairings.delete(p.device);
         this.signals?.publish({ type: "pad_link", ...this.snapshot() });
@@ -1205,8 +1222,12 @@ export class PadLink extends EventEmitter {
         return;
       }
       if (m.type === "kill") {
+        this.flatten?.cancel(p.device);
         this.killed.add(p.device);
         await this.request("/key", { id: "kill" });
+        this.send(p,this.getStatus(p));
+        this.startFlatten(p);
+        this.signals?.publish({type:'pad_link',...this.snapshot()});
         this.send(p, { type: "result", id: m.id, ok: true });
         return;
       }
@@ -1218,9 +1239,11 @@ export class PadLink extends EventEmitter {
         this.killed.delete(p.device);
         try{if(!this.killed.size)await this.request("/arm",{});}catch(e){this.killed.add(p.device);throw e;}
         this.send(p, { type: "rearm_complete" });
+        this.flatten?.cancel(p.device);p.flatten=null;this.send(p,this.getStatus(p));
+        this.signals?.publish({type:'pad_link',...this.snapshot()});
         return;
       }
-      if (this.killed.has(p.device)) throw Error("Killed: re-arm on the pad to trade");
+      if (this.killed.has(p.device) && !this.killedInput(p,m)) throw Error("Killed: re-arm on the pad to trade");
     }
     p.last = Date.now();
     if (m.type === "ping") {
@@ -1253,7 +1276,7 @@ export class PadLink extends EventEmitter {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error("verified tilt state required");
       p.tiltGuard=tiltState(m);this.signals?.publish({type:"pad_tilt",device:p.device,tiltGuard:p.tiltGuard});return;
     }
-    if (p.secure && this.killed.has(p.device)) throw Error("Killed: re-arm on the pad to trade");
+    if (p.secure && this.killed.has(p.device) && !this.killedInput(p,m)) throw Error("Killed: re-arm on the pad to trade");
     if (m.type === "hello") {
       if (
         typeof m.device !== "string" ||
@@ -1340,6 +1363,10 @@ export class PadLink extends EventEmitter {
           : m,
     });
     if (m.type === "key") {
+      if(['flatten:yes','flatten:no'].includes(m.action)) {
+        if(!p.secure || !p.verified || m.edge!=='down' || this.preferred(p.device)!==p)throw Error('Verified physical flatten answer required');
+        const result=await this.flatten.answer(p.device,m);this.send(p,{type:'result',id:m.id,...result});return;
+      }
       if(m.edge==='down' && ['liq:yes','liq:no'].includes(m.action)) {
         const proposal=guardKey({peer:p,message:m,killed:this.killed.has(p.device),
           pending:!!p.clearReview || !!p.sessionRequest || this.signals?.list().some(e=>e.state==='awaiting' && e.expiresAt>Date.now())});

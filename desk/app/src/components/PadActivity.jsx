@@ -64,9 +64,18 @@ function CrewPolicy({ policy, devices, onClose }) {
 export function PadActivity() {
   const d = useDesk(), crew = useRead("/pad/crew", 3000, true), link = useRead("/desk/link", 3000, true);
   const [editing, setEditing] = useState(false);
-  const records = [...(d.padEvents || [])].filter(r=>r.type!=="liq_guard").reverse();
+  const records = [...(d.padEvents || [])].filter(r=>r.type!=="liq_guard" && r.type!=="flatten").reverse();
+  const flatten=[...(d.padEvents || [])].filter(r=>r.type==="flatten").reverse();
   const guards=[...(d.padEvents || [])].filter(r=>r.type==="liq_guard").reverse();
   return <section className="pad-activity" aria-label="Pad activity">
+    <h2>Panic flatten</h2>
+    {!flatten.length && <p>No flatten plans received in this desktop session.</p>}
+    {flatten.map(r=><article className="surface" key={r.recordId}>
+      <h3>Flatten all · {r.state}</h3>
+      <p>{r.device} · {r.orders} cancellations · {r.perps} perps · {r.outcomes} outcomes</p>
+      <p>{r.message || 'Reduce only. Hold YES on the pad to execute; NO keeps the latch on.'}</p>
+      <details><summary>View actual flatten plan</summary><pre>{JSON.stringify(r,null,2)}</pre></details>
+    </article>)}
     <h2>Liquidation guard</h2>
     {!guards.length && <p>No liquidation guard events received in this desktop session.</p>}
     {guards.map(r=><article className="surface" key={r.recordId}>

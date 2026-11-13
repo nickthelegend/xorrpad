@@ -6,6 +6,20 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F4: Panic flatten
+
+- The unchanged two-second KILL latch requests one live Flatten all plan. The
+  pad and exact firmware mirror show cancellations, full perp closes and outcome
+  exits; a fresh 800 ms YES hold starts it, while NO leaves the latch on.
+- Only that reviewed reduce-only plan can cross the killed execution gate.
+  Every leg retains permissions, caps, fresh inventory, signing and session/crew
+  policy. Cancellations precede closes; each transaction must confirm before the
+  next. Re-arm, another KILL or changed inventory revokes the grant.
+- Missing public authorities, incomplete/unsupported inventories and unavailable
+  exits show Setup required. Mainnet signing remains disabled by default. Activity
+  uses the existing desktop components; native tests, encrypted padsim and
+  native/WASM parity cover both decisions without fabricated API responses.
+
 ### Added — Firmware 4.0.0 F3: Tilt guard
 
 - Pad NVS holds daily realized-loss, rolling-hour trade and losing-close limits,

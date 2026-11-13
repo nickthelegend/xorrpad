@@ -96,6 +96,7 @@ xorr::KillSwitch killSwitch;
 PadLink::Transport rearmTransport = PadLink::NONE;
 ClearSigning clearSigning;
 xorr::DecisionConfirm decisionConfirm;
+xorr::FlattenConfirm flattenConfirm;
 Abilities abilities;
 PriceAlerts priceAlerts;
 TiltGuard tiltGuard;
@@ -111,10 +112,11 @@ void showKillState() {
   pad.killed = padlink.killed = killSwitch.killed;
   pad.rearmRequested = killSwitch.requested;
   pad.rearmProgress = killSwitch.progress(millis());
-  if (killSwitch.killed) { pad.armed = pad.autoAccept = pad.pending = false; }
+  if (killSwitch.killed) { pad.armed = pad.autoAccept = false;if(!pad.clearSigning || !pad.flatten.review(std::string(pad.signalId.c_str())))pad.pending=false; }
 }
 void latchKill() {
   killSwitch.kill();decisionConfirm.reset();
+  clearSigning.reset(pad);pad.flatten=xorr::Flatten();flattenConfirm.offer(padlink.connectionEpoch());
   persistKill(true); // Local disarm precedes every network operation.
   padlink.stopInputs();
   recording = recStreaming = false;
@@ -163,10 +165,13 @@ void onPadMessage(JsonVariantConst d) {
   if(abilities.message(d,padlink.connectionEpoch(),padlink.secureReady(),abilityIdle,pad,abilityResponse)){padlink.send(abilityResponse);screenDirty=true;screenHoldUntil=0;return;}
   if(abilities.reviewing() && d["type"]!="kill_sync")return;
   if(d["type"]=="pulse")abilities.priceAt=millis();
-  if(clearSigning.message(d,padlink.connectionEpoch(),padlink.secureReady(),killSwitch.killed || ota.busy,pad)) {
+  bool flattenReview=killSwitch.killed && !killSwitch.requested && pad.flatten.state=="executing" && !pad.flatten.legId.empty();
+  bool signingBlocked=ota.busy || (killSwitch.killed && (!flattenReview || (d["type"]=="session_status" && !pad.flatten.review(d["signalId"] | "")) || d["type"]=="session_policy"));
+  if(clearSigning.message(d,padlink.connectionEpoch(),padlink.secureReady(),signingBlocked,pad)) {
     screenDirty=true;screenHoldUntil=0;return;
   }
   String debugType = d["type"] | "";
+  if(debugType=="flatten" && (!padlink.secureReady() || !killSwitch.killed))return;
   if (debugType == "config" || debugType == "ready") {
     usbDebugGate.configure(d["usbDebug"] | false, padlink.secureReady(),
                            padlink.active() == PadLink::USB, padlink.connectionEpoch());
@@ -178,6 +183,11 @@ void onPadMessage(JsonVariantConst d) {
   }
   std::string priorGuard=pad.liqGuard.id;bool hadGuard=pad.liqGuard.fresh(millis());
   presentationMessage(d,pad,chartNow);
+  if(d["type"]=="flatten") {
+    flattenConfirm.offer(padlink.connectionEpoch());pad.holdProgress=0;pad.ok=true;
+    if(pad.flatten.review(pad.flatten.legId))tiltGuard.accept(pad.flatten.legId);
+    accessibility.idle.wake(millis());screenHoldUntil=0;
+  }
   if(d["type"]=="liq_guard" && pad.liqGuard.fresh(millis())) {
     accessibility.idle.wake(millis());screenHoldUntil=0;
     if(!hadGuard || priorGuard!=pad.liqGuard.id)audio.chime(xorr::Chime::LiqAlarm);
@@ -218,11 +228,13 @@ void onPadMessage(JsonVariantConst d) {
     ack["profile"]=profiles.active();ack["layer"]=profiles.layer();padlink.send(ack);
   }
   else if (type == "rearm_request" && padlink.secureReady()) {
+    clearSigning.reset(pad);flattenConfirm.offer(padlink.connectionEpoch());
     killSwitch.request(true, millis()); rearmTransport=padlink.active(); showKillState();
   } else if (type == "rearm_complete") {
     uint32_t now=millis();
     bool online=padlink.secureReady() && !padlink.blePairing && rearmTransport==padlink.active();
     if(killSwitch.canComplete(now,online))killSwitch.complete(now,online,persistKill(false));
+    if(!killSwitch.killed)pad.flatten=xorr::Flatten();
     showKillState();
   } else if(type=="keymap") {
     uint32_t previousRevision=keymapRevision;
@@ -433,7 +445,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
     return;
   }
   if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
-    bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
+    bool safe=padlink.secureReady() && !padlink.blePairing && (!killSwitch.killed || (!killSwitch.requested && pad.flatten.review(std::string(pad.signalId.c_str())))) && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && tiltGuard.allows(pad) && presentationConfirmationVisible(pad));
     else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result))padlink.send(result);}
     return;
@@ -442,6 +454,15 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
     telnet.logf("  [KEY] row=%u col=%u  = %s\n", r, c, kb.label ? kb.label : "unbound");
 
   if(kb.role==ROLE_KILL) { killSwitch.killKey(pressed,millis()); return; }
+  if(killSwitch.killed && !killSwitch.requested && !clearSigning.active) {
+    bool visible=pad.flatten.live(millis()) && padlink.secureReady() && !padlink.blePairing && !ota.busy && millis()>=screenHoldUntil;
+    if(kb.role==ROLE_CONFIRM)flattenConfirm.key(pressed,visible,padlink.connectionEpoch(),millis());
+    if(kb.role==ROLE_REFUSE && pressed && pad.flatten.visible() && padlink.secureReady()) {
+      JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["edge"]="down";d["action"]="flatten:no";d["planId"]=pad.flatten.id;d["fingerprint"]=pad.flatten.fingerprint;padlink.send(d);
+      pad.flatten.state="refused";pad.flatten.message="Latch remains on";flattenConfirm.offer(padlink.connectionEpoch());audio.chime(xorr::Chime::Refuse);
+    }
+    return;
+  }
   if(kb.role==ROLE_CONFIRM) {
     killSwitch.confirmKey(pressed,millis(),padlink.secureReady() && !padlink.blePairing);
     if(killSwitch.killed)return;
@@ -754,6 +775,11 @@ void loop() {
   if(event!=Knob::None){accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));screenDirty=true;}
   if(wakeKnob && event!=Knob::TalkEnd)event=Knob::None;
   if(clearSigning.active && pad.pending && event==Knob::Turn){clearSigning.page(knob.delta,pad);event=Knob::None;}
+  if(killSwitch.killed && pad.flatten.visible() && event==Knob::Turn){
+    unsigned pages=std::max(size_t(1),(pad.flatten.rows.size()+3)/4);
+    pad.flatten.page=(pad.flatten.page+pages+knob.delta%int(pages))%pages;event=Knob::None;
+    flattenConfirm.offer(padlink.connectionEpoch());
+  }
   if(event==Knob::TalkStart)startRecording();
   else if(event==Knob::TalkEnd)stopAndSend();
   else if(event==Knob::Click) {
@@ -781,12 +807,19 @@ void loop() {
   if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
   if(!padlink.ready() && !padlink.legacy)pad.ok=false;
   {JsonDocument result;
-    bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
+    bool safe=padlink.secureReady() && !padlink.blePairing && (!killSwitch.killed || (!killSwitch.requested && pad.flatten.review(std::string(pad.signalId.c_str())))) && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
+  }
+  if(killSwitch.killed && !clearSigning.active) {
+    pad.holdProgress=flattenConfirm.progress(millis());
+    if(flattenConfirm.due(pad.flatten,true,killSwitch.requested,padlink.secureReady() && !padlink.blePairing && !ota.busy,padlink.connectionEpoch(),millis())) {
+      JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["edge"]="down";d["action"]="flatten:yes";d["planId"]=pad.flatten.id;d["fingerprint"]=pad.flatten.fingerprint;d["heldMs"]=800;
+      padlink.send(d);pad.flatten.state="executing";audio.chime(xorr::Chime::Accept);
+    }
   }
   bool decisionVisible=tiltGuard.allows(pad) && presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
     !padlink.blePairing && millis()>=screenHoldUntil;
-  if(!pad.clearSigning)pad.holdProgress=decisionConfirm.progress(millis());
+  if(!pad.clearSigning && !killSwitch.killed)pad.holdProgress=decisionConfirm.progress(millis());
   if(decisionConfirm.due(decisionVisible,padlink.connectionEpoch(),millis())) {
     if(!tiltGuard.accept(decisionConfirm.signal().id)){decisionConfirm.reset();screenDirty=true;return;}
     JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]="yes";d["edge"]="down";

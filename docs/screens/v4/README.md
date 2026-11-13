@@ -35,3 +35,22 @@ F3 extends native/WASM parity to **19 distinct frames**, including countdown,
 missing UTC and a reviewed reduce-only decision while cooling. Desktop captures
 reuse the approved components; no stylesheet, token or commissioned art changes.
 Physical display/power-loss verification remains hardware work.
+
+
+F4 evidence:
+
+- `flatten-setup.png` uses the actual encrypted padsim/desk response with missing
+  public authorities, rendered by the production `ui.h` through uipreview.
+- `flatten-layout.png` is explicitly **LAYOUT TEST / no live trades**: three
+  coordinator/parser layout vectors, never an external API response or a fill.
+- `flatten-device-{1440,375}.png` uses the actual local desk and verified v4
+  padsim after KILL. The desktop live firmware texture receives the Setup plan;
+  mobile retains the approved static CAD poster and actual Kill latch controls.
+  `flatten-activity-{1440,375}.png` shows the actual NO/refused record in the
+  existing Activity components. Styling, tokens and commissioned art are unchanged.
+- Native/WASM parity adds awaiting, Setup and refused Flatten frames, preserving
+  every earlier frame and actual Fund QR decoding (22 distinct frame cases).
+
+Public inputs are in `firmware/build/f4-flatten-{setup,layout}.json`. A plan
+layout is not proof of a funded live close; venue/signing prerequisites and
+unsupported inventory cases are documented in `docs/v4/V4-NOTES.md`.

@@ -201,6 +201,40 @@ async function readPositions(c, wallet) {
 }
 export async function balances(owner) { return positions(owner); }
 
+// F4 exits spend only already-owned outcome tokens; never buy the opposite side.
+export async function flattenInventory() {
+ const owner=ownerKey().toBase58(),c=await ctx();
+ const rows=await readPositions(c,new PublicKey(owner)),legs=[];
+ for(const p of rows)for(const side of ['yes','no'])if(BigInt(p[side+'Raw'])>0n) {
+  if(p.resolved)throw Error('resolved outcome shares require the external claim flow');
+  const raw=p[side+'Raw'];if(!Number.isSafeInteger(Number(raw)))throw Error('outcome shares exceed safe builder precision');
+  // The full share amount is the conservative $1/share permission budget.
+  legs.push({kind:'predict',venue:id,market:p.market,symbol:p.market,owner,side:'SELL',outcomeSide:side,sharesRaw:raw,
+   sizeUsd:Number(raw)/1e6,flattenAction:'outcome'});
+ }
+ return legs;
+}
+export async function quoteReduce(input) {
+ const owner=ownerKey(input.owner),c=await marketAccount(input.market),a=c.account;
+ if(!['yes','no'].includes(input.outcomeSide) || !/^[1-9]\d*$/.test(input.sharesRaw) || !Number.isSafeInteger(Number(input.sharesRaw)))throw Error('invalid outcome reduction');
+ const mint=input.outcomeSide==='yes'?a.yesMint:a.noMint;
+ const balance=await c.connection.getTokenAccountBalance(ata(mint,owner));
+ if(balance.value.amount!==input.sharesRaw)throw Error('outcome position changed; review a fresh flatten plan');
+ if(a.resolved || a.endTs.toNumber()<=Date.now()/1000)throw Error('Setup required: market is closed; use external claim flow after resolution');
+ const direction=input.outcomeSide==='yes'?'yesToUsdc':'noToUsdc',amountIn=Number(input.sharesRaw),exact=quoteSwap(a,direction,amountIn);
+ if(!Number.isSafeInteger(exact.out) || exact.out<=0)throw Error('outcome exit rounds to zero');
+ return {venue:id,cluster:'devnet',market:input.market,direction,amountInRaw:amountIn,amountOutRaw:exact.out,fee:exact.fee/1e6,
+  price:exact.out/amountIn,reduceOnly:true};
+}
+export async function buildReduce(input,{request=false}={}) {
+ const q=await quoteReduce(input),owner=ownerKey(input.owner),c=await marketAccount(input.market),a=c.account;
+ const minimum=minOutput({out:q.amountOutRaw},100);if(minimum<=0)throw Error('minimum outcome output rounds to zero');
+ const instructions=[ataIx(owner,COLLATERAL),ataIx(owner,COLLATERAL,PROTOCOL_DAO)];
+ if(!a.authority.equals(owner))instructions.push(ataIx(owner,COLLATERAL,a.authority));
+ instructions.push(await c.client.ix.swap({signer:owner,market:c.pubkey,direction:q.direction,amountIn:q.amountInRaw,minOutput:minimum,creatorAuthority:a.authority}));
+ return finish(c,owner,instructions,()=>buildReduce(input,{request:false}),{quote:q,reduceOnly:true},request);
+}
+
 /** All mUSDC markets for a creator, including expired and resolved ones. Chain only. */
 export async function ours(creator) {
   const authority=key(creator,"KEEPER_PUBLIC_KEY"),c=await ctx();

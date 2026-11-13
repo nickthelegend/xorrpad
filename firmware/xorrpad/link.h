@@ -143,7 +143,7 @@ public:
   bool send(JsonDocument &doc) {
     String type = doc["type"] | "";
     if (killed && (type == "knob" || type == "voice" ||
-        (type == "key" && doc["action"] != "kill"))) return false;
+        (type == "key" && doc["action"] != "kill" && doc["action"]!="flatten:yes" && doc["action"]!="flatten:no"))) return false;
     Transport via = active();
     if (via == NONE)
       return false;

@@ -94,7 +94,7 @@ export class Executor {
   }
   async #gate(id, proposal) {
     const entry = this.signals.get(id);
-    if (!this.isArmed()) throw new Error('disarmed — re-arm before trading');
+    if (!this.isArmed(id,proposal)) throw new Error('disarmed — re-arm before trading');
     if (entry?.state !== 'accepted' || Date.now() >= entry.expiresAt) throw new Error('signal is not accepted or has expired');
     const {brief,context} = this.#budget(await this.mem.recallBrief(),id), policy = this.permissions.read();
     const verdict = decide({...proposal.signal,sizeUsd:proposal.verdict.sizeUsd},brief,{policy,...context});
@@ -111,9 +111,9 @@ export class Executor {
       const mode = this.mode(), cluster = entry.proposal.routing?.best?.network;
       if (mode === 'session' || mode === 'pad') assertSigningCluster(cluster);
       if(mode==='pad' && !this.padSigner)throw Error('Setup required: paired pad signer');
-      const padInfo=mode==='pad'?await this.padSigner.info(readJson(this.#settings,{}).device):null;
+      const padInfo=mode==='pad'?await this.padSigner.info(readJson(this.#settings,{}).device,id):null;
       const owner = padInfo?.publicKey || (mode === 'session' ? (await this.wallet.info()).publicKey
-        : entry.proposal.signal.kind === 'perp' ? (entry.proposal.signal.venue === 'phoenix' ? process.env.PHOENIX_AUTHORITY : process.env.JUPPERPS_AUTHORITY) || process.env.SOLANA_ADDRESS : process.env.SOLANA_ADDRESS);
+        : entry.proposal.signal.owner || (entry.proposal.signal.kind === 'perp' ? (entry.proposal.signal.venue === 'phoenix' ? process.env.PHOENIX_AUTHORITY : process.env.JUPPERPS_AUTHORITY) || process.env.SOLANA_ADDRESS : process.env.SOLANA_ADDRESS));
       if (!owner) throw new Error('Setup required: SOLANA_ADDRESS (phone wallet public key)');
       const fresh = await propose({...entry.proposal.signal,sizeUsd:entry.proposal.verdict.sizeUsd},await this.mem.recallBrief());
       if (fresh.verdict.action !== 'EXECUTE' || fresh.verdict.sizeUsd !== entry.proposal.verdict.sizeUsd || fresh.signal.venue !== entry.proposal.signal.venue)
@@ -182,6 +182,7 @@ export class Executor {
     // Record signed before the network call: an ambiguous timeout must retain its reservation.
     await this.signals.transition(id,'signed');
     this.#ledger[id].status = 'signed'; this.#save();
+    if(!this.isArmed(id,record.proposal))throw Error('disarmed — transaction not submitted');
     const signature = await record.connection.sendRawTransaction(tx.serialize(),{skipPreflight:false,maxRetries:3});
     this.#ledger[id].signature = signature; this.#save();
     this.signals.publish({type:'submitted',id,signature});

@@ -1,4 +1,5 @@
 import {readPerps} from './perps-cockpit.mjs';
+import {PanicFlatten} from './panic-flatten.mjs';
 import { connectionStatus } from './connection-status.mjs';
 import { Abilities } from './abilities.mjs';
 import { Profiles } from './profiles.mjs';
@@ -174,7 +175,7 @@ export function createServer(mem) {
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
     gate:async e => {
-      if (!state.armed) return {...e.proposal,verdict:{...e.proposal.verdict,action:'REJECT',sizeUsd:0,ruleId:'signals.disarmed',why:['disarmed — re-arm before trading']}};
+      if (!(e.proposal.signal.source==="pad-flatten"?flatten.allows(e.id,e.proposal):state.armed)) return {...e.proposal,verdict:{...e.proposal.verdict,action:'REJECT',sizeUsd:0,ruleId:'signals.disarmed',why:['disarmed — re-arm before trading']}};
       return propose({...e.proposal.signal,sizeUsd:e.proposal.verdict.sizeUsd},await mem.recallBrief());
     },
     journal:e => mem.journal(e),
@@ -189,7 +190,12 @@ export function createServer(mem) {
       note(text);
     },
   });
-  const executor = new Executor({mem,signals,isArmed:() => state.armed});
+  const executor = new Executor({mem,signals,isArmed:(id,p) => p?.signal.source==="pad-flatten"?flatten.allows(id,p):state.armed});
+  const flatten=new PanicFlatten({signals,executor,propose:async sig=>propose(sig,await mem.recallBrief()),
+    killed:device=>srv.padlink.killed.has(device),publish:(device,record)=>{
+      for(const p of srv.padlink.peers)if(p.device===device && p.secure && p.verified){p.flatten=record;srv.padlink.send(p,record);}
+      signals.publish({...record,device});
+    }});
   const agentWallet = new AgentWallet(executor);
   signals.onAccepted = e => e.automatic ? executor.execute(e.id) : undefined;
   signals.on('event',e => {
@@ -1098,6 +1104,7 @@ export function createServer(mem) {
   });
   srv.signals = signals;
   srv.executor = executor;
+  srv.flatten=flatten;
   srv.agentWallet = agentWallet;
   attachEvents(srv,signals,TOKEN);
   let padBrief=null;
@@ -1114,6 +1121,7 @@ export function createServer(mem) {
   },status:() => ({...livePulse,armed:state.armed,market:state.market,sizeUsd:state.sizeUsd,remembers:!!padBrief?.limits,
     agent:state.agent,venue:state.pending?.sig?.venue || '',autoAccept:Object.values(permissions.read().autoAccept).some(group => Object.values(group).some(Boolean))})});
   srv.padlink.activeProfile=new Profiles(srv.padlink).read().active;
+  srv.padlink.flatten=flatten;
   executor.setPadLink(srv.padlink);
   signals.on('event',e=>{
     if(e.type!=='pad_signer' || !e.ok || !e.automatic)return;

@@ -32,6 +32,9 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
   for(const state of [
+   {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"setup",flattenMessage:"Setup required: public authorities not configured"},
+   {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"awaiting",flattenOrders:"1",flattenPerps:"1",flattenOutcomes:"1",flattenRemaining:"60000",flattenRow0:"LAYOUT TEST CANCEL",flattenRow1:"LAYOUT TEST CLOSE 100%",flattenRow2:"LAYOUT TEST SELL YES"},
+   {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"refused",flattenMessage:"Latch remains on"},
    {tiltBlocked:'1',tiltReason:'Trades per hour',tiltRemaining:'900',tiltDuration:'1800'},
    {tiltBlocked:'1',tiltReason:'Setup required: UTC time',tiltRemaining:'0',tiltDuration:'0'},
    {ok:'1',pending:'1',tiltAllowed:'1',tiltBlocked:'1',signalReduceOnly:'1',market:'LAYOUT TEST',signalSide:'SELL'},
@@ -66,6 +69,6 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,19,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,22,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });

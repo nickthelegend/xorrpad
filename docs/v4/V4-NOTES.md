@@ -206,3 +206,89 @@ Final implementation/artifact hashes match across the workspace and isolated
 source. Verification logs are `firmware/build/f3-*.log`; see TESTING.md for exact
 counts, build sizes and limits. No CSS, token or commissioned art is changed. No existing private key,
 production signing key or existing wallet directory is opened.
+
+
+## F4 — Panic flatten
+
+The existing KILL timer still fires at exactly 2 seconds, latches locally before
+network work and persists through reboot. Its desk request + fresh physical
+800 ms YES re-arm flow is unchanged. After a verified v4 pad reports KILL, the
+desk reads configured Phoenix, Jupiter Perps and pm-AMM public wallet inventories
+and builds one immutable Flatten all plan for that latch episode. KILL cancels
+old pending trades first. No transaction is built for execution or signed merely
+because KILL was pressed. NO refuses the plan and keeps the local and desk latch.
+
+`{type:"flatten",id,fingerprint,reduceOnly:true,state,orders,perps,outcomes,rows,
+message,remainingMs,observedAt}` drives the pad, Core's desktop/phone mirror and
+Activity. States are building, awaiting, setup, empty, executing, refused, complete
+and failed. Counts and every bounded row must agree; non-reduce-only records are
+refused by the native parser. The pad shows four plan rows per page (knob scroll),
+with quantities/budgets, venue and market; the fingerprint binds full identities
+and amounts even when a long public market address is abbreviated for display.
+The plan has at most 32 transactions and a 60-second confirmation window. Larger,
+incomplete or unsupported inventories are Setup required rather than truncated
+executable plans. A stale/changed plan requires re-arm and another KILL to rebuild.
+
+A fresh YES hold of 800 ms sends a dedicated `flatten:yes` key bound to the
+plan ID and fingerprint over the preferred verified encrypted transport. NO sends
+`flatten:no`. Ordinary trade YES, voice, knobs that change trade parameters and
+unrelated signing remain blocked while killed. The desk rereads the full inventory
+before acting, cancels orders first, then closes every planned perp at 100% and
+sells existing outcome tokens into collateral. No opposite-side purchase is used.
+Each leg goes through the existing signal queue and executor, with auto-accept
+forced off, permissions/caps/allowlists/cooldowns and the selected phone/session/
+pad/crew policy intact. Caps cannot silently resize the reviewed exit. Outcome
+permission budgets conservatively use $1 per share, not an invented price.
+Normal remembered spot-position checks remain in force; only structurally valid
+flatten exits use the actual venue inventory instead of requiring spot memory.
+
+The killed exception is an in-memory grant for an exact internally created child
+signal and its complete signal digest, device and current plan. A `reduceOnly`
+label supplied by another proposal grants nothing. Re-arm requests and another
+KILL revoke the plan; submission rechecks authorization immediately before the
+network call. Each transaction must have a confirmed receipt before the next leg
+starts; a phone handoff, quote or unsigned build is never called a fill. Failure
+stops the sequence and reports its reason, retaining the latch and any earlier
+confirmed partial progress. A completed flatten also leaves the latch on.
+
+Every granted child ID also reserves native F3 accounting when its executing
+record arrives, including phone/session signing modes; signing retries deduplicate
+that same ID. Cancellations do not fabricate realized close PnL.
+
+For pad signing, executing records identify the granted `legId` with
+`legReduceOnly:true`. Only that ID can receive status/transaction review while
+killed; policy configuration remains blocked. Native clear-sign decoding, every
+reviewed page and its existing hold remain required. Automatic pad signing is
+suppressed while killed, so an unrelated automatic policy cannot turn KILL into
+a trade. Core retains its existing external visual-review/signing requirement.
+
+Inventory scope is the existing configured Phoenix trader PDA and its subaccounts,
+Jupiter public authority and pm-AMM public owner. Phoenix normal limit-order
+cancellation uses the official SDK instruction builder; its conditional, spline
+and active TWAP orders currently require external cancellation and block the
+whole plan with Setup required. Jupiter limit and TP/SL requests use the official
+unsigned cancellation API; keeper-dependent cancellation is explicitly refused.
+Phoenix/Jupiter full-close instructions retain their real reduce-only/decrease
+semantics and bind to the reviewed side/notional snapshot. Their deployments are
+mainnet read-only by default: every flatten builder retains `XORR_ALLOW_MAINNET`.
+pm-AMM sells exact existing YES/NO token amounts on devnet, checks the live token
+balance and uses minimum-output protection. Resolved/expired shares require the
+external claim flow and block the plan honestly. LP liquidity is outside the
+outcome-position scope. Missing authorities, RPC failures, dust or unsupported
+public account metadata never become a fabricated empty/successful flatten.
+
+`tools/padsim/flatten.mjs` extends the encrypted native-signing/tilt simulator.
+Coordinator tests use explicitly labelled local state-machine vectors to verify
+YES execution dispatch, cancel-before-close ordering, receipt sequencing, NO,
+replay, expiry, changed snapshots, permission refusal and grant revocation. These
+vectors do not replace external APIs or claim live financial execution. The
+actual HTTP/encrypted test uses missing public authorities, verifies Setup and
+NO/re-arm, and confirms that YES cannot manufacture a plan or trade.
+No physical pad is flashed and no live transaction is submitted in verification.
+
+
+F4 acceptance: complete desk **271 tests / 262 passed / 9 existing skips /
+0 failures / 0 cancellations**; native **293 passed / 4,179 assertions /
+0 failures**. All 22 native/WASM frame cases, CAD parity, app build, WASM rebuild
+and final unsigned Pro/Core compiles pass. See TESTING.md for exact sizes, command,
+run duration, prerequisites and public log locations. No push or board flash.

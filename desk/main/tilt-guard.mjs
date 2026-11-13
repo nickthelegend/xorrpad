@@ -18,6 +18,6 @@ export function tiltState(message) {
 }
 export function tiltReceipt(receipt,signal,firmware) {
  if(!(Number((firmware || "").split(".")[0])>=4))return {...receipt};
- return {...receipt,closed:receipt.closed===true || signal?.reduceOnly===true || (signal?.kind==='spot' && signal?.side==='SELL'),
+ return {...receipt,closed:receipt.closed===true || (signal?.reduceOnly===true && signal?.flattenAction!=='cancel') || (signal?.kind==='spot' && signal?.side==='SELL'),
   realizedPnlUsd:Number.isFinite(receipt.realizedPnlUsd)?receipt.realizedPnlUsd:null};
 }

@@ -7,6 +7,15 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"flattenId")){pad.flatten.id=v;return;}
+ if(!strcmp(k,"flattenState")){pad.flatten.state=v;return;}
+ if(!strcmp(k,"flattenMessage")){pad.flatten.message=v;return;}
+ if(!strcmp(k,"flattenOrders")){pad.flatten.orders=atoi(v);return;}
+ if(!strcmp(k,"flattenPerps")){pad.flatten.perps=atoi(v);return;}
+ if(!strcmp(k,"flattenOutcomes")){pad.flatten.outcomes=atoi(v);return;}
+ if(!strcmp(k,"flattenRemaining")){pad.flatten.ttl=atoi(v);return;}
+ if(!strcmp(k,"flattenPage")){pad.flatten.page=atoi(v);return;}
+ if(!strncmp(k,"flattenRow",10) && atoi(k+10)<32){size_t i=atoi(k+10);pad.flatten.rows.resize(std::max(pad.flatten.rows.size(),i+1));pad.flatten.rows[i]=v;return;}
  if(!strcmp(k,"tiltAllowed")){pad.tiltAllowed=atoi(v)!=0;return;}
  if(!strcmp(k,"tiltBlocked")){pad.tiltBlocked=atoi(v)!=0;return;}
  if(!strcmp(k,"tiltReason")){pad.tiltReason=v;return;}
@@ -71,7 +80,7 @@ void screen_set(const char *k,const char *v){
  S(agent) S(market) S(mode) S(verdict) S(chain) S(venue) S(hoursState) S(hoursNote) S(nyTime) S(link) S(signalId) S(receiptSignature) S(receiptExplorer) S(lastKeyLabel)
 #undef S
 #define B(name) if(!strcmp(k,#name)){pad.name=atoi(v)!=0;return;}
- B(signalReduceOnly) B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
+ B(killed) B(rearmRequested) B(signalReduceOnly) B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
 #undef B
 #define N(name) if(!strcmp(k,#name)){pad.name=atof(v);return;}
  N(price) N(unrealised) N(spentToday) N(dayLimit) N(signalDeadline) N(receiptUntil) N(labelUntil)

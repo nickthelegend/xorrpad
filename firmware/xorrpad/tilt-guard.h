@@ -32,6 +32,7 @@ public:
  void message(JsonVariantConst d,bool secure,PadState &pad){
   if(!secure)return;
   if(d["type"]=="signal"){signalId=d["signalId"] | "";reduction=d["reduceOnly"]==true;}
+  if(d["type"]=="flatten" && d["state"]=="executing" && d["reduceOnly"]==true && d["legReduceOnly"]==true){signalId=d["legId"] | "";reduction=true;}
   if((d["type"]=="config" || d["type"]=="ready") && !d["tiltGuard"].isNull()){
    xorr::tilt::Settings next;if(xorr::tilt::settings(d["tiltGuard"],next) && state.healthy){state.advance(now());state.config=next;if(state.clock(now()))state.evaluate(now());save();}
   }

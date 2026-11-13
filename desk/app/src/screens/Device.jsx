@@ -65,7 +65,7 @@ export function Device() {
       }
     }
     if (
-      ["signal", "snapshot", "pad_link", "profile", "pad_profiles", "pad_predict", "liq_guard"].includes(
+      ["signal", "snapshot", "pad_link", "profile", "pad_profiles", "pad_predict", "liq_guard", "flatten"].includes(
         e?.type,
       )
     )

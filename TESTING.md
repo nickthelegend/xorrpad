@@ -2311,3 +2311,73 @@ The verified final app bundle and F3 1440/375 captures are copied from that run.
 `docs/screens/v3` is restored as requested. No existing private material was
 opened, no production release was signed/flashed, no trade was submitted and
 nothing was pushed. See `docs/screens/v4/README.md` for frame provenance.
+
+
+## Firmware 4 F4 — Panic flatten (2026-11-13)
+
+The final desktop regression runs alone with the exact required command:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Exit **0**: **271 tests / 262 passed / 9 existing skips / 0 failures /
+0 cancellations**, **987,104.764875 ms**. No other suite runs alongside it.
+Every v1–v3, agent-wallet and F1–F3 check that ran passes. The nine skips retain
+existing external prerequisites: unavailable provider/Electron setup, an upstream
+Meteora rate limit, unfunded devnet accounts or missing public Phoenix metadata.
+No test is removed or weakened, and no external API response is mocked. An
+earlier progress run was deliberately interrupted for a stricter close-budget
+boundary; only this final complete run is counted.
+
+All five new F4 desk cases pass: YES dispatch versus NO, cancel-before-close and
+confirmed-receipt sequencing, stale/replayed plans, short holds, changed inventory,
+permission/cap refusal, grant revocation, malformed/oversized inventories,
+mainnet refusal and an actual encrypted HTTP/padsim Setup/NO/re-arm flow. Pure
+coordinator vectors are explicitly local state-machine inputs, not simulated
+external prices, fills or balances. Close notional and outcome share budgets
+must exactly match their reviewed quantities.
+
+`bash firmware/test/run.sh` exits **0** on the final firmware: **293 test cases /
+293 passed / 4,179 assertions / 0 failures**. New native cases cover strict
+reduce-only parsing, row/count limits, full child-ID binding, the exact 800 ms
+YES boundary, release, NO, expiry, connection changes and millis wrap. Existing
+2-second KILL, NVS persistence and deliberate re-arm tests remain unchanged.
+Granted flatten child IDs reserve F3 accounting even with phone/session signing;
+subsequent native signing deduplicates the same ID. Cancellations do not invent
+realized close PnL.
+
+The actual firmware renderer and shipped WASM pass all prior cases plus awaiting,
+Setup and refused Flatten states: **22 distinct frame cases**, with the genuine
+Fund QR still decoded. Model3d CAD, commissioned art and byte-for-byte offline /
+Home parity also pass. The final `ui.h` is rebuilt with:
+
+```sh
+EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' bash tools/uipreview/build-web-screen.sh
+```
+
+`desk/app/public/firmware-screen.wasm` SHA-256:
+`69a2151f505efd2bfb470ba9f3756a2fe97104da5bb849c7ee1c3105faa481b4`.
+`make -C tools/uipreview` and standalone `npm run build:app --prefix desk` exit
+**0**; the existing bundle-size / Device import warnings remain.
+
+Final unsigned Arduino CLI compile-only checks exit **0** using the existing
+ESP32-S3 16 MB / OPI PSRAM FQBN, `--jobs 4`, and
+`CONFIG_BT_NIMBLE_SM_SC_ONLY=1` for C/C++. Core additionally sets `XORR_CORE=1`,
+`XORR_RELEASE=1` and `CORE_DEBUG_LEVEL=0`.
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 1,998,782 | 69,324 |
+| Core release | 1,978,499 | 69,020 |
+
+Public logs: `firmware/build/f4-{desk,native,wasm,app-build,pro,core}.log`.
+The complete suite runs against the final desk implementation and F4 simulator;
+final native/board checks additionally verify the firmware accounting hook.
+The native Setup/layout frames and 1440/375 desktop evidence are documented in
+`docs/screens/v4/README.md`. Mobile retains the approved static CAD poster;
+Activity carries actual flatten plan/NO records using existing components.
+No CSS, tokens or commissioned art are changed. `docs/screens/v3` and earlier
+v4 captures are restored after the tests. No existing key files are opened, no
+production release is signed/flashed, no live trade is submitted and nothing is
+pushed. Venue-specific Setup limitations are in `docs/v4/V4-NOTES.md`.

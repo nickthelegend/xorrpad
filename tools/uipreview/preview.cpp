@@ -21,6 +21,7 @@
 #include "../../firmware/xorrpad/logic/fund.h"
 #include "../../firmware/xorrpad/logic/predict.h"
 #include "../../firmware/xorrpad/logic/perps.h"
+#include "../../firmware/xorrpad/logic/flatten.h"
 #include <fstream>
 
 #include <cstdio>
@@ -136,6 +137,10 @@ int main(int argc, char **argv) {
     std::ifstream input(argv[3]);JsonDocument d;
     if(!input || deserializeJson(d,input))return 2;
     PadState p;ChartState ch;p.ok=true;
+    if(d["type"]=="flatten") {
+      if(!xorr::parseFlatten(d,p.flatten,millis()))return 3;p.killed=true;
+      ui::drawFrame(c,p,ch);shot("flatten","supplied flatten record: see capture provenance");return made==1?0:4;
+    }
     if(d["type"]=="tilt_state") {
       if(!d["blocked"].is<bool>() || !d["reason"].is<const char*>() ||
          !d["remainingSeconds"].is<uint32_t>() || !d["durationSeconds"].is<uint32_t>())return 3;

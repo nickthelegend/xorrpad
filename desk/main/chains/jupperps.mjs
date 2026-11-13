@@ -15,8 +15,8 @@ const USDC_CUSTODY='G18jKKXQwBbrHeiK3C9MRXhkHsLHf7XgCSisykV46EZa';
 const coder=new BorshAccountsCoder(JSON.parse(readFileSync(new URL('./jupperps-accounts.json',import.meta.url))));
 const API='https://perps-api.jup.ag/v2',bi=v=>BigInt(v.toString()),num=v=>Number(v.toString()),ceil=(a,b)=>(a+b-1n)/b;
 let snapshot;
-async function api(path,body) {
- const r=await fetch(`${API}/${path}`,{method:body?'POST':'GET',headers:{'content-type':'application/json'},
+async function api(path,body,method=body?'POST':'GET') {
+ const r=await fetch(`${API}/${path}`,{method,headers:{'content-type':'application/json'},
   ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)});
  const j=await r.json();
  if(!r.ok){
@@ -150,6 +150,34 @@ async function rawPositions(owner) {
 }
 export async function positions(owner=process.env.JUPPERPS_AUTHORITY||process.env.SOLANA_ADDRESS) {
  owner=ownerKey(owner);return (await rawPositions(owner)).map(p=>positionRow(p,owner)).filter(p=>p.notionalUsd>0);
+}
+export async function flattenInventory() {
+ const owner=ownerKey(process.env.JUPPERPS_AUTHORITY||process.env.SOLANA_ADDRESS);
+ const [ps,orders]=await Promise.all([rawPositions(owner),api(`orders/limit?walletAddress=${owner}`)]);
+ if(!Array.isArray(orders.dataList) || orders.count!==orders.dataList.length)throw Error('incomplete Jupiter order inventory');
+ const legs=[];
+ for(const o of orders.dataList.filter(o=>!o.executed)) {
+  const market=Object.keys(ASSETS).find(k=>ASSETS[k].mint===o.marketMint);
+  if(!market)throw Error('unknown Jupiter order market');
+  legs.push({kind:'perp',venue:id,market,symbol:market,owner,side:o.side==='long'?'SHORT':'LONG',sizeUsd:Number(o.sizeUsdDelta)/1e6,
+   flattenAction:'cancel',orderId:o.positionRequestPubkey,cancelInput:{owner,positionRequestPubkey:o.positionRequestPubkey,path:'orders/limit'}});
+ }
+ for(const raw of ps) {
+  const p=positionRow(raw,owner);
+  if(!(p.notionalUsd>0))continue;
+  if(!Array.isArray(raw.tpslRequests))throw Error("incomplete Jupiter TP/SL inventory");
+  for(const o of raw.tpslRequests)legs.push({kind:'perp',venue:id,market:p.market,symbol:p.market,owner,side:p.side==='long'?'SHORT':'LONG',sizeUsd:p.notionalUsd,
+   flattenAction:'cancel',orderId:o.positionRequestPubkey,cancelInput:{owner,positionRequestPubkey:o.positionRequestPubkey,path:'tpsl'}});
+  legs.push({kind:'perp',venue:id,market:p.market,symbol:p.market,owner,side:p.side==='long'?'SHORT':'LONG',sizeUsd:p.notionalUsd,
+   flattenAction:'perp',positionId:p.position,reducePct:100,closeInput:{owner,authority:owner,position:p.position,reducePct:100,expectedSide:p.side,expectedNotionalUsd:p.notionalUsd}});
+ }
+ return legs;
+}
+export async function buildCancel({owner,positionRequestPubkey,path}) {
+ owner=ownerKey(owner);if(!['orders/limit','tpsl'].includes(path) || !positionRequestPubkey)throw Error('invalid cancel input');
+ const result=await api(path,{positionRequestPubkey},'DELETE');
+ if(result.requireKeeperSignature || (result.transactionType && result.transactionType!=='legacy'))throw Error('Setup required: Jupiter cancellation requires an external keeper signing flow');
+ return {...unsigned(result,owner),reduceOnly:true,cancel:true};
 }
 export function decreaseSize(sizeUsd,reducePct=100) {
  if(![50,100].includes(reducePct) || typeof sizeUsd!=='string' || !/^\d+$/.test(sizeUsd))throw Error('invalid reduce size');

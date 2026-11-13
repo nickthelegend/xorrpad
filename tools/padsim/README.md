@@ -145,3 +145,12 @@ native test driver for UTC rollover tests, never to desk protocol messages.
 Run `bash firmware/test/run.sh` first to build the driver, then the focused
 `desk/test/pad-tilt.test.mjs` scenario. Its local reservation/close vectors are
 accounting tests, not claims of external financial data or executed trades.
+
+
+F4: `FlattenPadSimulator` (`flatten.mjs`) extends the F3 native-accounting pad.
+After its unchanged `kill(2000)`, the encrypted desk sends a `flatten` record.
+`key('yes', {heldMs:800})` answers only a live reduce-only awaiting plan;
+`key('no')` keeps the latch on. Ordinary keys stay blocked. Re-arm continues
+through `pressConfirm()` / `confirm()` after a desk request. The native signing
+review is available only for the executing plan's granted child ID. Run
+`SIBYL_PY=$PWD/.venv/bin/python node --test --test-concurrency=1 desk/test/pad-flatten.test.mjs`.

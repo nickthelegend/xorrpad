@@ -12,6 +12,7 @@
  */
 import { NO_MEMORY_LIMITS } from "./memory.mjs";
 import { Permissions, checkPolicy } from "./permissions.mjs";
+import {isFlattenLeg} from './panic-flatten.mjs';
 
 /** Sum today's executed USD out of the journal. */
 export function spentToday(events = []) {
@@ -129,7 +130,7 @@ function memoryDecision(signal, brief) {
     // seventeen digits. Round to something a person would actually say.
     why.push(`already holding ${Number(pos.qty).toFixed(4)} ${signal.symbol} @ ${priceStr(pos.avg_entry_usd)}`);
   }
-  if (signal.side === "SELL" && !pos) {
+  if (signal.side === "SELL" && !pos && !isFlattenLeg(signal)) {
     why.push(`refusing to sell ${signal.symbol} — no remembered position`);
     return { action: "REJECT", sizeUsd: 0, why, memoryUsed, ruleId:"memory.no_position" };
   }
