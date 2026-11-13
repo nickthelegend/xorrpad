@@ -2446,3 +2446,51 @@ F6 ambient targeted validation: native 300 cases / 4,390 assertions / 0 failures
 three desk ambient checks exercise the native gate, persistent options, encrypted
 padsim wake and Device form at 1440/375. Native/WASM parity adds clock Setup states.
 Final F6/F7 full-suite and unsigned Pro/Core results are recorded below.
+
+## Firmware v4 F6 — Ambient clock and NVS journal (features 6 and 7)
+
+Final required isolated desktop run:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Exit **0**: **280 tests / 271 passed / 9 existing skips / 0 failures /
+0 cancellations**, **960,447.9015 ms**. No other test suite or compile ran
+alongside this run. All original v1–v3, agent-wallet and F1–F5 cases that ran
+pass. Existing unavailable-provider/Electron/funding/authority skips are retained;
+no tests are removed, weakened or changed into skips. The final run includes the
+new KILL-latched journal sync case and verifies ordinary proposal keys remain
+blocked. A preceding focused journal/flatten/pad-link run also exits **0**:
+18 tests / 17 passed / 1 existing funding skip / 0 failures. No API is mocked.
+
+`bash firmware/test/run.sh` exits **0**: **304 native cases / 4,474 assertions /
+0 failures**, including the production ambient wake and journal logic. New desk
+cases exercise those production C++ drivers, exactly 32 persistent journal rows
+across a new process, all stored outcome types, strict staged sync, encrypted
+transport, native wake gestures and real Device/Activity controls. Browser frames
+and the compiled native firmware match in all **31** parity cases; original
+model3d CAD/native/WASM checks and real Fund QR decoding pass. The app build
+passes, including the pretest build in the final complete run.
+
+Both compile-only Arduino CLI checks exit **0** with the existing ESP32-S3
+16 MB / OPI PSRAM FQBN, `--jobs 4`, and
+`CONFIG_BT_NIMBLE_SM_SC_ONLY=1` for C/C++. Core also sets `XORR_CORE=1`,
+`XORR_RELEASE=1`, and `CORE_DEBUG_LEVEL=0`; the existing `f4-core` cache is reused.
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 2,023,374 | 69,548 |
+| Core release | 2,004,159 | 69,252 |
+
+`ui.h` changes rebuild the shipped WASM with
+`EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' bash tools/uipreview/build-web-screen.sh`.
+Final SHA-256: `c18529b31d4976c96ae09a24d5386657addff47692b8eb5c7c639d3c0a951d8b`.
+Uipreview clock/journal frames and real Device/Activity screenshots at 1440/375
+are under `docs/screens/v4/` and were visually inspected. Screens show actual
+missing-feed / empty states; local outcome test vectors are explicitly labelled,
+never substituted API responses or claimed trades. Regenerated v3 and prior v4
+screenshots are restored. No signing step, board flash or push was performed.
+Physical NVS endurance, panel and knob timing remain board checks.
+
+Public local evidence: `firmware/build/f6-{native,app-build,pro,core,desk,killed-journal,uipreview}.log`.

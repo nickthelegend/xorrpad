@@ -49,6 +49,7 @@
 #include "knob.h"
 #include "health.h"
 #include "tilt-guard.h"
+#include "journal.h"
 
 Factory factory;
 xorr::FactoryReset factoryReset;
@@ -100,6 +101,7 @@ xorr::FlattenConfirm flattenConfirm;
 Abilities abilities;
 PriceAlerts priceAlerts;
 TiltGuard tiltGuard;
+TradeJournal tradeJournal;
 
 bool persistKill(bool killed) {
   Preferences p;
@@ -157,6 +159,7 @@ bool usbDebugAllowed() {
 }
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  tradeJournal.message(d,padlink.secureReady(),pad);
   tiltGuard.message(d,padlink.secureReady(),pad);
   JsonDocument alertResponse;
   if(priceAlerts.message(d,padlink.secureReady(),alertResponse)){padlink.send(alertResponse);return;}
@@ -311,6 +314,7 @@ bool sendLinkedKey(const String &action) {
   if(action=="yes" || action=="no") {
     if(!pad.pending || (int32_t)(pad.signalDeadline-millis())<=0)return true;
     d["signalId"]=pad.signalId;
+    if(action=="no")tradeJournal.result(pad,"refused","Refused on pad");
   }
   padlink.send(d);return true;
 }
@@ -424,6 +428,8 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   const KeyBind &kb=accessibility.key(r,c);
   const uint16_t bit=uint16_t(1)<<(r*4+c);
   if(!pressed && (dismissedKeys&bit)){dismissedKeys&=~bit;return;}
+  if(pressed && pad.journal.visible){pad.journal.visible=false;if(kb.role!=ROLE_KILL){dismissedKeys|=bit;return;}}
+  if(pressed && kb.role==ROLE_CONFIRM && pad.pending && !tiltGuard.allows(pad))tradeJournal.result(pad,"blocked",pad.tiltReason.c_str());
   bool walletVisible=presentationWalletVisible(pad);
   bool portfolio=kb.id && String(kb.id)=="portfolio";
   if(pressed && walletVisible) {
@@ -448,7 +454,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
     bool safe=padlink.secureReady() && !padlink.blePairing && (!killSwitch.killed || (!killSwitch.requested && pad.flatten.review(std::string(pad.signalId.c_str())))) && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && tiltGuard.allows(pad) && presentationConfirmationVisible(pad));
-    else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result)){padlink.send(result);audio.chime(xorr::Chime::Refuse);}}
+    else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result)){tradeJournal.response(result,pad);padlink.send(result);audio.chime(xorr::Chime::Refuse);}}
     return;
   }
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
@@ -628,6 +634,7 @@ void setup() {
   killSwitch.restore(readable?safety.getUChar("killed",0):1,readable);
   if(safetyOK)safety.end();
   showKillState();
+  tradeJournal.begin(pad);
   tiltGuard.begin();tiltGuard.update(pad);
   clearSigning.authorize=[&](const std::string &id){return tiltGuard.accept(id);};
   ota.begin();
@@ -789,6 +796,13 @@ void loop() {
     pad.flatten.page=(pad.flatten.page+pages+knob.delta%int(pages))%pages;event=Knob::None;
     flattenConfirm.offer(padlink.connectionEpoch());
   }
+  if(pad.journal.visible && event!=Knob::None){
+    if(event==Knob::Turn)pad.journal.scroll(knob.delta);
+    else if(event==Knob::Click)pad.journal.visible=false;
+    event=Knob::None;screenDirty=true;
+  } else if(event==Knob::Click && presentationHome(pad)){
+    pad.journal.visible=true;pad.journal.selected=0;pad.labelUntil=0;event=Knob::None;screenDirty=true;
+  }
   if(event==Knob::TalkStart)startRecording();
   else if(event==Knob::TalkEnd)stopAndSend();
   else if(event==Knob::Click) {
@@ -813,11 +827,11 @@ void loop() {
   if(!XORR_RELEASE && WiFi.isConnected() && !telnetStarted){telnet.begin(TELNET_PORT);telnet.onCommand(onTelnetCommand);telnetStarted=true;}
   static uint32_t tickScreen=0;
   if(millis()-tickScreen>=250){tickScreen=millis();screenDirty=true;}
-  if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";}
+  if(pad.pending && pad.signalId.length() && (int32_t)(pad.signalDeadline-millis())<=0){pad.pending=false;pad.signalState="expired";tradeJournal.result(pad,"expired","Decision deadline elapsed");}
   if(!padlink.ready() && !padlink.legacy)pad.ok=false;
   {JsonDocument result;
     bool safe=padlink.secureReady() && !padlink.blePairing && (!killSwitch.killed || (!killSwitch.requested && pad.flatten.review(std::string(pad.signalId.c_str())))) && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
-    if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
+    if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){tradeJournal.response(result,pad);padlink.send(result);audio.chime(xorr::Chime::Accept);}
   }
   if(killSwitch.killed && !clearSigning.active) {
     pad.holdProgress=flattenConfirm.progress(millis());
@@ -835,6 +849,7 @@ void loop() {
     d["signalId"]=decisionConfirm.signal().id;d["fingerprint"]=xorr::fingerprint(decisionConfirm.signal());
     d["heldMs"]=decisionConfirm.heldMs(millis());padlink.send(d);audio.chime(xorr::Chime::Accept);
   }
+  tradeJournal.tick(padlink,pad);
   int abilityChime=-1;
   abilities.tick(padlink.connectionEpoch(),padlink.secureReady(),health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !pad.listening && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length() && !killSwitch.requested,pad,abilityChime);
   if(abilityChime>=0)audio.chime(abilityChime?xorr::Chime::Fill:xorr::Chime::Accept);
@@ -849,7 +864,7 @@ void loop() {
   if (!killSwitch.killed && !recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
     nextPoll = millis() + PAD_POLL_MS;
     PadState fresh;
-    if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();pad = fresh;} else pad.ok = false;
+    if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();fresh.journal=pad.journal;fresh.ambient=pad.ambient;pad = fresh;} else pad.ok = false;
     screenDirty = true;
   }
   if(priceAlerts.tick(padlink.ready() || (padlink.legacy && pad.ok),WiFi.isConnected(),
@@ -875,13 +890,14 @@ void loop() {
     screenDirty = true;
   }
   if (pad.ok && chartNow.ok && chartNow.symbol != pad.market) nextChart = 0;
+  if(pad.pending || pad.killed || pad.tiltBlocked || pad.liqGuard.fresh(millis()) || pad.fund.visible || pad.portfolio.visible || pad.reply.length() || pad.errorCode.length())pad.journal.visible=false;
   bool ambient=accessibility.idle.ambientDue(millis(),presentationHome(pad),accessibility.ambientEnabled);
   if(ambient!=pad.ambient.visible){pad.ambient.visible=ambient;screenDirty=true;}
   screen.brightness(ambient?std::min(40,accessibility.brightness(accessibility.idle.last)):accessibility.brightness(millis()));
-  static int lastAmbient=-1;static uint32_t viewEpoch=0;
-  if(padlink.secureReady() && (lastAmbient!=int(ambient) || viewEpoch!=padlink.connectionEpoch())){
-    JsonDocument view;view["type"]="pad_view";view["screen"]=ambient?"ambient":"home";view["selected"]=0;padlink.send(view);
-    lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
+  static int lastAmbient=-1,lastJournal=-1,lastSelected=-1;static uint32_t viewEpoch=0;
+  if(padlink.secureReady() && (lastAmbient!=int(ambient) || lastJournal!=int(pad.journal.visible) || lastSelected!=int(pad.journal.selected) || viewEpoch!=padlink.connectionEpoch())){
+    JsonDocument view;view["type"]="pad_view";view["screen"]=pad.journal.visible?"journal":ambient?"ambient":"home";view["selected"]=pad.journal.selected;padlink.send(view);
+    lastJournal=pad.journal.visible;lastSelected=pad.journal.selected;lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
   }
   static uint32_t ambientSecond=0;
   if(ambient && ambientSecond!=millis()/1000){ambientSecond=millis()/1000;screenDirty=true;}

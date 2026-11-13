@@ -170,3 +170,11 @@ signing simulator. Its `idle(now)` and physical `key`/`knob` gestures delegate
 to `firmware/build/ambient-driver` (production C++ idle and wake gates). Tests
 advance its public monotonic clock explicitly; no external API is intercepted.
 `pad_view` records expose Home/Ambient to the mirror without action authority.
+
+F6 feature 7: `JournalPadSimulator` in `journal.mjs` extends the ambient simulator.
+The production C++ driver stores only public journal rows in the explicit
+`.journal.json` companion of the temporary session state path. `pressKnob()`
+opens/closes and `scrollJournal(delta)` browses without an action message.
+Snapshots use the real authenticated journal_begin/entry/end protocol;
+`desk/test/pad-journal.test.mjs` checks 32-entry eviction across a new process,
+strict staged snapshot validation and the real HTTP/Activity empty state.

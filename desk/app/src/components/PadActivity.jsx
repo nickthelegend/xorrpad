@@ -63,11 +63,29 @@ function CrewPolicy({ policy, devices, onClose }) {
 
 export function PadActivity() {
   const d = useDesk(), crew = useRead("/pad/crew", 3000, true), link = useRead("/desk/link", 3000, true);
+  const journal=useRead("/pad/journal",3000,true);
   const [editing, setEditing] = useState(false);
-  const records = [...(d.padEvents || [])].filter(r=>r.type!=="liq_guard" && r.type!=="flatten").reverse();
+  const records = [...(d.padEvents || [])].filter(r=>r.type!=="liq_guard" && r.type!=="flatten" && r.type!=="pad_journal").reverse();
   const flatten=[...(d.padEvents || [])].filter(r=>r.type==="flatten").reverse();
   const guards=[...(d.padEvents || [])].filter(r=>r.type==="liq_guard").reverse();
   return <section className="pad-activity" aria-label="Pad activity">
+    <h2>Pad journal</h2>
+    <p>The most recent 32 decisions stored on each pad. Browsing does not create or accept a trade.</p>
+    <State state={journal} title="Could not sync pad journal" />
+    {journal.data && !journal.error && <>
+      {!journal.data.devices.length && <p>{journal.data.message}</p>}
+      {journal.data.devices.map(p=><div key={p.device}>
+        <h3>{p.device} · {p.connected ? "Connected" : "Offline"}</h3>
+        <p>Last synced {new Date(p.syncedAt).toLocaleString()}. {p.healthy ? "Saved on pad." : "Setup required: pad journal storage unavailable."}</p>
+        {!p.entries.length && <p>No decisions recorded on this pad.</p>}
+        {[...p.entries].reverse().map(r=><article className="surface" key={r.id}>
+          <h4>{r.action || "Decision"} · {r.market || "Market unavailable"} · {r.result === "blocked" ? "Blocked by tilt guard" : r.result}</h4>
+          <p>{r.time ? new Date(r.time*1000).toLocaleString() : "Time unavailable"} · Size (USD) {r.size || "unavailable"} · {r.venue || "Venue unavailable"}</p>
+          {r.reason && <p>{r.reason}</p>}
+          {r.signature && <pre>Confirmed signature: {r.signature}</pre>}
+        </article>)}
+      </div>)}
+    </>}
     <h2>Panic flatten</h2>
     {!flatten.length && <p>No flatten plans received in this desktop session.</p>}
     {flatten.map(r=><article className="surface" key={r.recordId}>

@@ -7,6 +7,16 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"journalVisible")){pad.journal.visible=atoi(v)!=0;return;}
+ if(!strcmp(k,"journalHealthy")){pad.journal.healthy=atoi(v)!=0;return;}
+ if(!strcmp(k,"journalSelected")){pad.journal.selected=atoi(v);return;}
+ if(!strncmp(k,"journalRow",10)){
+  char *end=nullptr;long index=strtol(k+10,&end,10);if(index<0 || index>=32)return;
+  pad.journal.entries.resize(std::max(pad.journal.entries.size(),size_t(index+1)));auto &r=pad.journal.entries[index];
+  if(!strcmp(end,"Id"))r.id=v;else if(!strcmp(end,"Time"))r.time=strtoull(v,nullptr,10);
+  else if(!strcmp(end,"Action"))r.action=v;else if(!strcmp(end,"Market"))r.market=v;else if(!strcmp(end,"Size"))r.size=v;
+  else if(!strcmp(end,"Venue"))r.venue=v;else if(!strcmp(end,"Result"))r.result=v;else if(!strcmp(end,"Signature"))r.signature=v;else if(!strcmp(end,"Reason"))r.reason=v;return;
+ }
  if(!strcmp(k,"ambientVisible")){pad.ambient.visible=atoi(v)!=0;return;}
  if(!strcmp(k,"ambientEpoch")){pad.ambient.epoch=strtoull(v,nullptr,10);return;}
  if(!strcmp(k,"ambientPrice")){pad.ambient.price=strlen(v)?atof(v):NAN;return;}

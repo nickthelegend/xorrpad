@@ -4,6 +4,7 @@
 #include "config.h"
 #include "logic/presentation.h"
 #include <qrcode.h>
+#include <ctime>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ui.h — every pixel the pad draws, and nothing that knows about hardware.
@@ -524,6 +525,19 @@ static void drawOutcomePositions(GFXcanvas16 &c,const xorr::Predict &p,uint32_t 
  * firmware keeps: a pending decision outranks everything, and an unreachable
  * desk outranks a stale price.
  */
+inline void drawJournal(GFXcanvas16 &c,const xorr::Journal &j) {
+ c.fillScreen(BG);text(c,12,12,2,INK,"PAD JOURNAL");
+ if(!j.healthy){wrap(c,12,55,296,2,WARN,"Setup required: journal storage",3);return;}
+ auto r=j.current();if(!r){text(c,12,60,2,MUTE,"No decisions yet");text(c,12,223,1,MUTE,"Press knob / key to close");return;}
+ textClip(c,12,40,296,1,MUTE,String(unsigned(j.selected+1))+" / "+String(unsigned(j.entries.size()))+" newest first / turn knob");
+ textClip(c,12,62,296,2,INK,String(r->action.c_str())+" "+r->market.c_str());
+ textClip(c,12,89,296,1,MUTE,(r->size.empty()?String("Size unavailable"):String("Size $")+r->size.c_str())+" / "+(r->venue.empty()?String("venue unavailable"):String(r->venue.c_str())));
+ char when[48];if(r->time){time_t stamp=r->time;struct tm t;gmtime_r(&stamp,&t);snprintf(when,sizeof when,"%04d-%02d-%02d %02d:%02d UTC",t.tm_year+1900,t.tm_mon+1,t.tm_mday,t.tm_hour,t.tm_min);}else snprintf(when,sizeof when,"Time unavailable");
+ text(c,12,109,1,MUTE,when);
+ textClip(c,12,132,296,2,r->result=="filled"?UP:WARN,r->result.c_str());
+ wrap(c,12,158,296,1,INK,r->result=="filled"?r->signature.c_str():r->reason.c_str(),4);
+ text(c,12,223,1,MUTE,"Read only / press knob or key to close");
+}
 inline void drawAmbient(GFXcanvas16 &c,const xorr::Ambient &a) {
  c.fillScreen(BG);bool fresh=a.fresh(millis());
  text(c,12,10,1,MUTE,"DESK CLOCK / UTC");
@@ -647,6 +661,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
     return;
   }
+  else if(pad.journal.visible){drawJournal(c,pad.journal);return;}
   else if(pad.ambient.visible){drawAmbient(c,pad.ambient);return;}
   else if(pad.predict.enabled && (int32_t)(pad.keymapUntil-millis())<=0) {drawPredict(c,pad);return;}
   else if (pad.positionsVisible || (pad.positionCount >= 0 && (millis()/6000)%2 == 1)) {

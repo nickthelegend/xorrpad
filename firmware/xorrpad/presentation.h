@@ -35,7 +35,7 @@ inline bool presentationPredictVisible(const PadState &p) {
 }
 
 inline bool presentationHome(const PadState &p) {
- return !p.pending && !p.killed && !p.factory && !p.updating && !p.tiltBlocked && !p.liqGuard.fresh(millis()) &&
+ return !p.journal.visible && !p.pending && !p.killed && !p.factory && !p.updating && !p.tiltBlocked && !p.liqGuard.fresh(millis()) &&
   !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview && !p.listening &&
   !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible && !p.predict.enabled && !p.positionsVisible &&
   !p.reply.length() && !p.abilityWidget.length() && (int32_t)(p.receiptUntil-millis())<=0 && (int32_t)(p.keymapUntil-millis())<=0;

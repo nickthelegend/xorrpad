@@ -32,6 +32,9 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
   for(const state of [
+   {ok:"1",journalVisible:"1"},
+   {ok:"1",journalVisible:"1",journalHealthy:"0"},
+   ...['filled','refused','expired','failed','blocked'].map(result=>({ok:'1',journalVisible:'1',journalRow0Id:'layout-only',journalRow0Action:'BUY',journalRow0Market:'LOCAL LAYOUT',journalRow0Size:'1',journalRow0Venue:'local vector',journalRow0Time:'1800000000',journalRow0Result:result,journalRow0Signature:result==='filled'?'LOCAL-LAYOUT-PUBLIC-SIGNATURE':'',journalRow0Reason:result==='filled'?'':'Local state-machine layout vector'})),
    {ok:"1",ambientVisible:"1"},
    {ok:"1",ambientVisible:"1",ambientEpoch:"1800000000",ambientHours:"NY hours: unavailable",ambientCrew:"Crew: unavailable"},
    {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"setup",flattenMessage:"Setup required: public authorities not configured"},
@@ -71,6 +74,6 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,24,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,31,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });

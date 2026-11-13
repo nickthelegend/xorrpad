@@ -382,3 +382,73 @@ mirror with its existing earcons. Native tests and the padsim production C++
 driver cover boundaries, clock wrap and complete wake gestures. Native/WASM
 parity adds two honest missing-feed clock frames. The preview capture is a real
 desk record or an explicit unavailable-data state, never a substituted quote.
+
+## F6 / feature 7 — NVS trade journal
+
+A knob click from Home opens the journal, newest first; turn to browse and click
+again or press a key to dismiss. A dismissal consumes both key edges; KILL
+retains its hold immediately. Existing knob mode cycling remains outside Home,
+clear-review paging, prediction scrolling, volume and long-press voice retain
+their gates. New decisions, warnings and wallet cards outrank journal browsing.
+No journal path creates, accepts, signs or retries a trade.
+
+The pad stores a bounded 32-entry chronological ring as a blob in `xorrjournal`
+on the existing `profiles` NVS partition. Decision IDs deduplicate repeated link
+records; an update changes that decision in place, and the 33rd distinct ID
+evicts the oldest. Each row holds UTC epoch seconds (zero = Time unavailable),
+action, market, size, venue, result, confirmed signature and bounded public reason.
+The result can be awaiting, accepted, signed, filled, refused, expired, failed or
+blocked by tilt guard. Local NO, local deadlines, clear-review/sign responses
+and tilt blocks are retained alongside authenticated desk outcomes. Only a
+confirmed receipt with a nonempty signature supplies `filled`; accepted, signed
+and executed-without-receipt do not imply a fill. Unknown metadata is labelled
+unavailable. The pad clock must be synchronized for timestamps; reboots preserve
+unknown/in-flight outcomes until the desk reports their result. No reconstructed
+or estimated fill/PnL is added. Storage faults report Setup required without
+silently wiping or claiming the history was saved. Legacy polling preserves the
+in-memory journal, and no repeated unchanged record writes flash.
+
+Authenticated desk `journal_decision` records carry decision metadata and queue
+outcomes, including proposals refused by existing policy before display. Existing
+`signal`, `signal_state` (now including reason) and `receipt` messages also update
+the same IDs. Clear-sign approval is not a trade receipt. Metadata on signatures,
+including flatten child decisions, remains subject to all existing permissions,
+caps, session policy and physical review. No journal notification grants consent.
+
+Pad-to-desk sync sends `journal_begin {revision,count,healthy}`, at most 32
+`journal_entry {revision,index,entry}` records and `journal_end {revision}`.
+Each record fits the existing encrypted link bound; ordered revision validation
+and duplicate-ID checks prevent partial or mixed snapshots replacing the last
+complete history. Reconnect and changes restart the snapshot. `GET /pad/journal`
+(optionally `?device=...`) returns capacity, per-device last complete history,
+sync time, storage health and connection state. Other verbs and unverified peers
+are refused. The desk cache lasts for this process; NVS remains authoritative.
+A disconnected pad's last synced copy is labelled Offline. Activity polls this
+read-only route, reusing existing components/styles. With no synced pad, the route returns an explicit
+Setup required state; a connected empty ring says No decisions recorded.
+
+The mirror receives `pad_view {screen,selected}` and draws Journal/Ambient
+through the exact compiled `ui.h`. Seven journal layout/empty/storage/error
+states join the two clock states and 22 earlier pixel-parity cases. Native tests
+cover ring eviction, scroll wrap, each outcome, strict storage restoration,
+unknown UTC and receipt semantics. The final padsim extends the existing native
+signer/tilt/flatten simulator and delegates journal state to production C++ with
+public disk-backed storage; reboot tests start a new process. Browser evidence
+captures a genuinely empty pad journal and a real encrypted link. A deliberately
+refused local queue vector tests forwarding and reason retention; it never has
+an executable quote, transaction signature or accepted trade. Firmware fixtures
+for outcomes are labelled local state-machine inputs, never external API mocks.
+
+Journal/view telemetry remains allowed while KILL is latched, through the same
+verified preferred transport checks. This exception accepts no key, proposal or
+signature authority. The encrypted padsim test records a refused local decision
+while killed, confirms it syncs, and verifies BUY still fails with the latch on.
+
+F6 final acceptance: complete isolated desktop **280 tests / 271 passed /
+9 existing skips / 0 failures / 0 cancellations**; native **304 cases /
+4,474 assertions / 0 failures**. App build, all 31 native/WASM frame cases,
+model3d parity, rebuilt WASM, uipreview and final unsigned Pro/Core builds pass.
+The journal/KILL telemetry exception is covered in the final full run; ordinary
+trade keys remain blocked. Exact commands, duration, sizes, hash, captures and
+public evidence locations are in TESTING.md. Approved desktop styling and all
+existing signing/YES/permission gates are retained. No push or board flash.

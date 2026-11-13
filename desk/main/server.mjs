@@ -435,6 +435,7 @@ export function createServer(mem) {
         if(body.action==='install')return send(200,await srv.padlink.installAbility(device,body.slot,body.bundle));
         return send(400,{error:'Choose developer, install or remove'});
       }
+      if (url.pathname === '/pad/journal') return send(200,srv.padlink.journal(url.searchParams.get('device')));
       if (url.pathname === '/pad/options') return send(200,req.method==='GET'?srv.padlink.options:srv.padlink.setOptions(body));
       if (url.pathname === '/pad/pair') return send(200,srv.padlink.pair(body));
       if (url.pathname === '/pad/crew') return send(200,req.method==='GET'?{policy:executor.crew.read(),rounds:executor.crew.status()}:executor.crew.write(body));
@@ -1361,7 +1362,7 @@ const ROUTE_METHODS = {
   '/classic':['GET'],
   '/backtest':['GET','POST'], '/backtest/history':['GET'], '/backtest/predict':['POST'],
   '/desk/connection':['GET'], '/desk/discover':['POST'], '/desk/profiles':['GET','POST'], '/desk/status':['GET'], '/desk/link':['GET'], '/pad/keymap':['GET','POST'], '/signals':['GET','POST'], '/session-wallet':['GET','POST'], '/agent-wallet':['GET','POST'], '/wallet/mode':['GET','POST'], '/permissions':['GET','POST'], '/events':['GET'],
-  '/pad/perps':['GET'], '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
+  '/pad/journal':['GET'], '/pad/perps':['GET'], '/pad/crew':['GET','POST'], '/pad/price-alerts':['GET','POST'], '/pad/abilities':['GET','POST'], '/pad/session':['GET','POST'], '/pad/clear-sign':['POST'], '/pad/options':['GET','POST'], '/pad/pair':['POST'], '/pad/rearm':['POST'], '/pad/profiles':['GET','POST'], '/pad/profile':['POST'], '/pad/ota-channel':['GET','POST'], '/pad/manifest':['POST'], '/pad/ota':['POST'],
   "/spot/quotes": ["GET"], "/propose": ["POST"], "/route": ["GET"], "/venues": ["GET"],
   "/hedge": ["GET"],
   "/perps/markets": ["GET"], "/perps/quote": ["GET"], "/perps/positions": ["GET"],

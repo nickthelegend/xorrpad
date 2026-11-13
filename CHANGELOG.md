@@ -6,6 +6,21 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F6: Ambient clock and trade journal
+
+- After 60 seconds idle on Home, a dim UTC clock shows independent SOL reference
+  data, up to 24 hourly closes, known book P/L, reported funding countdown, NY
+  hours and crew state. Missing feeds remain unavailable; first key/knob input
+  consumes the entire gesture and only wakes. Device exposes persistent Ambient.
+- Knob press on Home opens the newest 32 pad decisions, stored in NVS and
+  browsed with the knob. Records retain time, action, market, size, venue and
+  filled/signature, refusal, expiry, failure/reason or tilt-blocked outcomes.
+  Signing alone is never recorded as a fill.
+- Authenticated bounded snapshots feed read-only `/pad/journal` and Activity's
+  Pad journal section using the approved components. Native/padsim reboot,
+  complete wake gestures, snapshot validation and native/WASM pixel parity are
+  covered without mocking an external API or submitting a trade.
+
 ### Added — Firmware 4.0.0 F5: Synthesized earcons
 
 - One shared parameter table drives 16 kHz PCM on MAX98357A I2S and WebAudio

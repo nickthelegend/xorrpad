@@ -23,6 +23,7 @@
 #include "../../firmware/xorrpad/logic/perps.h"
 #include "../../firmware/xorrpad/logic/flatten.h"
 #include "../../firmware/xorrpad/logic/ambient.h"
+#include "../../firmware/xorrpad/logic/journal.h"
 #include <fstream>
 
 #include <cstdio>
@@ -138,6 +139,10 @@ int main(int argc, char **argv) {
     std::ifstream input(argv[3]);JsonDocument d;
     if(!input || deserializeJson(d,input))return 2;
     PadState p;ChartState ch;p.ok=true;
+    if(d["type"]=="journal") {
+      if(!xorr::restoreJournal(d,p.journal))return 3;p.journal.visible=true;
+      ui::drawFrame(c,p,ch);shot("journal","actual pad snapshot / no financial fixtures");return made==1?0:4;
+    }
     if(d["type"]=="ambient") {
       if(!xorr::parseAmbient(d,p.ambient,millis()))return 3;p.ambient.visible=true;
       ui::drawFrame(c,p,ch);shot("ambient","actual public record / missing feeds explicit");return made==1?0:4;

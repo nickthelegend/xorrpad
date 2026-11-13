@@ -1,3 +1,4 @@
+import {journalRecord} from "./pad-journal.mjs";
 import {marketHours} from "./xstocks.mjs";
 import {DEFAULT_SOUNDS,validateSounds} from "../renderer/ui/earcons.mjs";
 import {DEFAULT_TILT,validateTilt,tiltState,tiltReceipt} from "./tilt-guard.mjs";
@@ -161,6 +162,7 @@ const encode = (m) =>
 
 export class PadLink extends EventEmitter {
   peers = new Set();
+  journals = new Map();
   seen = new Map();
   stopped = false;
   pairings = new Map();
@@ -258,6 +260,10 @@ export class PadLink extends EventEmitter {
       (!p.secure || p.verified) && Date.now() - p.last < 15000)
       .sort((a,b) => rank(b) - rank(a))[0];
   }
+  journal(device) {
+    const devices=[...this.journals].filter(([id])=>!device || device===id).map(([id,record])=>({device:id,...record,connected:!!this.preferred(id)}));
+    return {capacity:32,devices,message:devices.length?'':'Setup required: connect a verified v4 pad and wait for journal sync'};
+  }
   snapshot() {
     return {
       crew: this.crewStatus?.() || [],
@@ -283,6 +289,7 @@ export class PadLink extends EventEmitter {
           flatten:p.flatten,
           ambient:p.ambient,
           view:p.view,
+          journal:this.journals.get(p.device),
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
           perps:p.perps,
@@ -665,6 +672,12 @@ export class PadLink extends EventEmitter {
     });
   }
   signal(p, e) {
+    if(p.secure && p.verified && Number(p.firmware?.split('.')[0])>=4 && ['awaiting','accepted','signed','executed','refused','expired','failed'].includes(e.state)){
+      const s=e.proposal.signal,v=e.proposal.verdict;
+      this.send(p,{type:'journal_decision',signalId:e.id,side:String(s.side || '').slice(0,32),market:String(s.symbol || s.market || '').slice(0,96),
+        sizeUsd:v.sizeUsd,venue:String(e.receipt?.venue || e.proposal.routing?.best?.venue || s.venue || '').slice(0,32),state:e.state,
+        signature:e.receipt?.signature || '',reason:String(e.error || e.ruleId || v.why?.join('; ') || '').slice(0,192)});
+    }
     if(e.proposal.signal.source==='pad-flatten')return; // One plan review; child IDs are signing grants, not new trade prompts.
     const remainingMs = Math.max(0, e.expiresAt - Date.now());
     if (this.killed.has(p.device)) return;
@@ -712,6 +725,7 @@ export class PadLink extends EventEmitter {
         type: "signal_state",
         signalId: e.id,
         state: e.state,
+        reason: String(e.error || e.ruleId || e.proposal.verdict.why?.join("; ") || "").slice(0,192),
         remainingMs,
         autoAccept: !!e.automatic,
       });
@@ -725,7 +739,7 @@ export class PadLink extends EventEmitter {
   killedInput(p,m) {
     const id=p.sessionRequest?.signalId || p.sessionRequest?.flattenSignal || p.clearReview?.id;
     const review=['session_state','session_signature','clear_approval'].includes(m.type) && this.flatten?.allows(id,this.signals?.get(id)?.proposal,p.device);
-    return m.type==='ping' || m.type==='tilt_state' || m.type==='earcon' || review || (m.type==='key' && ['flatten:yes','flatten:no'].includes(m.action));
+    return ['ping','tilt_state','earcon','journal_begin','journal_entry','journal_end','pad_view'].includes(m.type) || review || (m.type==='key' && ['flatten:yes','flatten:no'].includes(m.action));
   }
   sessionPeer(device,signalId) {
     for(const p of this.peers)if(p.clearReview && Date.now()>=p.clearReview.expiresAt)p.clearReview=null;
@@ -1292,6 +1306,10 @@ export class PadLink extends EventEmitter {
     if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
+    if(['journal_begin','journal_entry','journal_end'].includes(m.type)){
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error('verified journal required');
+      const record=journalRecord(p,m);if(record){this.journals.set(p.device,record);this.signals?.publish({type:'pad_journal',device:p.device,revision:record.revision});}return;
+    }
     if(m.type==="pad_view") {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
       p.view={screen:m.screen,selected:m.selected,observedAt:new Date().toISOString()};return;

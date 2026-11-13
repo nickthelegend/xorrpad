@@ -34,6 +34,10 @@ export async function drawFirmware(
     Object.assign(fields,{ambientVisible:true,ambientEpoch:a.epoch+Math.max(0,Math.floor((now-Date.parse(a.observedAt))/1000)),ambientPrice:a.price ?? '',ambientPnl:a.pnl ?? '',ambientFunding:a.nextFunding ?? '',ambientHours:a.hours,ambientCrew:a.crew});
     a.closes?.forEach((v,i)=>fields[`ambientClose${i}`]=v);
   }
+  if(device?.view?.screen==='journal'){
+    fields.journalVisible=true;fields.journalHealthy=device.journal?.healthy ?? false;fields.journalSelected=device.view.selected || 0;
+    device.journal?.entries?.forEach((r,i)=>{for(const k of ['id','time','action','market','size','venue','result','signature','reason'])fields[`journalRow${i}${k[0].toUpperCase()+k.slice(1)}`]=r[k];});
+  }
   const tilt=device?.tiltGuard;
   if(tilt) {
     const elapsed=Math.max(0,Math.floor((now-Date.parse(tilt.observedAt))/1000));
