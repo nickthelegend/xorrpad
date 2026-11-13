@@ -2245,3 +2245,69 @@ Anthropic, Deepgram and Electron setup; rate-limited Meteora; missing keeper
 public metadata; an unfunded devnet receipt wallet; two unconfigured Phoenix
 account cases; and an unfunded pm-AMM simulation owner. None substitutes fake
 financial data or claims a successful broadcast.
+
+## Firmware v4 — F3 tilt guard (2026-11-13)
+
+`bash firmware/test/run.sh` exits **0**: **291 tests / 291 passed / 0 failed**,
+**4,146 assertions / 0 failed**. Ten new native discipline cases exercise
+serialized reboot, UTC midnight with independent deadlines, rolling-hour limits,
+settings relaxation, unknown/duplicate close PnL, invalid/corrupt state, missing
+UTC, conservative untimed approvals and retry refusal after a persistence error.
+Native drivers are rebuilt, including `firmware/build/tilt-driver`.
+
+Focused encrypted HTTP/browser/native/WASM checks exit **0**: **5 tests passed**.
+The expanded parity test compares **19 distinct native/WASM frames** and still
+decodes the actual Fund QR. F3 transport checks run against real local servers,
+SQLite, encryption and production C++ accounting, with no external API mocks.
+Accounting-only vectors are explicitly labelled test inputs, never real fills.
+
+`EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk'
+bash tools/uipreview/build-web-screen.sh` rebuilds the shipped WASM after the
+final `ui.h` edit. SHA-256:
+`3495256ef6ccaa1284d8259b3d2a617d3b63e9ddec942ea52d619fc75ad8aa57`.
+`make -C tools/uipreview` compiles the actual renderer and accepts public
+`tilt_state` records. Countdown and UTC Setup frames are captured through this
+renderer. Device/Agent screenshots at 1440/375 use the approved components and
+real empty native simulator accounting; no CSS, token or art changes are made.
+
+Unsigned Arduino CLI compile-only verification exits **0** for both boards:
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 1,991,590 | 69,156 |
+| Core release (`XORR_CORE=1`) | 1,971,395 | 68,852 |
+
+Both use the existing ESP32-S3 16 MB / OPI PSRAM FQBN, `--jobs 4`, and
+`CONFIG_BT_NIMBLE_SM_SC_ONLY=1` for C/C++. Core also sets `XORR_RELEASE=1` and
+`CORE_DEBUG_LEVEL=0`. No build signing step, flashing or push is performed.
+Physical NVS power-cut atomicity, SNTP/TFT and input timing remain board checks.
+
+Standalone `npm run build:app --prefix desk` exits **0** in the isolated source;
+existing bundle-size and Device import warnings remain. Public build logs are
+`firmware/build/f3-{native,wasm,uipreview,app-build,focused,pro,core,desk}.log`.
+`f3-source-sha256.json` binds 24 changed implementation/test/public-artifact files
+to the matching source copy. No existing private-key, `.env`, `.loom` or wallet
+directory is opened or copied. Dependencies/Python venv are linked; generated
+public ability WASM fixtures, native drivers and public OTA inputs are copied.
+The unchanged regression suite runs alone there with the exact required command
+`SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk`.
+
+Final complete desk regression exits **0**: **266 tests / 256 passed / 10 skipped /
+0 failed / 0 cancelled**, duration **995,609.75975 ms**. The exact required command
+runs alone in the matching isolated source. All v1–v3, F1–F3 and agent-wallet
+checks that ran pass; no test is removed or weakened. The ten skips are existing
+external prerequisites (unavailable provider/Electron setup, venue rate limits,
+missing public account metadata or unfunded devnet accounts), with honest Setup
+states. The final 24 source/artifact hashes match before and after the run.
+
+The exact legacy historical-receipt regression also passes independently: new
+close/PnL metadata is sent only to firmware v4 and later, retaining byte-for-byte
+v1–v3 receipt shape. A transient upstream history timeout was separately checked
+against the unchanged live test: real SOL/AAPL candles and corrupt-cache recovery
+passed in 8,922.873959 ms before the final full run. No data or assertions were
+substituted. Standalone CAD/OTA prerequisite verification passed **20/20**.
+
+The verified final app bundle and F3 1440/375 captures are copied from that run.
+`docs/screens/v3` is restored as requested. No existing private material was
+opened, no production release was signed/flashed, no trade was submitted and
+nothing was pushed. See `docs/screens/v4/README.md` for frame provenance.

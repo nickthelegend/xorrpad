@@ -6,6 +6,19 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F3: Tilt guard
+
+- Pad NVS holds daily realized-loss, rolling-hour trade and losing-close limits,
+  local approval counters and cooldown deadlines that survive reboot. The desk
+  cannot shorten a tripped guard; UTC rollover clears only the daily loss latch.
+- Cooldown countdown ring and native/WASM mirror refuse new YES approvals across
+  normal, clear-sign, session and crew paths. KILL, NO, reduce-only, PORTFOLIO
+  and its funding hold retain their existing gates and behavior.
+- Device settings and Agent state reuse approved components. Missing UTC, storage
+  or confirmed close PnL gives honest Setup required; quotes are never counted
+  as realized fills. Native accounting padsim and reboot/UTC regression evidence
+  accompany the feature. No release signing, flashing, trading or push is performed.
+
 ### Added — Firmware 4.0.0 F2: Perps cockpit and liquidation guard
 
 - Positions gains venue-supplied entry, mark, leverage, liquidation, distance bar

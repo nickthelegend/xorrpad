@@ -19,3 +19,19 @@ the real Setup record is captured as `firmware/build/f2-perps.json` by
 Native/WASM tests cover 16 distinct frames including unknown cockpit fields and
 the guard, alongside all existing Fund/Portfolio/Predict/outcome cases. No hardware
 was flashed, no funded perp was reduced and no transaction was submitted.
+
+F3 evidence:
+
+- `tilt-agent-{1440,375}.png` and `tilt-device-{1440,375}.png`: real local desk,
+  SQLite and verified encrypted native-accounting padsim. The actual simulator
+  has no approvals/fills at capture time; its saved hourly limit is 1. No market
+  quote, fill, wallet balance or realized PnL is fabricated.
+- `cooldown-layout.png`: the actual `ui.h` native renderer with explicit
+  **LAYOUT TEST** inputs (900/1800 seconds, half ring), not a real trading event.
+- `cooldown-setup.png`: the native renderer's honest missing-UTC state, with
+  no invented clock/countdown value.
+
+F3 extends native/WASM parity to **19 distinct frames**, including countdown,
+missing UTC and a reviewed reduce-only decision while cooling. Desktop captures
+reuse the approved components; no stylesheet, token or commissioned art changes.
+Physical display/power-loss verification remains hardware work.

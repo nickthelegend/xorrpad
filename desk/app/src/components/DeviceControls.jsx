@@ -393,6 +393,7 @@ export function DeviceControls({
                 await d.api("/pad/options", {
                   brightness: Number(form.get("brightness")),
                   liqGuardPct: Number(form.get("liqGuardPct")),
+                  tiltGuard: {dailyLossUsd:Number(form.get("dailyLossUsd")),maxTradesHour:Number(form.get("maxTradesHour")),losingCloses:Number(form.get("losingCloses")),cooldownMinutes:Number(form.get("cooldownMinutes"))},
                   night: form.get("night") === "true",
                 });
                 d.refresh();
@@ -415,6 +416,11 @@ export function DeviceControls({
               <input name="liqGuardPct" type="number" min="0.1" max="100" step="0.1" defaultValue={options.data.liqGuardPct} required />
             </Field>
             <p>Within this distance, YES proposes a 50% reduce-only close for review. Missing venue liquidation prices stay unavailable.</p>
+            <h3>Tilt guard</h3>
+            <p>Limits are saved on the pad. Zero disables a limit; active cooldowns cannot be cleared from the desk. Realized loss uses confirmed close PnL only.</p>
+            {[["dailyLossUsd","Daily loss limit (USD)",0,1000000000,0.01],["maxTradesHour","Max trades per hour",0,1000,1],["losingCloses","Consecutive losing closes",0,1000,1],["cooldownMinutes","Cooldown (minutes)",1,10080,1]].map(([name,label,min,max,step])=>(
+              <Field key={name} label={label}><input name={name} type="number" min={min} max={max} step={step} defaultValue={options.data.tiltGuard?.[name] ?? (name==="cooldownMinutes"?15:0)} required /></Field>
+            ))}
             <Field label="Night mode">
               <select name="night" defaultValue={String(options.data.night)}>
                 <option value="false">Off</option>

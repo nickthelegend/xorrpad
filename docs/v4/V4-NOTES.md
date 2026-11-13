@@ -1,10 +1,10 @@
-# Firmware 4.0.0 — F1–F2: Predict and perps cockpit
+# Firmware 4.0.0 — F1–F3: Predict, perps and tilt guard
 
 MIT · Copyright (c) 2026 Nivesh Gajengi.
 
-F1 and F2 are delivered. V1–V3 and agent-wallet functionality remains.
-F3 tilt guard, F4 flatten, F5 full earcon suite, F6 ambient clock and F7 journal
-remain planned. OTA generation defaults to 4.0.0 with F1–F2 notes; no manifest
+F1, F2 and F3 are delivered. V1–V3 and agent-wallet functionality remains.
+F4 flatten, F5 full earcon suite, F6 ambient clock and F7 journal
+remain planned. OTA generation defaults to 4.0.0 with F1–F3 notes; no manifest
 is signed with any existing key and no OTA is published.
 
 Select **Predictor** in Device or **Predict on pad** in Markets. If the device has
@@ -133,3 +133,76 @@ record. `liq-guard.png` and `perps-cockpit-layout.png` are explicitly labelled
 **LAYOUT TEST** native parser/renderer vectors, not external financial data or
 claims of a live liquidation. Their supplied inputs are generated test vectors
 in `firmware/build/f2-{liq,cockpit}-layout.json`. No physical pad was flashed.
+
+## F3 — Firmware tilt guard
+
+`/pad/options.tiltGuard` configures `{dailyLossUsd,maxTradesHour,losingCloses,
+cooldownMinutes}` in Device's existing options form. Zero disables each limit;
+cooldown is 1–10080 minutes, hourly and streak limits are 0–1000. Defaults leave
+all limits disabled, preserving existing permissions. Each pad saves its settings,
+accepted IDs, rolling-hour timestamps, confirmed close PnL, losing streak and
+independent UTC deadlines as one versioned `xorrtilt/state` NVS blob in the
+existing 256 KiB profiles partition (bounded to 64 KiB, avoiding NVS string limits). Approval
+reserves and saves locally before any approval/signature leaves the device.
+Repeated signal approval, crew review and signing count once (128 recent IDs).
+Counts include reduce-only approvals and conservative reservations even if the
+desk later rejects the trade. A failed NVS write or corrupt restore refuses new
+exposure; risk-reducing actions remain available under their existing gates.
+
+Hourly limits use a rolling hour, daily loss uses net **confirmed realized** USD
+PnL received this UTC day, and N losing closes starts the configured cooldown.
+Zero/profitable closes reset the streak. Independent deadlines compose: a new
+UTC day releases only the daily loss latch. Relaxing/disabling settings, positive
+PnL, reconnection and reboot cannot shorten a running deadline. There is no desk
+reset or supplied-clock operation. Firmware uses ESP32 UTC/SNTP, started by the
+existing price-alert service. Missing/regressing UTC gives Setup required when
+limits are enabled or a deadline is retained. With disabled limits, approvals
+before clock sync are persisted and conservatively counted for an hour after
+sync, rather than inventing timestamps. At most 1000 hourly timestamps are kept.
+
+Firmware v4+ receipt records carry `closed` and `realizedPnlUsd` (number or
+null); v1–v3 receipt records retain their exact existing shape. Explicit close receipts, reduce-only fills and spot sells identify closes.
+PnL is copied only from confirmed receipts; marks, quotes, unrealized PnL and
+unsigned builds never become realized profit/loss. Current adapters do not always
+supply realized close PnL. A missing close result is recorded as unavailable and
+loss-based guards show **Setup required: close PnL**, refusing new exposure until
+that receipt supplies known PnL or the next UTC day. Unknown closes reset streak
+continuity. No external API or financial response is mocked. Receipt signatures
+are deduplicated across reboot (128 recent signatures and unresolved closes).
+
+The Cooldown screen shows the reason and countdown ring, including offline.
+New proposal YES is refused before the ordinary confirmation and clear-sign /
+session / crew signing paths. Previously reserved approval-to-sign steps may
+finish without double-counting; no new approval or automatic signing route can
+bypass a tripped guard. Hidden confirmation pages cannot count as reviewed, and
+a refused approval releases its hold so approval requires a fresh YES. KILL retains its exact hold/latch/rearm semantics. NO,
+PORTFOLIO (including its funding hold), liquidation-guard reduction proposals and
+reviewed reduce-only trades retain their existing behavior. Core receives the
+same state through the desktop/phone mirror, and the existing refusal earcon
+announces cooldown start. Every prior permission/cap/clear-sign/mainnet gate
+still applies; no live trade, production release signing or flashing is performed here.
+
+Encrypted `{type:"tilt_state",blocked,reason,remainingSeconds,durationSeconds,
+tradesHour,realizedPnlUsd,losingCloses,unknownCloses,clockReady,healthy,settings}`
+reports locally authoritative state once per second. The desk accepts this only
+from the preferred verified encrypted peer and exposes it in `/desk/link`.
+Agent shows the actual device state or Setup required, including unknown PnL.
+The native/WASM mirror renders the same Cooldown frame, and stale mirror state
+is marked Setup required. Desktop controls reuse existing Field/Card components;
+no CSS, design tokens or art is changed.
+
+`tools/padsim/tilt.mjs` uses production C++ accounting via `tilt-driver`, public
+accounting files and the existing encrypted native-signing simulator. Native tests
+cover serialized reboot, UTC midnight, independent deadlines, settings changes,
+rolling-hour counting, deduplication, unknown PnL/time, corrupt storage and failed
+persistence. No board has been flashed: physical NVS atomicity, power cuts, UTC
+synchronization and TFT readability still require hardware verification.
+
+F3 acceptance: native **291 passed / 4,146 assertions / 0 failures**; isolated
+complete desk **266 tests / 256 passed / 10 existing skips / 0 failures /
+0 cancellations**. Model3d CAD parity and all 19 native/WASM frame cases pass.
+The standalone app build, WASM rebuild and unsigned Pro/Core compilation pass.
+Final implementation/artifact hashes match across the workspace and isolated
+source. Verification logs are `firmware/build/f3-*.log`; see TESTING.md for exact
+counts, build sizes and limits. No CSS, token or commissioned art is changed. No existing private key,
+production signing key or existing wallet directory is opened.

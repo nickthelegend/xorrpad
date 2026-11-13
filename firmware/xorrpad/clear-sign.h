@@ -20,6 +20,7 @@ class ClearSigning {
   bool seen()const{return configuring?!policySeen.empty() && std::all_of(policySeen.begin(),policySeen.end(),[](bool b){return b;}):approval.allSeen();}
 public:
   std::function<std::string(const uint8_t*,size_t)> deviceSigner;
+  std::function<bool(const std::string&)> authorize;
   xorr::solana::Approval approval;
   xorr::solana::Upload upload;
   bool active=false;
@@ -100,6 +101,7 @@ public:
       if(!ok)out["error"]="policy refused or storage failed";
       pad.pending=false;reset(pad);return true;
     }
+    if(yes && authorize && !authorize(signal.id)){hold.release();pad.holdProgress=0;return false;}
     if(cosigning){
       out["type"]="crew_approval";out["signalId"]=signal.id;out["messageHash"]=approval.get().message.hash;
       out["heldMs"]=hold.elapsed(millis());out["blind"]=false;out["ok"]=false;
@@ -136,6 +138,7 @@ public:
     if(signing && secure && approval.allowed(epoch)){
       auto e=signer.check(approval.get());
       if(!e.ok || e.automatic){
+        if(e.ok && authorize && !authorize(signal.id)){hold.release();pad.holdProgress=0;return false;}
         signer.sign(approval,signingBytes,hold.elapsed(millis()),epoch,out);out["signalId"]=signal.id;
         out["messageHash"]=approval.get().message.hash;out["automatic"]=e.ok && e.automatic;
         xorr::solana::reviewTelemetry(approval.get(),out);

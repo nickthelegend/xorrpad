@@ -10,7 +10,7 @@
 
 inline bool presentationConfirmationVisible(const PadState &pad) {
   return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed,
-    pad.updating,pad.errorCode.length(),pad.pairCode.length());
+    pad.updating,pad.errorCode.length(),pad.pairCode.length(),pad.tiltBlocked,pad.tiltAllowed);
 }
 inline bool presentationWalletVisible(const PadState &pad) {
   return (pad.fund.visible || pad.portfolio.visible || pad.predict.positionsVisible) && pad.ok && !pad.pending &&
@@ -24,7 +24,7 @@ inline bool presentationLiqVisible(const PadState &p) {
     !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview && !p.listening;
 }
 inline bool presentationPredictVisible(const PadState &p) {
-  return !presentationLiqVisible(p) && p.predict.enabled && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
+  return !p.tiltBlocked && !presentationLiqVisible(p) && p.predict.enabled && p.ok && !p.pending && !p.killed && !p.factory && !p.updating &&
     !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview &&
     !p.listening && !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible &&
     !p.reply.length() && !p.abilityWidget.length() &&
@@ -71,7 +71,7 @@ inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &c
     pad.fund.visible=false;
     pad.portfolio.visible=false;
     pad.reply = "";
-    pad.signalReduceOnly=d["reduceOnly"]==true && d["reducePct"]==50;
+    pad.signalReduceOnly=d["reduceOnly"]==true;
     auto trusted = d["trusted"];
     pad.fingerprint = d["fingerprint"] | "";
     pad.signalSide = trusted["side"].is<const char*>() ? trusted["side"].as<String>() : d["side"] | "";

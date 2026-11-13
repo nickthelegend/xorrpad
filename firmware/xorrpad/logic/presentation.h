@@ -18,8 +18,8 @@ constexpr uint16_t night = rgb565(0x030304), ink = rgb565(0xf3f0e8),
   lime = rgb565(0xc8f53c), mint = rgb565(0x0dd87e),
   cobalt = rgb565(0x2f5bff), lavender = rgb565(0xb7a6ff);
 
-inline bool confirmationVisible(bool online,bool pending,bool factory,bool killed,bool updating,bool error,bool pairing) {
-  return online && pending && !factory && !killed && !updating && !error && !pairing;
+inline bool confirmationVisible(bool online,bool pending,bool factory,bool killed,bool updating,bool error,bool pairing,bool tiltBlocked=false,bool tiltAllowed=false) {
+  return online && pending && !factory && !killed && !updating && !error && !pairing && (!tiltBlocked || tiltAllowed);
 }
 
 // Fixed-width pages keep every character, including long words and line breaks.

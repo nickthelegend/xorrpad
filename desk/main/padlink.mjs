@@ -1,3 +1,4 @@
+import {DEFAULT_TILT,validateTilt,tiltState,tiltReceipt} from "./tilt-guard.mjs";
 import {guardRecord,guardKey} from './perps-cockpit.mjs';
 import {predictRecord, outcomePositionsRecord, predictProposal} from "./pad-predict.mjs";
 import {otaEligible, verifyPatch} from "./ota.mjs";
@@ -168,6 +169,7 @@ export class PadLink extends EventEmitter {
     allowBlindSigning: false,
     holdThreshold: 100,
     liqGuardPct: 10,
+    tiltGuard: {...DEFAULT_TILT},
     brightness: 220,
     night: false,
     highContrast: false,
@@ -278,6 +280,7 @@ export class PadLink extends EventEmitter {
           status: this.getStatus(p),
           perps:p.perps,
           liqGuard:p.liqGuard,
+          tiltGuard:p.tiltGuard,
           predict: p.predict,
           predictSelected: p.predictSelected || 0,
           outcomePositions: p.outcomePositions,
@@ -562,6 +565,7 @@ export class PadLink extends EventEmitter {
   }
   setOptions(value) {
     const next = { ...this.options, ...value };
+    next.tiltGuard=validateTilt(next.tiltGuard);
     for (const k of Object.keys(next))
       if (!(k in this.options)) throw Error("unknown pad setting");
     if (
@@ -950,7 +954,8 @@ export class PadLink extends EventEmitter {
           this.send(p, {
             type: "receipt",
             signalId: e.id || e.signalId,
-            ...e.receipt,
+            // Confirmed receipts alone supply realized PnL. Quotes/marks never do.
+            ...tiltReceipt(e.receipt,this.signals?.get?.(e.id || e.signalId || e.receipt.signalId)?.proposal?.signal,p.firmware),
           });
         if (e.type === "speech_chunk" && e.seq === 0 && e.text)
           this.send(p, { type: "reply", text: e.text.slice(0, 2000) });
@@ -1244,6 +1249,10 @@ export class PadLink extends EventEmitter {
     if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
+    if(m.type==="tilt_state") {
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error("verified tilt state required");
+      p.tiltGuard=tiltState(m);this.signals?.publish({type:"pad_tilt",device:p.device,tiltGuard:p.tiltGuard});return;
+    }
     if (p.secure && this.killed.has(p.device)) throw Error("Killed: re-arm on the pad to trade");
     if (m.type === "hello") {
       if (

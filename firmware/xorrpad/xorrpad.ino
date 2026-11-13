@@ -48,6 +48,7 @@
 #include "profiles.h"
 #include "knob.h"
 #include "health.h"
+#include "tilt-guard.h"
 
 Factory factory;
 xorr::FactoryReset factoryReset;
@@ -97,6 +98,7 @@ ClearSigning clearSigning;
 xorr::DecisionConfirm decisionConfirm;
 Abilities abilities;
 PriceAlerts priceAlerts;
+TiltGuard tiltGuard;
 
 bool persistKill(bool killed) {
   Preferences p;
@@ -153,6 +155,7 @@ bool usbDebugAllowed() {
 }
 void onPadMessage(JsonVariantConst d) {
   if (factory.active || factoryReset.active) return;
+  tiltGuard.message(d,padlink.secureReady(),pad);
   JsonDocument alertResponse;
   if(priceAlerts.message(d,padlink.secureReady(),alertResponse)){padlink.send(alertResponse);return;}
   JsonDocument abilityResponse;
@@ -271,6 +274,7 @@ void onPadMessage(JsonVariantConst d) {
 }
 
 bool sendLinkedKey(const String &action) {
+  if(action=="yes" && !tiltGuard.allows(pad) && !presentationLiqVisible(pad)) {screenDirty=true;audio.chime(xorr::Chime::Refuse);return true;}
   if(clearSigning.active && (action=="yes" || action=="no"))return true;
   if((action=="yes" || action=="no") && presentationLiqVisible(pad)) {
     if(!padlink.secureReady())return true;
@@ -367,6 +371,7 @@ void stopAndSend() {
 // out loud, rather than blinking something the operator has to interpret.
 void sendKey(const KeyBind &kb) {
   if(killSwitch.killed)return;
+  if(kb.role==ROLE_CONFIRM && !tiltGuard.allows(pad) && !presentationLiqVisible(pad)){audio.chime(xorr::Chime::Refuse);return;}
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
   pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
   if(sendLinkedKey(kb.id)){audio.chime(kb.role==ROLE_REFUSE?xorr::Chime::Refuse:xorr::Chime::Accept);return;}
@@ -374,6 +379,7 @@ void sendKey(const KeyBind &kb) {
   if((kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE) && pad.signalId.length()){
     pad.lastKeyLabel="Signal link offline";pad.labelUntil=millis()+4000;return;
   }
+  if(kb.role==ROLE_CONFIRM && !tiltGuard.accept(std::string(padlink.eventId().c_str())))return;
   String err;
   if (net.key(kb.id, err)) {
     telnet.logf("  ▸ %s\n", kb.label);
@@ -428,7 +434,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   }
   if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
     bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
-    if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && presentationConfirmationVisible(pad));
+    if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && tiltGuard.allows(pad) && presentationConfirmationVisible(pad));
     else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result))padlink.send(result);}
     return;
   }
@@ -439,7 +445,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(kb.role==ROLE_CONFIRM) {
     killSwitch.confirmKey(pressed,millis(),padlink.secureReady() && !padlink.blePairing);
     if(killSwitch.killed)return;
-    decisionConfirm.key(pressed,presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
+    decisionConfirm.key(pressed,tiltGuard.allows(pad) && presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
       !padlink.blePairing && millis()>=screenHoldUntil,millis());
     if(pressed && pad.pending && padlink.secureReady() && !padlink.blePairing && accessibility.speakAmounts() && !amountSpoken) {
       amountSpoken=true;JsonDocument d;d["type"]="speak_amount";d["signalId"]=pad.signalId;padlink.send(d);
@@ -448,6 +454,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(killSwitch.killed)return;
   if(kb.role==ROLE_REFUSE && pressed)decisionConfirm.reset();
   if(portfolio) {
+    if(pressed && pad.tiltBlocked){pad.pending=false;decisionConfirm.reset();}
     if(pressed)portfolioKey.press(millis());
     else walletKeyAction(portfolioKey.release(millis()));
     return;
@@ -533,6 +540,10 @@ void onTelnetCommand(const String &line) {
     String id = line.substring(4); id.trim();
     if(id=="kill") { latchKill(); return; }
     if(killSwitch.killed) { telnet.println("Kill latch active"); return; }
+    String control=id;control.toLowerCase();
+    if(control=="yes" && (tiltGuard.blocked() || !tiltGuard.accept(std::string(padlink.eventId().c_str())))){
+      telnet.println("Tilt guard: new trade approval refused");return;
+    }
     String err;
     telnet.logf(net.key(id, err) ? "  ▸ %s ok\n" : "  ✗ %s refused: ", id.c_str());
     if (err.length()) telnet.logf("%s\n", err.c_str());
@@ -595,6 +606,8 @@ void setup() {
   killSwitch.restore(readable?safety.getUChar("killed",0):1,readable);
   if(safetyOK)safety.end();
   showKillState();
+  tiltGuard.begin();tiltGuard.update(pad);
+  clearSigning.authorize=[&](const std::string &id){return tiltGuard.accept(id);};
   ota.begin();
   loadKeymap();
   profiles.begin();
@@ -722,6 +735,10 @@ void loop() {
     JsonDocument d; d["type"]="rearm_confirm"; d["heldMs"]=800; padlink.send(d);
   }
   showKillState();
+  tiltGuard.tick(padlink,pad);
+  static bool wasCooling=false;
+  if(pad.tiltBlocked && !wasCooling){accessibility.idle.wake(millis());screenHoldUntil=0;screenDirty=true;audio.chime(xorr::Chime::Refuse);}
+  wasCooling=pad.tiltBlocked;
   profiles.refresh(pad.pending || recording);
   pad.profile=profiles.name();pad.layer=profiles.layerName();
   static String reportedProfile;static uint32_t profileEpoch=0;
@@ -767,10 +784,11 @@ void loop() {
     bool safe=padlink.secureReady() && !padlink.blePairing && !killSwitch.killed && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(clearSigning.tick(padlink.connectionEpoch(),safe,presentationConfirmationVisible(pad),pad,result)){padlink.send(result);audio.chime(xorr::Chime::Accept);}
   }
-  bool decisionVisible=presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
+  bool decisionVisible=tiltGuard.allows(pad) && presentationConfirmationVisible(pad) && !pad.clearSigning && padlink.secureReady() &&
     !padlink.blePairing && millis()>=screenHoldUntil;
   if(!pad.clearSigning)pad.holdProgress=decisionConfirm.progress(millis());
   if(decisionConfirm.due(decisionVisible,padlink.connectionEpoch(),millis())) {
+    if(!tiltGuard.accept(decisionConfirm.signal().id)){decisionConfirm.reset();screenDirty=true;return;}
     JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]="yes";d["edge"]="down";
     d["signalId"]=decisionConfirm.signal().id;d["fingerprint"]=xorr::fingerprint(decisionConfirm.signal());
     d["heldMs"]=decisionConfirm.heldMs(millis());padlink.send(d);

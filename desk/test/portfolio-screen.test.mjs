@@ -32,6 +32,9 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
   for(const state of [
+   {tiltBlocked:'1',tiltReason:'Trades per hour',tiltRemaining:'900',tiltDuration:'1800'},
+   {tiltBlocked:'1',tiltReason:'Setup required: UTC time',tiltRemaining:'0',tiltDuration:'0'},
+   {ok:'1',pending:'1',tiltAllowed:'1',tiltBlocked:'1',signalReduceOnly:'1',market:'LAYOUT TEST',signalSide:'SELL'},
    {ok:'1',liqActive:'1',liqMarket:'LAYOUT TEST',liqVenue:'jupperps',liqMark:'100',liqPrice:'95',liqDistance:'5'},
    {ok:'1',positionsScreen:'1',perpRow0Market:'LAYOUT TEST',perpRow0Venue:'phoenix',perpRow0Side:'long',perpRow0Entry:'100',perpRow0Mark:'101'},
    {ok:'1',positionsScreen:'1',perpRow0Market:'LAYOUT TEST',perpRow0Venue:'jupperps',perpRow0Side:'short',perpRow0Entry:'100',perpRow0Mark:'101',perpRow0Leverage:'5',perpRow0Liq:'105',perpRow0Distance:'3.96',perpRow0Funding:'1800000000'},
@@ -63,6 +66,6 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,16,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,19,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });

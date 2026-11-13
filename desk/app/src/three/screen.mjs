@@ -21,6 +21,14 @@ export async function drawFirmware(
     signalId: pending?.id || "",
     signalDeadline: pending ? Math.max(0, pending.expiresAt - now) : 0,
   };
+  const tilt=device?.tiltGuard;
+  if(tilt) {
+    const elapsed=Math.max(0,Math.floor((now-Date.parse(tilt.observedAt))/1000));
+    const fresh=elapsed<15;
+    Object.assign(fields,{tiltBlocked:tilt.blocked || !fresh,tiltReason:fresh?tilt.reason:'Setup required: refresh pad state',
+      tiltRemaining:Math.max(0,tilt.remainingSeconds-elapsed),tiltDuration:tilt.durationSeconds,
+      tiltAllowed:pending?.proposal?.signal?.reduceOnly===true});
+  }
   const guard=device?.liqGuard;
   if(guard?.active && now-Date.parse(guard.observedAt)<30000)Object.assign(fields,{liqActive:true,liqMarket:guard.market,liqVenue:guard.proposal?.venue,liqMark:guard.mark,liqPrice:guard.liq,liqDistance:guard.distancePct});
   const perps=device?.perps;

@@ -36,6 +36,7 @@ export function Agent() {
     settings = useRead("/agent/settings", 15000, true),
     chats = useRead("/chats"),
     status = useRead("/desk/status");
+  const pads = useRead("/desk/link", 3000);
   const walletMode = useRead("/wallet/mode");
   const [edit, setEdit] = useState(null),
     [models, setModels] = useState(null),
@@ -85,6 +86,14 @@ export function Agent() {
         <span className="badge">Bring your own intelligence</span>
       </div>
       <State state={settings} />
+      <Card className="surface">
+        <h2>Tilt guard</h2>
+        {pads.data?.devices?.length ? pads.data.devices.map(p=>{
+          const t=p.tiltGuard, fresh=t && Date.now()-Date.parse(t.observedAt)<15000 && Date.now()-Date.parse(p.lastSeen)<15000;
+          return <p key={p.device}>{p.device} · {fresh ? `${t.blocked?"Cooldown":"Ready"} · ${t.reason}${t.remainingSeconds?` · ${Math.max(0,t.remainingSeconds-Math.floor((Date.now()-Date.parse(t.observedAt))/1000))}s remaining`:""} · ${t.tradesHour} accepted / hour · Known close PnL $${t.realizedPnlUsd.toFixed(2)}${t.unknownCloses?` · Setup required: ${t.unknownCloses} close(s) missing realized PnL`:""}` : "Setup required: connect a verified v4 pad for tilt state"}</p>;
+        }) : <p>Setup required: connect a verified v4 pad for tilt state.</p>}
+        <p>Only the pad timer or a new UTC day for the loss limit releases a cooldown. KILL, NO, reduce-only and PORTFOLIO remain available.</p>
+      </Card>
       {settings.data && (
         <>
           <div className="model-cards">

@@ -136,6 +136,13 @@ int main(int argc, char **argv) {
     std::ifstream input(argv[3]);JsonDocument d;
     if(!input || deserializeJson(d,input))return 2;
     PadState p;ChartState ch;p.ok=true;
+    if(d["type"]=="tilt_state") {
+      if(!d["blocked"].is<bool>() || !d["reason"].is<const char*>() ||
+         !d["remainingSeconds"].is<uint32_t>() || !d["durationSeconds"].is<uint32_t>())return 3;
+      p.tiltBlocked=d["blocked"];p.tiltReason=d["reason"].as<const char*>();
+      p.tiltRemaining=d["remainingSeconds"];p.tiltDuration=d["durationSeconds"];
+      ui::drawFrame(c,p,ch);shot("cooldown","supplied discipline record: see capture provenance");return made==1?0:4;
+    }
     if(d["type"]=="perps" || d["type"]=="liq_guard") {
       if(d["type"]=="perps") {if(!xorr::parsePerps(d,p.perps,millis()))return 3;}
       else if(!xorr::parseLiqGuard(d,p.liqGuard,millis()))return 3;

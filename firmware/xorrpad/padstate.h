@@ -24,6 +24,7 @@ struct PadPosition {
 };
 
 struct PadState {
+  bool tiltBlocked=false,tiltAllowed=false;String tiltReason;uint32_t tiltRemaining=0,tiltDuration=0;
   xorr::Predict predict;
   xorr::Perps perps;
   xorr::LiqGuard liqGuard;

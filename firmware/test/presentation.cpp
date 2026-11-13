@@ -140,6 +140,9 @@ TEST_CASE("LED palette animates smoothly and fill has a fully dark phase") {
 
 TEST_CASE("hidden signal screens cannot confirm even when the key is already held") {
   CHECK(xorr::confirmationVisible(true,true,false,false,false,false,false));
+  CHECK_FALSE(xorr::confirmationVisible(true,true,false,false,false,false,false,true,false));
+  CHECK(xorr::confirmationVisible(true,true,false,false,false,false,false,true,true));
+  CHECK_FALSE(xorr::confirmationVisible(true,true,false,true,false,false,false,true,true));
   CHECK_FALSE(xorr::confirmationVisible(false,true,false,false,false,false,false));
   CHECK_FALSE(xorr::confirmationVisible(true,false,false,false,false,false,false));
   for(int overlay=0;overlay<5;++overlay) {
@@ -184,6 +187,10 @@ TEST_CASE("new proposal cannot inherit a held YES; trusted confirmations require
   xorr::DecisionConfirm confirm;confirm.key(true,true,0);REQUIRE(confirm.offer(d,1));CHECK_FALSE(confirm.due(true,1,1000));
   confirm.key(true,true,1000);CHECK_FALSE(confirm.due(true,1,1799));CHECK(confirm.due(true,1,1800));CHECK_FALSE(confirm.due(true,1,1900));
   REQUIRE(confirm.offer(d,1));confirm.key(true,true,2000);CHECK_FALSE(confirm.due(true,2,3000));
+  REQUIRE(confirm.offer(d,1));confirm.key(true,true,4000);
+  CHECK_FALSE(confirm.due(xorr::confirmationVisible(true,true,false,false,false,false,false,true,false),1,4800));
+  CHECK_FALSE(confirm.due(true,1,5000)); // Cooldown released the hold; fresh YES required.
+  confirm.key(true,true,5100);CHECK(confirm.due(true,1,5900));
   d["fingerprint"]="tamper";CHECK_FALSE(confirm.offer(d,1));confirm.key(true,true,4000);CHECK_FALSE(confirm.due(true,1,5000));
 }
 

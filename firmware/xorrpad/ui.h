@@ -524,6 +524,21 @@ static void drawOutcomePositions(GFXcanvas16 &c,const xorr::Predict &p,uint32_t 
  * firmware keeps: a pending decision outranks everything, and an unreachable
  * desk outranks a stale price.
  */
+static void drawCooldown(GFXcanvas16 &c,const PadState &p) {
+  text(c,12,14,3,WARN,"Cooldown");
+  textClip(c,12,52,296,1,INK,p.tiltReason);
+  const int cx=160,cy=125,r=48;
+  float fraction=p.tiltDuration?std::min(1.f,float(p.tiltRemaining)/p.tiltDuration):1.f;
+  for(int i=0;i<120;i++) {
+    float a=(i*3-90)*3.14159265f/180;
+    c.drawLine(cx+int(cos(a)*(r-5)),cy+int(sin(a)*(r-5)),cx+int(cos(a)*r),cy+int(sin(a)*r),i<120*fraction?WARN:MUTE);
+  }
+  String remaining=p.tiltRemaining?String(p.tiltRemaining/60)+":"+(p.tiltRemaining%60<10?"0":"")+String(p.tiltRemaining%60):String("--:--");
+  text(c,cx-int(remaining.length())*6,cy-7,2,INK,remaining.c_str());
+  text(c,12,190,1,INK,"New trades paused. Desk cannot clear early.");
+  text(c,12,211,1,MUTE,"KILL / NO / PORTFOLIO / reduce-only work");
+}
+
 static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   highContrastTheme=pad.highContrast;
   c.fillScreen(BG);
@@ -568,6 +583,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     text(c,12,190,1,WARN,"HOLD YES 800ms / NO TO CANCEL");
     c.fillRect(12,212,int(296*pad.holdProgress),4,WARN);return;
   }
+  if(pad.tiltBlocked && !(pad.pending && pad.tiltAllowed) && !pad.fund.visible && !pad.portfolio.visible && !pad.predict.positionsVisible && !(pad.liqGuard.fresh(millis()) && !pad.pending)){drawCooldown(c,pad);return;}
   if(pad.pending&&pad.ok){drawConfirm(c,pad,ch);return;}
   if(pad.ok && !pad.listening && pad.liqGuard.fresh(millis())){drawLiqGuard(c,pad.liqGuard);return;}
   if(pad.listening){text(c,12,20,3,SOL,"LISTENING");for(int i=0;i<32;i++){int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}text(c,12,204,1,INK,"Release MIC or knob to send");return;}

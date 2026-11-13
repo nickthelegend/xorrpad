@@ -7,6 +7,11 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"tiltAllowed")){pad.tiltAllowed=atoi(v)!=0;return;}
+ if(!strcmp(k,"tiltBlocked")){pad.tiltBlocked=atoi(v)!=0;return;}
+ if(!strcmp(k,"tiltReason")){pad.tiltReason=v;return;}
+ if(!strcmp(k,"tiltRemaining")){pad.tiltRemaining=atoi(v);return;}
+ if(!strcmp(k,"tiltDuration")){pad.tiltDuration=atoi(v);return;}
  if(!strcmp(k,"liqActive")){pad.liqGuard.active=atoi(v)!=0;return;}
  if(!strcmp(k,"liqMarket")){pad.liqGuard.market=v;return;}
  if(!strcmp(k,"liqVenue")){pad.liqGuard.venue=v;return;}

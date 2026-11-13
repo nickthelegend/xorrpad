@@ -3,7 +3,7 @@ import {manifestText} from '../desk/main/pad-v2.mjs';
 import {makeDelta, patchText} from '../desk/main/ota.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 // Caller supplies an in-memory signer; this module never loads key files.
-export function releaseManifest(image, signer, {version='4.0.0',channel='stable',rolloutPercent=100,notes='Firmware v4 F1-F2: Predict on the pad; perps cockpit; liquidation guard; manual reduce-only proposals',base,fromVersion,legacy=false}={}) {
+export function releaseManifest(image, signer, {version='4.0.0',channel='stable',rolloutPercent=100,notes='Firmware v4 F1-F3: Predict; perps cockpit; liquidation guard; persistent firmware tilt guard; manual reduce-only proposals',base,fromVersion,legacy=false}={}) {
   if(!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version) || version.length>48 || !['stable','beta'].includes(channel) ||
      !Number.isInteger(rolloutPercent) || rolloutPercent<0 || rolloutPercent>100 ||
      typeof notes!=='string' || notes.length>512 || notes.includes('\n') || !image.length || image.length>0x300000) throw Error('Invalid release metadata');

@@ -134,3 +134,14 @@ alerts cannot propose. `desk/test/pad-perps.test.mjs` checks pure boundary vecto
 permissions, integer half-close sizes, live-or-Setup HTTP, encrypted delivery and
 1440/375 desktop captures. External API responses are never mocked; no funded
 perp position or live reduction is claimed.
+
+Firmware v4 F3: `TiltPadSimulator` from `tilt.mjs` extends the Predict simulator
+and delegates discipline settings, approvals, fills and reboot state to the real
+`firmware/build/tilt-driver` C++ executable. Pass a temporary `sessionStateFile`;
+its `.tilt.json` companion holds public counters/deadlines only. No existing key
+file is read. `pad.reportTilt()` sends authenticated firmware state; counters
+cannot be reset over the desk link. Explicit `now` arguments belong only to the
+native test driver for UTC rollover tests, never to desk protocol messages.
+Run `bash firmware/test/run.sh` first to build the driver, then the focused
+`desk/test/pad-tilt.test.mjs` scenario. Its local reservation/close vectors are
+accounting tests, not claims of external financial data or executed trades.
