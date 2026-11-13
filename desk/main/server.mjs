@@ -176,6 +176,7 @@ export function createServer(mem) {
 
   const signals = new SignalQueue({
     ttlSeconds:Number(process.env.XORR_SIGNAL_TTL_SECONDS || 60),
+    acceptGuard:signal => srv.padlink.tiltRefusal(signal),
     gate:async e => {
       if (!(e.proposal.signal.source==="pad-flatten"?flatten.allows(e.id,e.proposal):state.armed)) return {...e.proposal,verdict:{...e.proposal.verdict,action:'REJECT',sizeUsd:0,ruleId:'signals.disarmed',why:['disarmed — re-arm before trading']}};
       return propose({...e.proposal.signal,sizeUsd:e.proposal.verdict.sizeUsd},await mem.recallBrief());
@@ -192,7 +193,7 @@ export function createServer(mem) {
       note(text);
     },
   });
-  const executor = new Executor({mem,signals,isArmed:(id,p) => p?.signal.source==="pad-flatten"?flatten.allows(id,p):state.armed});
+  const executor = new Executor({mem,signals,guard:signal => srv.padlink.tiltRefusal(signal),isArmed:(id,p) => p?.signal.source==="pad-flatten"?flatten.allows(id,p):state.armed});
   const flatten=new PanicFlatten({signals,executor,propose:async sig=>propose(sig,await mem.recallBrief()),
     killed:device=>srv.padlink.killed.has(device),publish:(device,record)=>{
       for(const p of srv.padlink.peers)if(p.device===device && p.secure && p.verified){p.flatten=record;srv.padlink.send(p,record);}

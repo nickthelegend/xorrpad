@@ -3,6 +3,7 @@ import { useDesk, useRead, Sheet, Empty, Field, money } from "./core";
 import { Icon } from "./brand/Icon";
 export function SignalCard({ signal: s, onAnswer }) {
   const d = useDesk(),
+    pads = useRead("/desk/link", 1000, true),
     [now, setNow] = useState(Date.now()),
     [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -11,8 +12,10 @@ export function SignalCard({ signal: s, onAnswer }) {
   }, []);
   const a = s.proposal.signal,
     v = s.proposal.verdict,
+    tilt = a.reduceOnly === true ? null : pads.data?.tiltGate,
     left = Math.max(0, Math.ceil((s.expiresAt - now) / 1000));
   async function answer(accept) {
+    if (accept && (tilt || !pads.data)) return;
     setBusy(true);
     await d.run(async () => {
       const r = await d.api(
@@ -47,14 +50,15 @@ export function SignalCard({ signal: s, onAnswer }) {
         {a.venue || s.proposal.routing?.best?.venue || "Venue unavailable"}
       </p>
       <small>{v.why.join(" · ")}</small>
+      {s.state === "awaiting" && tilt && <p role="status">{tilt.message}</p>}
       {s.state === "awaiting" && (
         <div className="actions">
           <button
             className="primary"
-            disabled={busy || !left}
+            disabled={busy || !left || !!tilt || !pads.data || !!pads.error}
             onClick={() => answer(true)}
           >
-            Accept <Icon name="check" />
+            {tilt ? "Cooldown" : "Accept"} <Icon name="check" />
           </button>
           <button disabled={busy || !left} onClick={() => answer(false)}>
             Refuse

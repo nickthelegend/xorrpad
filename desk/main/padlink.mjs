@@ -164,6 +164,7 @@ const encode = (m) =>
 export class PadLink extends EventEmitter {
   peers = new Set();
   journals = new Map();
+  tiltStates = new Map();
   seen = new Map();
   stopped = false;
   pairings = new Map();
@@ -199,6 +200,13 @@ export class PadLink extends EventEmitter {
     this.factoryRoots = Object.freeze([...factoryRoots]);
     this.keymapFile = path.join(dir, "pad-keymap.json");
     this.stateDir = dir;
+    this.tiltFile = path.join(dir, "pad-tilt-devices.json");
+    // Remember only public device IDs. A desk restart requires a fresh pad report.
+    try {
+      const devices = JSON.parse(readFileSync(this.tiltFile, "utf8"));
+      if (!Array.isArray(devices) || devices.some(id => typeof id !== 'string' || !/^[\w-]{1,64}$/.test(id))) throw Error('invalid remembered tilt devices');
+      for (const device of devices) this.tiltStates.set(device, null);
+    } catch (e) { if (e.code !== "ENOENT") throw e; }
     this.profiles = [];
     try {
       this.profiles = JSON.parse(
@@ -265,8 +273,27 @@ export class PadLink extends EventEmitter {
     const devices=[...this.journals].filter(([id])=>!device || device===id).map(([id,record])=>({device:id,...record,connected:!!this.preferred(id)}));
     return {capacity:32,devices,message:devices.length?'':'Setup required: connect a verified v4 pad and wait for journal sync'};
   }
+  tiltStatus(now = Date.now()) {
+    let unknown;
+    for (const [device, state] of this.tiltStates) {
+      const p = this.preferred(device);
+      const fresh = state && p?.secure && p.verified && p.tiltGuard === state &&
+        now - p.last < 15000 && now - Date.parse(state.observedAt) < 15000;
+      if (fresh && !state.blocked && state.healthy && state.clockReady) continue;
+      const remainingSeconds = state ? Math.max(0, state.remainingSeconds - Math.floor(Math.max(0, now - Date.parse(state.observedAt)) / 1000)) : 0;
+      const result = {device, blocked:true, unknown:!fresh || !state.healthy || !state.clockReady,
+        reason:state?.blocked ? state.reason : 'State unknown', remainingSeconds, observedAt:new Date(now).toISOString()};
+      const left = `${String(Math.floor(remainingSeconds / 60)).padStart(2,'0')}:${String(remainingSeconds % 60).padStart(2,'0')}`;
+      result.message = `Tilt guard: ${result.reason} — ${left} left on the pad${result.unknown ? ' · Reconnect the pad for current state' : ''}`;
+      if (fresh && state.blocked) return result;
+      unknown ??= result;
+    }
+    return unknown || null;
+  }
+  tiltRefusal(signal) { return signal?.reduceOnly === true ? null : this.tiltStatus()?.message; }
   snapshot() {
     return {
+      tiltGate: this.tiltStatus(),
       crew: this.crewStatus?.() || [],
       observedAt: new Date().toISOString(),
       options: this.options,
@@ -1354,7 +1381,15 @@ export class PadLink extends EventEmitter {
     }
     if(m.type==="tilt_state") {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error("verified tilt state required");
-      p.tiltGuard=tiltState(m);this.signals?.publish({type:"pad_tilt",device:p.device,tiltGuard:p.tiltGuard});return;
+      const state=tiltState(m);
+      if (!this.tiltStates.has(p.device)) this.tiltStates.set(p.device,null);
+      // Failed persistence holds unknown in memory and is retried before ready.
+      if (this.tiltStates.get(p.device) === null) {
+        mkdirSync(this.stateDir,{recursive:true,mode:0o700});
+        writeFileSync(this.tiltFile+'.tmp',JSON.stringify([...this.tiltStates.keys()])+'\n',{mode:0o600});
+        renameSync(this.tiltFile+'.tmp',this.tiltFile);
+      }
+      p.tiltGuard=state;this.tiltStates.set(p.device,state);this.signals?.publish({type:"pad_tilt",device:p.device,tiltGuard:p.tiltGuard});return;
     }
     if (p.secure && this.killed.has(p.device) && !this.killedInput(p,m)) throw Error("Killed: re-arm on the pad to trade");
     if (m.type === "hello") {

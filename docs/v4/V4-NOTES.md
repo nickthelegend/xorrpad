@@ -563,3 +563,34 @@ vectors remain explicitly labelled. `mirror-record.json` is the real Setup reply
 with 1440/375 Device screenshots and the actual WASM Portfolio frame beside it.
 Physical display refresh, USB/BLE latency and hardware clock drift remain board
 checks. No desktop styles, signing keys or external API substitutions are involved.
+
+
+## F10 — Tilt guard at the desk
+
+The existing verified `tilt_state` record now gates every SignalQueue acceptance,
+including API, keyboard and automatic decisions. A blocked new-exposure signal
+becomes `refused` with `ruleId:"signals.tilt_guard"` and the reason
+`Tilt guard: <reason> — <mm:ss> left on the pad`. Automatic refusal happens before
+its acceptance announcement. The guard is checked again after asynchronous
+proposal gates, at execution gates, and immediately before submission. A phone
+handoff or session wallet does not bypass it.
+
+`/desk/link` adds `tiltGate` (null when ready, otherwise device, blocked, unknown,
+reason, remainingSeconds, observedAt and message). The existing SignalCard reads
+it every second, disables its Accept control as Cooldown and displays the reason.
+No stylesheet, component styling or artwork changes. Refuse remains available.
+
+The desk remembers only public IDs in `pad-tilt-devices.json` after verified pad
+reports. A report or transport older than 15 seconds, disconnection, restart,
+unhealthy storage or an unready pad clock holds new exposure until a fresh,
+healthy, clock-ready report from that pad says it is no longer blocked. Any
+remembered pad can hold the desk; another ready pad cannot override it. Countdown
+extrapolation is display-only, including at zero. No desk option clears it.
+
+Strict `reduceOnly:true` signals, including existing flatten legs and order
+cancellations, bypass only this tilt check; permission caps, reduce-position
+validation, live quotes, KILL and clear-sign/session policy still apply. No
+external API responses are substituted and no trades are sent by F10 tests.
+The encrypted simulator advances the production C++ guard's test clock to
+exercise real expiry. Browser captures label the pending proposal as a local
+policy vector; missing model/wallet setup stays honest.

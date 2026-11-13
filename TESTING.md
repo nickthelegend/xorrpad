@@ -2680,3 +2680,52 @@ retained; no tests are removed, weakened or changed into skips. Historical v3
 and earlier v4 screenshots rewritten by the suite are restored. New F9 captures
 are retained. Local evidence is in `firmware/build/f9-{desk,native,pro,core,
 app-build,uipreview}.log`.
+
+## Firmware v4 F10 — Tilt guard at the desk (2026-11-13)
+
+The desktop run uses the required command, on its own from the repository root:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Five new `desk-tilt.test.mjs` cases cover all remembered pads, report/transport
+staleness, disconnect, desk restart, healthy clock/storage requirements, countdown
+zero without release, failed public-state persistence and retry, reduce-only and
+flatten exemptions, manual/automatic refusal before announcement, an asynchronous
+acceptance race, and a cooldown starting after acceptance but before execution.
+The real HTTP/browser case pairs the encrypted native TiltPadSimulator, trips its
+production C++ hourly counter, verifies a disabled Cooldown click sends no accept,
+checks API and automatic refusal, then advances the native test clock until the
+pad reports ready. The desktop click and API resume their ordinary permission
+gates. Local queue vectors prove both manual and automatic acceptance and
+reduce-only/flatten acceptance while blocked. No external API is substituted;
+local policy proposals are labelled, and the real server deliberately retains
+its ordinary allowlist refusal so the test cannot trade.
+
+An earlier live aggregate test selected the first funded account in arbitrary RPC
+order; its live curve now returns no shares for the test purchase. Its selector
+now chooses the greatest reported effective depth, preserving every existing
+assertion and test. The focused live recheck passes; no failure is converted to a
+skip and no quote or price is invented.
+
+`bash firmware/test/run.sh` exits **0**: **306 cases / 4,494 assertions / 0
+failures**, followed by **22** native mirror-view checks. F10 changes desk gating
+only; firmware UI, binaries and hardware are unchanged. The focused F10 run is
+**5 passed / 0 failures / 0 skips**. The app build passes, and the existing UI
+mechanical check reports no findings. The 1440/375 browser captures show the
+existing decision card's disabled control and reason without restyling. Public
+logs and temporary captures are under `firmware/build/f10-*`.
+
+
+The final isolated full desk run exits **0**: **306 tests / 295 passed / 11
+skipped / 0 failures / 0 cancellations**, **1,360,937.18525 ms**. Its pretest
+app build succeeds, all five F10 cases pass, and model3d native/WASM parity passes.
+The existing skip conditions include unavailable model services/Electron,
+rate-limited venue dependencies and unfunded/absent test authorities; no test is
+removed or changed to a skip. The first full attempt was interrupted after the
+live market-selection failure described above; the final log is the complete
+passing run. Historical v3/v4 PNGs rewritten by tests are restored with
+`git checkout -- docs/screens/v3 docs/screens/v4`. The new, visually inspected
+F10 captures are `docs/screens/v4/f10-tilt-{1440,375}.png`. No desktop restyling,
+firmware signing, flashing or push is performed.

@@ -38,7 +38,9 @@ live('pm-AMM lists real devnet outcome markets and routes an available outcome',
  const rows=await pmamm.markets();assert.ok(Array.isArray(rows));
  for(const m of rows){new PublicKey(m.market);assert.ok(m.endTs>Date.now()/1000);assert.ok(m.liquidity===null||m.liquidity>=0);}
  console.log(`REAL pm-AMM: ${rows.length} live devnet markets`);
- const m=rows.find(m=>m.liquidity>1);
+ // RPC account order is arbitrary; select actual depth rather than the first
+ // funded vault, whose current curve can refuse a small outcome purchase.
+ const m=rows.filter(m=>m.liquidity>1).sort((a,b)=>b.effectiveLiquidity-a.effectiveLiquidity)[0];
  if(m){const r=await route({kind:'predict',market:m.market,side:'yes',size:0.1});
   if(!r.best)throw new Error(r.alternatives.map(a=>a.error).join('; '));
   assert.equal(r.best.venue,'pmamm');assert.equal(r.best.network,'devnet');assert.ok(r.best.quote.expectedShares>0);

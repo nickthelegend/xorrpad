@@ -8,6 +8,19 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [4.0.0] — 2026-11-13
 
+### Fixed — F10: Tilt guard at the desk
+
+- A paired pad's cooldown also refuses desktop, API and automatic new-exposure
+  acceptance, with the pad reason and countdown. The existing decision card
+  disables Accept and shows Cooldown without changing desktop styles.
+- Reported device identities persist; stale, disconnected, unhealthy or unknown
+  tilt state holds the guard until a fresh healthy pad report releases it.
+  The desktop countdown never clears it. Reduce-only and flatten retain their
+  existing permission, clear-sign, session and KILL checks.
+- Acceptance and executor checks cover cooldown races through signing/submission;
+  native encrypted padsim, HTTP, browser and local policy vectors cover refusal,
+  expiry, multiple pads, reconnect/restart and reduction exemptions.
+
 ### Added — F9: Desktop pad screen mirror
 
 - The 3D pad draws Fund, Portfolio, SCAN, Predict, outcome positions, perp

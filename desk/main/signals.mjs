@@ -11,10 +11,10 @@ const NEXT = {
 };
 export class SignalQueue extends EventEmitter {
   #entries = new Map(); #timers = new Map(); #tail = Promise.resolve();
-  constructor({ ttlSeconds = 60, gate, journal, announce, onAccepted } = {}) {
+  constructor({ ttlSeconds = 60, gate, journal, announce, onAccepted, acceptGuard } = {}) {
     super();
     if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > 86400) throw new Error('invalid signal expiry');
-    Object.assign(this, {ttlSeconds, gate, journal, announce, onAccepted});
+    Object.assign(this, {ttlSeconds, gate, journal, announce, onAccepted, acceptGuard});
   }
   serial(fn) { const p = this.#tail.then(fn); this.#tail = p.catch(() => {}); return p; }
   get(id) { const e = this.#entries.get(id); if(!e)return null;const copy=structuredClone(e);try{copy.trusted=trustedSignal(copy);copy.fingerprint=fingerprint(copy.trusted);}catch{copy.trustedUnavailable='Refresh executable price and fee quote';}return copy; }
@@ -44,6 +44,8 @@ export class SignalQueue extends EventEmitter {
       const timer = setTimeout(() => this.expire(e.id).catch(error => this.publish({type:'signal_error',id:e.id,error:error.message})), this.ttlSeconds * 1000);
       timer.unref(); this.#timers.set(e.id,timer);
       if (proposal.verdict.autoAccept) {
+        const blocked = await this.#refuseBlocked(e);
+        if (blocked) return blocked;
         try { await this.announce?.(this.get(e.id)); }
         catch (error) { return this.#move(e,'awaiting',{setupRequired:error.message,ruleId:'signals.speech_required'}); }
         await this.#move(e,'auto_accepted',{ruleId:proposal.verdict.ruleId});
@@ -52,10 +54,21 @@ export class SignalQueue extends EventEmitter {
       return this.#move(e,'awaiting');
     });
   }
+  async #refuseBlocked(e) {
+    const reason = this.acceptGuard?.(e.proposal.signal);
+    if (!reason) return null;
+    e.proposal.verdict = {...e.proposal.verdict, action:'REJECT', autoAccept:false,
+      ruleId:'signals.tilt_guard', why:[reason]};
+    return this.#move(e,'refused',{ruleId:'signals.tilt_guard'});
+  }
   async #accept(e, automatic = false, expectedFingerprint) {
     if (Date.now() >= e.expiresAt) return this.#move(e,'expired',{ruleId:'signals.expiry'});
+    let blocked = await this.#refuseBlocked(e);
+    if (blocked) return blocked;
     const fresh = this.gate ? await this.gate(this.get(e.id)) : e.proposal;
     if (Date.now() >= e.expiresAt) return this.#move(e,'expired',{ruleId:'signals.expiry'});
+    blocked = await this.#refuseBlocked(e);
+    if (blocked) return blocked;
     let original;try{original=fingerprint(trustedSignal(e));}catch{}
     if(expectedFingerprint&&original!==expectedFingerprint)throw Error('displayed signal fingerprint changed');
     if(expectedFingerprint){let updated;try{updated=fingerprint(trustedSignal({...e,proposal:fresh}));}catch{}if(updated!==original)return this.#move(e,'refused',{ruleId:'signals.quote_changed'});}

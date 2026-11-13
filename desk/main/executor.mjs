@@ -35,8 +35,8 @@ function saveJson(file, value) {
 }
 export class Executor {
   #pending = new Map(); #ledger; #file; #settings;
-  constructor({mem,signals,dir = appDataDir(),isArmed = () => true} = {}) {
-    Object.assign(this,{mem,signals,isArmed});this.dir=dir;this.crew=new CrewGate({dir,link:null,publish:e=>this.signals.publish(e)});
+  constructor({mem,signals,dir = appDataDir(),isArmed = () => true,guard} = {}) {
+    Object.assign(this,{mem,signals,isArmed,guard});this.dir=dir;this.crew=new CrewGate({dir,link:null,publish:e=>this.signals.publish(e)});
     this.permissions = new Permissions({dir}); this.wallet = new SessionWallet({dir});
     this.#file = path.join(dir,'execution-ledger.json'); this.#settings = path.join(dir,'wallet-mode.json');
     this.#ledger = readJson(this.#file,{});
@@ -97,6 +97,8 @@ export class Executor {
     if (!this.isArmed(id,proposal)) throw new Error('disarmed — re-arm before trading');
     if (entry?.state !== 'accepted' || Date.now() >= entry.expiresAt) throw new Error('signal is not accepted or has expired');
     const {brief,context} = this.#budget(await this.mem.recallBrief(),id), policy = this.permissions.read();
+    const blocked = this.guard?.(proposal.signal);
+    if (blocked) throw Error(blocked);
     const verdict = decide({...proposal.signal,sizeUsd:proposal.verdict.sizeUsd},brief,{policy,...context});
     if (verdict.action !== 'EXECUTE' || verdict.sizeUsd !== proposal.verdict.sizeUsd || (entry.automatic && !verdict.autoAccept))
       throw new Error(`execution gate refused: ${verdict.ruleId}: ${verdict.why.at(-1)}`);
@@ -183,6 +185,8 @@ export class Executor {
     await this.signals.transition(id,'signed');
     this.#ledger[id].status = 'signed'; this.#save();
     if(!this.isArmed(id,record.proposal))throw Error('disarmed — transaction not submitted');
+    const blocked = this.guard?.(record.proposal.signal);
+    if (blocked) throw Error(blocked);
     const signature = await record.connection.sendRawTransaction(tx.serialize(),{skipPreflight:false,maxRetries:3});
     this.#ledger[id].signature = signature; this.#save();
     this.signals.publish({type:'submitted',id,signature});
