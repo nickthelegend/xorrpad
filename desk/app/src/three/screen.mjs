@@ -5,81 +5,88 @@ export function firmwareModule() {
     /* @vite-ignore */ "/desktop/firmware-screen.js"
   ).then((m) => m.default({ locateFile: (f) => "/desktop/" + f })));
 }
-export async function drawFirmware(
-  canvas,
-  { device, status = {}, chart, pending, now = Date.now() } = {},
-) {
-  const m = await firmwareModule();
-  m._screen_reset();
-  const s = { ...device?.status, ...status };
-  const fields = {
-    ...s,
-    ok: !!device,
-    hasPnl: s.unrealised != null,
-    pending: !!pending,
-    link: device?.link || "",
-    signalId: pending?.id || "",
-    signalDeadline: pending ? Math.max(0, pending.expiresAt - now) : 0,
-  };
-  fields.killed=device?.killed===true;
-  const flatten=device?.flatten;
+// Values come from the records written to this pad, never from a recomputed proposal.
+export function firmwareFields({device, status = {}, now = Date.now()} = {}) {
+  const records=device?.screenRecords || {}, view=device?.view;
+  const age=r=>Math.max(0,now-Date.parse(r?.observedAt || '')) || 0;
+  const frameMillis=view?.millis==null?0:(view.millis+age(view))>>>0;
+  const at=r=>(frameMillis-age(r))>>>0;
+  const sent=[records.status,records.pulse].filter(Boolean).sort((a,b)=>(a.sequence || 0)-(b.sequence || 0));
+  const s=Object.assign({},status,device?.status,...sent);
+  const signal=records.signal;
+  const remaining=signal?Math.max(0,signal.remainingMs-age(signal)):0;
+  const fields={...s,frameMillis,ok:!!device,hasPnl:s.unrealised!=null,
+    pending:!!signal && remaining>0,link:device?.link || '',killed:device?.killed===true,
+    signalId:signal?.signalId || '',signalDeadline:(frameMillis+remaining)>>>0};
+  if(signal){
+    const t=signal.trusted || {};
+    Object.assign(fields,{market:signal.market,venue:signal.venue,verdict:`${signal.side} $${Number(signal.sizeUsd).toFixed(2)} ${signal.why || ''}`,
+      autoAccept:signal.autoAccept,signalSide:t.side ?? signal.side,signalSize:t.size ?? Number(signal.sizeUsd).toFixed(2),
+      signalPrice:t.price || '',signalFee:t.fee || '',fingerprint:signal.fingerprint || '',
+      signalReduceOnly:signal.reduceOnly===true,holdRequired:Number(t.size ?? signal.sizeUsd)>Number(signal.holdThreshold ?? 100)});
+  }
+  const fund=records.fund, portfolio=records.portfolio;
+  if(view?.screen==='fund' && fund)Object.assign(fields,{fundVisible:true,fundAddress:fund.address,fundUri:fund.uri,fundCluster:fund.cluster});
+  if(view?.screen==='portfolio' && portfolio){
+    Object.assign(fields,{portfolioVisible:true,portfolioMessage:portfolio.message || '',portfolioCluster:portfolio.cluster,portfolioTotal:portfolio.totalUsd ?? ''});
+    portfolio.rows?.slice(0,5).forEach((r,i)=>Object.assign(fields,{[`portfolioRow${i}Symbol`]:r.symbol,[`portfolioRow${i}Amount`]:r.amount,[`portfolioRow${i}Usd`]:r.usd ?? ''}));
+  }
+  const flatten=records.flatten || device?.flatten;
   if(flatten && fields.killed){
     Object.assign(fields,{flattenId:flatten.id,flattenState:flatten.state,flattenMessage:flatten.message,
       flattenOrders:flatten.orders,flattenPerps:flatten.perps,flattenOutcomes:flatten.outcomes,
-      flattenRemaining:Math.max(0,(flatten.remainingMs || 0)-(now-Date.parse(flatten.observedAt)))});
+      flattenRemaining:flatten.remainingMs || 0,flattenAt:at(flatten),flattenPage:view?.screen==='flatten'?view.selected:0});
     flatten.rows?.forEach((row,i)=>fields[`flattenRow${i}`]=row);
   }
-  if(device?.view?.screen==='ambient' && device.ambient && now-Date.parse(device.ambient.observedAt)<90000){
-    const a=device.ambient;
-    Object.assign(fields,{ambientVisible:true,ambientEpoch:a.epoch+Math.max(0,Math.floor((now-Date.parse(a.observedAt))/1000)),ambientPrice:a.price ?? '',ambientPnl:a.pnl ?? '',ambientFunding:a.nextFunding ?? '',ambientHours:a.hours,ambientCrew:a.crew});
-    a.closes?.forEach((v,i)=>fields[`ambientClose${i}`]=v);
+  const ambient=records.ambient || device?.ambient;
+  if(view?.screen==='ambient' && ambient){
+    Object.assign(fields,{ambientVisible:true,ambientAt:at(ambient),ambientEpoch:ambient.epoch,ambientPrice:ambient.price ?? '',ambientPnl:ambient.pnl ?? '',ambientFunding:ambient.nextFunding ?? '',ambientHours:ambient.hours,ambientCrew:ambient.crew});
+    ambient.closes?.forEach((v,i)=>fields[`ambientClose${i}`]=v);
   }
-  if(device?.view?.screen==='journal'){
-    fields.journalVisible=true;fields.journalHealthy=device.journal?.healthy ?? false;fields.journalSelected=device.view.selected || 0;
+  if(view?.screen==='journal'){
+    fields.journalVisible=true;fields.journalHealthy=device.journal?.healthy ?? false;fields.journalSelected=view.selected || 0;
     device.journal?.entries?.forEach((r,i)=>{for(const k of ['id','time','action','market','size','venue','result','signature','reason'])fields[`journalRow${i}${k[0].toUpperCase()+k.slice(1)}`]=r[k];});
   }
-  if(device?.view?.screen==='scan' && device.scan && now-device.scanAt<8000){
-    fields.scanSummary=device.scan.summary;
-    fields.scanChecked=device.scan.checkedCount;fields.scanUnavailable=device.scan.unavailableCount;
-    fields.scanTop=device.scan.top ? `${device.scan.top.side} ${device.scan.top.symbol} / ${device.scan.top.strategy}` : '';
-    device.scan.markets?.forEach((m,i)=>fields[`scanMarket${i}`]=m.symbol+(m.error?' (unavailable)':''));
+  const scan=records.scan || device?.scan;
+  if(view?.screen==='scan' && scan){
+    fields.scanSummary=scan.summary;fields.scanAt=records.scan?at(scan):(frameMillis-Math.max(0,now-device.scanAt))>>>0;
+    fields.scanChecked=scan.checkedCount;fields.scanUnavailable=scan.unavailableCount;
+    fields.scanTop=scan.top ? `${scan.top.side} ${scan.top.symbol} / ${scan.top.strategy}` : '';
+    scan.markets?.forEach((m,i)=>Object.assign(fields,{[`scanMarket${i}`]:m.symbol,[`scanError${i}`]:m.error || ''}));
   }
   const tilt=device?.tiltGuard;
-  if(tilt) {
-    const elapsed=Math.max(0,Math.floor((now-Date.parse(tilt.observedAt))/1000));
-    const fresh=elapsed<15;
+  if(tilt){
+    const elapsed=Math.floor(age(tilt)/1000),fresh=elapsed<15;
     Object.assign(fields,{tiltBlocked:tilt.blocked || !fresh,tiltReason:fresh?tilt.reason:'Setup required: refresh pad state',
       tiltRemaining:Math.max(0,tilt.remainingSeconds-elapsed),tiltDuration:tilt.durationSeconds,
-      tiltAllowed:pending?.proposal?.signal?.reduceOnly===true});
+      tiltAllowed:signal?.reduceOnly===true});
   }
-  const guard=device?.liqGuard;
-  if(guard?.active && now-Date.parse(guard.observedAt)<30000)Object.assign(fields,{liqActive:true,liqMarket:guard.market,liqVenue:guard.proposal?.venue,liqMark:guard.mark,liqPrice:guard.liq,liqDistance:guard.distancePct});
-  const perps=device?.perps;
-  if(perps) {
-    fields.perpsMessage=perps.message || '';
-    if(now-Date.parse(perps.observedAt)<30000) {
-      fields.positionsScreen=!pending && !guard?.active && Math.floor(now/6000)%2===1;
-      perps.positions?.slice(0,6).forEach((p,i)=>Object.assign(fields,{[`perpRow${i}Market`]:p.market,[`perpRow${i}Venue`]:p.venue,[`perpRow${i}Side`]:p.side,
-        [`perpRow${i}Entry`]:p.entry ?? '',[`perpRow${i}Mark`]:p.mark ?? '',[`perpRow${i}Leverage`]:p.leverage ?? '',[`perpRow${i}Liq`]:p.liq ?? '',[`perpRow${i}Distance`]:p.distancePct ?? '',[`perpRow${i}Funding`]:p.nextFunding ?? ''}));
-    }
+  const guard=records.liq_guard || device?.liqGuard;
+  if(guard)Object.assign(fields,{liqActive:guard.active===true,liqAt:at(guard),liqMarket:guard.market,liqVenue:guard.proposal?.venue,liqMark:guard.mark,liqPrice:guard.liq,liqDistance:guard.distancePct});
+  const perps=records.perps || device?.perps;
+  if(perps){
+    fields.perpsMessage=perps.message || '';fields.perpsAt=at(perps);
+    fields.positionsScreen=view?.screen==='positions' && view.millis==null; // Clocked pads use their automatic firmware pages.
+    perps.positions?.slice(0,6).forEach((p,i)=>{for(const [key,value] of Object.entries({Market:p.market,Venue:p.venue,Side:p.side,Entry:p.entry,Mark:p.mark,Leverage:p.leverage,Liq:p.liq,Distance:p.distancePct,Funding:p.nextFunding}))fields[`perpRow${i}${key}`]=value ?? '';});
   }
-  const predict=device?.predict, market=now-Date.parse(predict?.observedAt)<(predict?.validForMs ?? 30000)?predict?.markets?.[device?.predictSelected || 0]:null;
-  if(predict)Object.assign(fields,{predictEnabled:predict.enabled,predictMessage:predict.message,predictSize:predict.sizeUsd || 1,predictTotal:predict.total || 0,predictOffset:predict.offset || 0,
-    ...(market?{predictQuestion:market.question,predictProbability:market.probability,predictChange:market.change24h ?? "",
-      predictClosesIn:Math.max(0,market.closesIn-Math.floor((now-Date.parse(predict.observedAt))/1000))}:{})});
-  const outcomes=device?.outcomePositions;
-  if(outcomes && predict?.enabled) {
-    Object.assign(fields,{outcomeVisible:true,outcomeMessage:outcomes.message || ""});
+  fields.positionCount=s.positions ?? -1;
+  s.positionDetails?.slice(0,8).forEach((p,i)=>Object.assign(fields,{[`spotRow${i}Market`]:p.market,[`spotRow${i}Qty`]:p.qty,[`spotRow${i}Pnl`]:p.pnl ?? ''}));
+  const predict=records.predict || device?.predict;
+  const selected=view?.screen==='predict'?view.selected:device?.predictSelected || 0;
+  const market=predict?.markets?.[selected];
+  if(predict)Object.assign(fields,{predictEnabled:predict.enabled,predictAt:at(predict),predictMessage:predict.message,predictSize:predict.sizeUsd || 1,predictValidFor:predict.validForMs ?? 30000,predictTotal:predict.total || 0,predictOffset:(predict.offset || 0)+selected,
+    ...(market?{predictQuestion:market.question,predictProbability:market.probability,predictChange:market.change24h ?? '',predictClosesIn:market.closesIn}:{})});
+  const outcomes=records.outcome_positions || device?.outcomePositions;
+  if(outcomes && view?.screen==='outcomes'){
+    Object.assign(fields,{outcomeVisible:true,outcomeMessage:outcomes.message || ''});
     outcomes.positions?.forEach((p,i)=>Object.assign(fields,{[`outcomeRow${i}Question`]:p.name,[`outcomeRow${i}Yes`]:p.yes,[`outcomeRow${i}No`]:p.no}));
   }
-  if (pending) {
-    fields.signalReduceOnly=pending.proposal.signal.reduceOnly===true;
-    fields.market = pending.proposal.signal.symbol;
-    fields.verdict =
-      pending.proposal.signal.side.toUpperCase() +
-      " · " +
-      pending.proposal.verdict.why.join(" · ");
-  }
+  return fields;
+}
+export async function drawFirmware(canvas, input = {}) {
+  const m=await firmwareModule(), fields=firmwareFields(input);
+  const {chart}=input;
+  m._screen_reset();
   for (const [k, v] of Object.entries(fields))
     if (v != null && typeof v !== "object")
       m.ccall(
@@ -96,7 +103,7 @@ export async function drawFirmware(
       null,
       ["string", "number", "number", "number"],
       [
-        chart.symbol || s.market || "",
+        chart.symbol || fields.market || "",
         chart.price || 0,
         chart.change24h || 0,
         Number(chart.change24h != null),

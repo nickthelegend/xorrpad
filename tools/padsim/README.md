@@ -187,3 +187,10 @@ and key dismissal to the production C++ scan state in `ambient-driver`.
 dismisses the answer; KILL retains its safety path. `pad_view` reports SCAN/Home
 for the firmware WASM mirror. `desk/test/pad-scan.test.mjs` exercises both actual
 SCAN routes and checks Markets/Activity at 1440/375 without API interception.
+
+F9: `MirrorPadSimulator` in `mirror.mjs` extends the encrypted SCAN/journal
+simulator with public Fund/Portfolio/outcome visibility, selected view and uptime.
+It consumes wallet dismissal, retaining the original signing/tilt/kill gates.
+The F9 desk test disables the link heartbeat and uses real KILL/re-arm and
+missing-wallet routes; canvas/native tests cover every requested screen and
+firmware paging without substituting any external API response.

@@ -8,6 +8,18 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [4.0.0] — 2026-11-13
 
+### Added — F9: Desktop pad screen mirror
+
+- The 3D pad draws Fund, Portfolio, SCAN, Predict, outcome positions, perp
+  positions, LIQ GUARD, Cooldown, Flatten, Journal and the ambient clock from
+  the public records written to its transport, with pad-reported selection and
+  uptime for firmware paging and timers. Cached wallet records close with the pad.
+- Decision venue, size, price, fee and fingerprint come from the sent signal;
+  kill/re-arm push status immediately. Only the model refreshes on screen events.
+- A desktop test per screen compares the real drawFirmware canvas to compiled
+  native firmware; encrypted padsim covers status transitions and actual Setup.
+  Existing desktop styling, consent rules and earlier features remain intact.
+
 ### Added — F8: SCAN answers
 
 - SCAN/BASE and the live scan route publish bounded public pad answers with

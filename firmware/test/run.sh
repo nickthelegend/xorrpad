@@ -29,3 +29,6 @@ clang++ -std=c++17 -O1 -Wall -Wextra -Werror -I"$JSON_SRC" firmware/test/tilt-dr
 clang++ -std=c++17 -O1 -Wall -Wextra -Werror -I"$JSON_SRC" firmware/test/earcon-driver.cpp -o firmware/build/earcon-driver
 
 clang++ -std=c++17 -O1 -Wall -Wextra -Werror -I"$JSON_SRC" firmware/test/ambient-driver.cpp -o firmware/build/ambient-driver
+
+clang++ -std=c++17 -Wall -Wextra -Werror -Itools/uipreview/shim firmware/test/mirror-view.cpp -o firmware/build/mirror-view-tests
+firmware/build/mirror-view-tests

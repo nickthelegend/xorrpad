@@ -1,0 +1,13 @@
+{
+  "provenance": "Actual encrypted F9 pad link after real rearm and missing-wallet Portfolio request; heartbeat disabled during status assertions.",
+  "record": {
+    "type": "portfolio",
+    "address": null,
+    "cluster": null,
+    "totalUsd": null,
+    "rows": [],
+    "message": "Create your agent wallet in XOR Desktop",
+    "observedAt": "2026-11-13T04:16:45.662Z",
+    "sequence": 9
+  }
+}

@@ -84,6 +84,23 @@ inline bool padScanVisible(const PadState &p,uint32_t now) {
   !p.alertsOnly && !p.pairCode.length() && !p.abilityReview && !p.tiltBlocked && !p.listening && !p.liqGuard.fresh(now);
 }
 
+// The mirror uses the same visibility priority and pad uptime, including automatic pages.
+inline const char *padMirrorView(const PadState &p,uint32_t now) {
+ if(p.killed)return p.flatten.visible() && !p.rearmRequested?"flatten":"killed";
+ if(p.tiltBlocked && !(p.pending && p.tiltAllowed) && !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible && !(p.liqGuard.fresh(now) && !p.pending))return "cooldown";
+ if(padScanVisible(p,now))return "scan";
+ if(p.pending && p.ok)return "decision";
+ if(p.ok && !p.listening && p.liqGuard.fresh(now))return "liq_guard";
+ if(p.fund.visible)return "fund";
+ if(p.portfolio.visible)return "portfolio";
+ if(p.predict.positionsVisible)return "outcomes";
+ if(p.journal.visible)return "journal";
+ if(p.ambient.visible)return "ambient";
+ if(p.predict.enabled)return "predict";
+ if(p.positionsVisible || (p.positionCount>=0 && (now/6000)%2==1))return "positions";
+ return "home";
+}
+
 // GET /pad/chart — the market in hand as hourly closes, for the display pod.
 struct ChartState {
   bool    ok = false;

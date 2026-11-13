@@ -291,6 +291,7 @@ export class PadLink extends EventEmitter {
           ambient:p.ambient,
           scan:p.scan,scanAt:p.scanAt,
           view:p.view,
+          screenRecords:p.screenRecords,
           journal:this.journals.get(p.device),
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
@@ -305,10 +306,13 @@ export class PadLink extends EventEmitter {
   }
   getStatus(peer) {
     try {
+      const status=this.status();
       return {
         type: "status",
-        ...this.status(),
+        ...status,
         ...this.options,
+        armed:!this.killed.has(peer.device) && status.armed===true,
+        autoAccept:!this.killed.has(peer.device) && status.autoAccept===true,
         killed: this.killed.has(peer.device),
         rearmRequested:this.killed.has(peer.device) && Date.now()<(peer.rearmUntil || 0),
         link: peer.name,
@@ -318,6 +322,8 @@ export class PadLink extends EventEmitter {
         type: "status",
         armed: false,
         autoAccept: false,
+        killed:this.killed.has(peer.device),
+        rearmRequested:this.killed.has(peer.device) && Date.now()<(peer.rearmUntil || 0),
         venue: "",
         link: peer.name,
       };
@@ -366,6 +372,23 @@ export class PadLink extends EventEmitter {
       p.close();
     }
   }
+  screenEvent(p) {
+    this.signals?.publish({type:'pad_screen',device:p.device,screen:{screenRecords:p.screenRecords,view:p.view,killed:this.killed.has(p.device),tiltGuard:p.tiltGuard,journal:this.journals.get(p.device)}});
+  }
+  // Only public display records, retained when written to the transport (not queued).
+  screenSent(p, m) {
+    if (!['status','pulse','signal','signal_state','fund','portfolio','predict','outcome_positions','perps','liq_guard','flatten','ambient','scan'].includes(m.type)) return;
+    p.screenRecords ||= {};
+    p.screenRecords[m.type] = {...m, observedAt:new Date().toISOString(),sequence:(p.screenSequence=(p.screenSequence || 0)+1)};
+    if(m.type==='signal_state' && m.signalId===p.screenRecords.signal?.signalId && m.state!=='awaiting')delete p.screenRecords.signal;
+    if(m.type==='signal')delete p.screenRecords.signal_state;
+    if(m.type==='status' && m.killed)delete p.screenRecords.signal;
+    this.screenEvent(p);
+  }
+  pushStatus(device) {
+    for(const peer of this.peers)if(peer.device===device)this.send(peer,this.getStatus(peer));
+    this.signals?.publish({type:'pad_link',...this.snapshot()});
+  }
   send(p, m) {
     if (!this.peers.has(p)) return;
     if (p.secure) {
@@ -404,6 +427,7 @@ export class PadLink extends EventEmitter {
       throw new Error("outbound pad record too large");
     try {
       p.write(line);
+      this.screenSent(p,m);
     } catch {
       this.remove(p);
     }
@@ -476,6 +500,7 @@ export class PadLink extends EventEmitter {
     if (!next) return;
     try {
       p.write(p.secure.seal(next));
+      this.screenSent(p,next);
     } catch {
       this.remove(p);
     }
@@ -1264,8 +1289,9 @@ export class PadLink extends EventEmitter {
       if (m.type === "kill") {
         this.flatten?.cancel(p.device);
         this.killed.add(p.device);
+        this.pushStatus(p.device);
         await this.request("/key", { id: "kill" });
-        this.send(p,this.getStatus(p));
+        this.pushStatus(p.device);
         this.startFlatten(p);
         this.signals?.publish({type:'pad_link',...this.snapshot()});
         this.send(p, { type: "result", id: m.id, ok: true });
@@ -1277,9 +1303,9 @@ export class PadLink extends EventEmitter {
           throw Error("rearm hold required");
         p.rearmUntil = 0;
         this.killed.delete(p.device);
-        try{if(!this.killed.size)await this.request("/arm",{});}catch(e){this.killed.add(p.device);throw e;}
+        try{if(!this.killed.size)await this.request("/arm",{});}catch(e){this.killed.add(p.device);this.pushStatus(p.device);throw e;}
         this.send(p, { type: "rearm_complete" });
-        this.flatten?.cancel(p.device);p.flatten=null;this.send(p,this.getStatus(p));
+        this.flatten?.cancel(p.device);p.flatten=null;this.pushStatus(p.device);
         this.signals?.publish({type:'pad_link',...this.snapshot()});
         return;
       }
@@ -1317,8 +1343,10 @@ export class PadLink extends EventEmitter {
       const record=journalRecord(p,m);if(record){this.journals.set(p.device,record);this.signals?.publish({type:'pad_journal',device:p.device,revision:record.revision});}return;
     }
     if(m.type==="pad_view") {
-      if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal','scan'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
-      p.view={screen:m.screen,selected:m.selected,observedAt:new Date().toISOString()};return;
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal','scan','fund','portfolio','outcomes','predict','positions','liq_guard','cooldown','flatten','decision','killed'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
+      if(m.millis!=null && (!Number.isInteger(m.millis) || m.millis<0 || m.millis>0xffffffff))throw Error('invalid pad clock');
+      p.view={screen:m.screen,selected:m.selected,millis:m.millis,observedAt:new Date().toISOString()};
+      this.screenEvent(p);return;
     }
     if(m.type==="earcon") {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p || typeof m.audible!=="boolean" || !Number.isInteger(m.volume) || m.volume<0 || m.volume>100 || !['accept','refuse','fill','alert','liq_alarm','kill','cooldown','tick'].includes(m.kind))throw Error("verified earcon required");

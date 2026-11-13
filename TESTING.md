@@ -2620,3 +2620,63 @@ screenshots are restored. No signing step, board flash or push was performed.
 Physical NVS endurance, panel and knob timing remain board checks.
 
 Public local evidence: `firmware/build/f6-{native,app-build,pro,core,desk,killed-journal,uipreview}.log`.
+
+## Firmware v4 F9 — Desktop pad mirror (2026-11-13)
+
+The required isolated desktop command is run from the repository root, with no
+other test suite or compile alongside it:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+F9 adds 16 desk cases. Each requested screen has a browser/native frame test
+using the actual `drawFirmware` adapter and canvas, rather than setting WASM
+fields directly on both sides. Coverage includes Fund QR, unpriced and Setup
+Portfolio, SCAN errors/expiry, selected Predict market and quote expiry, paged
+outcome positions, spot/perp pages with missing venue values, LIQ GUARD expiry,
+Cooldown countdown/unknown state, paged Flatten/re-arm, selected Journal and
+unhealthy storage, ambient clock/unknown feeds, and the filmed Meteora signal
+versus stale Jupiter proposal/status. Transport tests cover write-versus-queue
+retention, bounded view/clock metadata and the display-record allowlist.
+
+The encrypted/native padsim test disables the desk heartbeat, holds KILL and
+re-arm deliberately, checks the immediately sent status and mirror fields,
+requests the real missing-wallet Portfolio and asserts no accepted/signed/
+executed decision. Public release records are replayed for 12 mirror captures;
+financial layout vectors retain their explicit source labels and never replace
+an external API. The actual Setup response and Portfolio canvas, native
+uipreview frame and approved Device layout at 1440/375 are retained under
+`docs/screens/v4/mirror-*` and visually checked.
+
+`bash firmware/test/run.sh` exits **0**: **306 cases / 4,494 assertions / 0
+failures**, followed by **22** standalone checks of the production firmware
+view-priority helper. Existing trade, signer, tilt, KILL and journal cases remain
+unchanged. Both unsigned Arduino CLI compile-only commands exit **0**, reusing
+the existing Pro/Core build caches and ESP32-S3 16 MB / OPI PSRAM FQBN, with
+`--jobs 4` and `CONFIG_BT_NIMBLE_SM_SC_ONLY=1` in C/C++. Core also uses
+`XORR_CORE=1`, `XORR_RELEASE=1` and `CORE_DEBUG_LEVEL=0`.
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 2,031,062 | 69,644 |
+| Core release | 2,012,055 | 69,348 |
+
+The native/WASM binding now accepts the pad's monotonic clock and each record's
+age, trusted decision text/hold fields, spot positions, scan error flags and
+prediction TTL. `ui.h` is unchanged; the shipped WASM is rebuilt with
+`EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' bash tools/uipreview/build-web-screen.sh`.
+SHA-256: `6245d69c0b227bd52db92274298f44c47db4a278765cd8ded1333c844dcf7d33`.
+`make -C tools/uipreview` and the app build pass. The original model3d CAD/art
+checks and native/WASM offline/Home parity pass in the complete desk run.
+Compile-only firmware is neither signed nor flashed; physical panel timing and
+transport/clock drift remain hardware checks. No key files are opened; no push occurs.
+
+The final complete desktop run exits **0**: **301 tests / 292 passed / 9 existing
+skips / 0 failures / 0 cancellations**, **1,132,069.66725 ms**. Its pretest app
+build succeeds, all 16 F9 cases pass, and all earlier cases that run pass. The
+existing unavailable-venue, Electron, authority and funded-devnet skips are
+retained; no tests are removed, weakened or changed into skips. Historical v3
+and earlier v4 screenshots rewritten by the suite are restored. New F9 captures
+are retained. Local evidence is in `firmware/build/f9-{desk,native,pro,core,
+app-build,uipreview}.log`.

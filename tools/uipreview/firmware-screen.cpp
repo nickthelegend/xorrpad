@@ -1,16 +1,32 @@
 // Browser binding of the EXACT firmware ui.h + Adafruit_GFX. No replica drawing code.
+#define SCREEN_CLOCK
 #include "shim/Arduino.h"
 #include <Adafruit_GFX.h>
 #include "../../firmware/xorrpad/ui.h"
 static PadState pad; static ChartState chart;
 static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
-void screen_reset(){pad=PadState();chart=ChartState();}
+void screen_reset(){pad=PadState();chart=ChartState();screenMillis=0;}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"frameMillis")){screenMillis=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"scanAt")){pad.scan.receivedAt=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"ambientAt")){pad.ambient.receivedAt=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"predictAt")){pad.predict.receivedAt=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"perpsAt")){pad.perps.at=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"liqAt")){pad.liqGuard.at=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"flattenAt")){pad.flatten.at=strtoul(v,nullptr,10);return;}
+ if(!strcmp(k,"positionCount")){pad.positionCount=atoi(v);return;}
+ if(!strncmp(k,"spotRow",7) && k[7]>='0' && k[7]<='7'){
+  size_t i=k[7]-'0';pad.positionN=std::max(size_t(pad.positionN),i+1);auto &r=pad.positions[i];
+  if(!strcmp(k+8,"Market"))r.market=v;else if(!strcmp(k+8,"Qty"))r.qty=atof(v);
+  else if(!strcmp(k+8,"Pnl")){r.hasPnl=strlen(v)>0;r.pnl=atof(v);}return;
+ }
+
  if(!strcmp(k,"scanSummary")){pad.scan.summary=v;pad.scan.visible=true;return;}
  if(!strcmp(k,"scanChecked")){pad.scan.checkedCount=atoi(v);return;}
  if(!strcmp(k,"scanUnavailable")){pad.scan.unavailableCount=atoi(v);return;}
  if(!strcmp(k,"scanTop")){pad.scan.top=v;return;}
+ if(!strncmp(k,"scanError",9)){size_t i=atoi(k+9);if(i<6){pad.scan.markets.resize(std::max(pad.scan.markets.size(),i+1));pad.scan.markets[i].error=v;}return;}
  if(!strncmp(k,"scanMarket",10)){pad.scan.markets.push_back({v,""});return;}
  if(!strcmp(k,"journalVisible")){pad.journal.visible=atoi(v)!=0;return;}
  if(!strcmp(k,"journalHealthy")){pad.journal.healthy=atoi(v)!=0;return;}
@@ -66,6 +82,7 @@ void screen_set(const char *k,const char *v){
  }
  if(!strcmp(k,"predictEnabled")){pad.predict.enabled=atoi(v)!=0;return;}
  if(!strcmp(k,"predictSize")){pad.predict.sizeUsd=atof(v);return;}
+ if(!strcmp(k,"predictValidFor")){pad.predict.validForMs=atoi(v);return;}
  if(!strcmp(k,"predictTotal")){pad.predict.total=atoi(v);return;}
  if(!strcmp(k,"predictOffset")){pad.predict.offset=atoi(v);return;}
  if(!strcmp(k,"predictMessage")){pad.predict.message=v;return;}
@@ -100,10 +117,10 @@ void screen_set(const char *k,const char *v){
  }
 
 #define S(name) if(!strcmp(k,#name)){pad.name=String(v);return;}
- S(agent) S(market) S(mode) S(verdict) S(chain) S(venue) S(hoursState) S(hoursNote) S(nyTime) S(link) S(signalId) S(receiptSignature) S(receiptExplorer) S(lastKeyLabel)
+ S(signalSide) S(signalSize) S(signalPrice) S(signalFee) S(fingerprint) S(agent) S(market) S(mode) S(verdict) S(chain) S(venue) S(hoursState) S(hoursNote) S(nyTime) S(link) S(signalId) S(receiptSignature) S(receiptExplorer) S(lastKeyLabel)
 #undef S
 #define B(name) if(!strcmp(k,#name)){pad.name=atoi(v)!=0;return;}
- B(killed) B(rearmRequested) B(signalReduceOnly) B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
+ B(holdRequired) B(killed) B(rearmRequested) B(signalReduceOnly) B(ok) B(armed) B(pending) B(chainOk) B(remembers) B(hasPnl) B(autoAccept) B(marketOpen)
 #undef B
 #define N(name) if(!strcmp(k,#name)){pad.name=atof(v);return;}
  N(price) N(unrealised) N(spentToday) N(dayLimit) N(signalDeadline) N(receiptUntil) N(labelUntil)

@@ -42,7 +42,12 @@ class __FlashStringHelper;
 inline float radians(float deg) { return deg * 0.017453292519943295f; }
 inline float degrees(float rad) { return rad * 57.29577951308232f; }
 
+#ifdef SCREEN_CLOCK
+inline uint32_t screenMillis=0;
+inline uint32_t millis() { return screenMillis; }
+#else
 inline uint32_t millis() { return 0; }
+#endif
 inline void delay(uint32_t) {}
 inline long random(long a, long b) { return a + (b > a ? std::rand() % (b - a) : 0); }
 inline void yield() {}

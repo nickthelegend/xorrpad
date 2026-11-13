@@ -897,10 +897,12 @@ void loop() {
   bool ambient=accessibility.idle.ambientDue(millis(),presentationHome(pad),accessibility.ambientEnabled);
   if(ambient!=pad.ambient.visible){pad.ambient.visible=ambient;screenDirty=true;}
   screen.brightness(ambient?std::min(40,accessibility.brightness(accessibility.idle.last)):accessibility.brightness(millis()));
-  static int lastScan=-1,lastAmbient=-1,lastJournal=-1,lastSelected=-1;static uint32_t viewEpoch=0;
-  if(padlink.secureReady() && (lastScan!=int(padScanVisible(pad,millis())) || lastAmbient!=int(ambient) || lastJournal!=int(pad.journal.visible) || lastSelected!=int(pad.journal.selected) || viewEpoch!=padlink.connectionEpoch())){
-    JsonDocument view;view["type"]="pad_view";view["screen"]=padScanVisible(pad,millis())?"scan":pad.journal.visible?"journal":ambient?"ambient":"home";view["selected"]=pad.journal.selected;padlink.send(view);
-    lastScan=padScanVisible(pad,millis());lastJournal=pad.journal.visible;lastSelected=pad.journal.selected;lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
+  static String lastView;static int lastSelected=-1;static uint32_t viewEpoch=0,lastViewAt=0;
+  String mirrorView=padMirrorView(pad,millis());
+  int mirrorSelected=mirrorView=="journal"?pad.journal.selected:mirrorView=="predict"?pad.predict.selected:mirrorView=="flatten"?pad.flatten.page:0;
+  if(padlink.secureReady() && (lastView!=mirrorView || lastSelected!=mirrorSelected || viewEpoch!=padlink.connectionEpoch() || uint32_t(millis()-lastViewAt)>=1000)){
+    JsonDocument view;view["type"]="pad_view";view["screen"]=mirrorView;view["selected"]=mirrorSelected;view["millis"]=millis();padlink.send(view);
+    lastView=mirrorView;lastSelected=mirrorSelected;lastViewAt=millis();viewEpoch=padlink.connectionEpoch();
   }
   static uint32_t ambientSecond=0;
   if(ambient && ambientSecond!=millis()/1000){ambientSecond=millis()/1000;screenDirty=true;}

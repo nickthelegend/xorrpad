@@ -524,3 +524,42 @@ both real SCAN routes, checks exactly one Activity row per scan, read-only YES,
 refresh, and 1440/375 layouts. Native/WASM parity adds Setup and pending-top-setup
 frames. `docs/screens/v4/scan-record.json` records live/Setup provenance for the
 native `scan.png` frame and desktop captures. No external API responses are mocked.
+
+## F9 — Desktop 3D pad mirror
+
+The model's `drawFirmware` adapter uses the public `screenRecords` in
+`/desk/link`, retained when the link writes a record rather than when it queues
+one. It renders Fund, Portfolio, SCAN, Predict, outcome positions, spot/perp
+Positions, LIQ GUARD, Cooldown, Flatten, Journal and Ambient through the shipped
+WASM compiled from the same `ui.h`. The latest signal supplies the exact displayed
+venue, size, price, fee, fingerprint, reduction flag and confirmation deadline;
+a separately fetched desktop proposal cannot replace it.
+
+Verified `pad_view` reports add the screen name, selected journal/market/plan
+page and uint32 pad uptime. A view/selection change is sent immediately, with a
+one-second clock update; the Core build sends the same metadata. The browser
+extrapolates that uptime and preserves each sent record's age, so firmware page
+cycling, quote expiry, scan expiry, funding/clock and plan timers use their normal
+render paths. Dismissed Fund, Portfolio and outcome records remain cached without
+reopening. Missing values retain firmware Setup/unavailable states. This is a
+presentation-only report; it cannot accept a proposal, clear tilt or change caps.
+
+The link publishes scoped screen events to the model, including locally reported
+tilt/journal state. It does not refresh every desktop panel for clock ticks. Kill
+and completed re-arm push authoritative status to the device and browser without
+waiting for the five-second link tick or fifteen-second desktop poll; queued
+pre-kill decisions cannot reappear after re-arm. The existing deliberate holds,
+YES, clear-sign, reduce-only restrictions and session policy retain authority.
+
+`pad-mirror.test.mjs` exercises each screen's actual browser canvas against an
+independently specified native firmware frame, plus stale feeds, selected pages,
+dismissal and the filmed Meteora/Jupiter decision mismatch. The encrypted
+`MirrorPadSimulator` extends the existing native signing/tilt/scan/journal driver
+chain; its real-server test disables the desk heartbeat, performs KILL/re-arm,
+checks immediate sent status, requests the actual missing-wallet Portfolio and
+verifies no trade was accepted. `mirror-view.cpp` checks firmware view priorities.
+Committed replay captures identify their public release-record source; layout
+vectors remain explicitly labelled. `mirror-record.json` is the real Setup reply,
+with 1440/375 Device screenshots and the actual WASM Portfolio frame beside it.
+Physical display refresh, USB/BLE latency and hardware clock drift remain board
+checks. No desktop styles, signing keys or external API substitutions are involved.

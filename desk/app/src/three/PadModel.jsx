@@ -51,7 +51,17 @@ export function PadModel({
     [ready, setReady] = useState(false),
     [failed, setFailed] = useState(false),
     [layout, setLayout] = useState(null),
-    [live, setLive] = useState({});
+    [live, setLive] = useState({}),
+    [mirror, setMirror] = useState(null);
+  useEffect(() => {
+    const event=d.event;
+    if(event?.type==='pad_screen' && event.device===device?.device)setMirror({device:event.device,...event.screen});
+    if(event?.type==='pad_link'){
+      const current=event.devices?.find(p=>p.device===device?.device);
+      if(current)setMirror(current);
+    }
+  }, [d.event,device?.device]);
+  const mirrorDevice=mirror?.device===device?.device?{...device,...mirror}:device;
   useEffect(() => {
     const q = matchMedia("(prefers-reduced-motion: reduce)"),
       change = () => setReduced(q.matches);
@@ -179,7 +189,7 @@ export function PadModel({
             <Scene
               layout={layout}
               keys={keys}
-              device={device}
+              device={mirrorDevice}
               pending={pending}
               status={live.status}
               chart={live.chart}

@@ -1,0 +1,65 @@
+{
+  "renderer": "Actual drawFirmware canvas / shipped firmware-screen.wasm; replayed public records, not new financial reads or trades.",
+  "captures": [
+    {
+      "file": "mirror-pad-predict.png",
+      "source": "release-pad-records.json#predict",
+      "provenance": "Actual public pm-AMM devnet record from the isolated feature suite; replayed snapshot, not a new trade."
+    },
+    {
+      "file": "mirror-pad-outcome-positions.png",
+      "source": "release-pad-records.json#outcome-positions",
+      "provenance": "Actual missing-owner Setup response from the isolated feature suite."
+    },
+    {
+      "file": "mirror-pad-perps-positions.png",
+      "source": "release-pad-records.json#perps-positions",
+      "provenance": "Actual missing-authority perp response from the isolated feature suite."
+    },
+    {
+      "file": "mirror-pad-perps-cockpit-layout.png",
+      "source": "release-pad-records.json#perps-cockpit-layout",
+      "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live position claim."
+    },
+    {
+      "file": "mirror-pad-liq-guard-layout.png",
+      "source": "release-pad-records.json#liq-guard-layout",
+      "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live liquidation claim."
+    },
+    {
+      "file": "mirror-pad-cooldown-layout.png",
+      "source": "release-pad-records.json#cooldown-layout",
+      "provenance": "LAYOUT TEST: explicit local countdown vector; no invented trading loss."
+    },
+    {
+      "file": "mirror-pad-cooldown-setup.png",
+      "source": "release-pad-records.json#cooldown-setup",
+      "provenance": "Native missing-UTC Setup state; no invented clock or trading loss."
+    },
+    {
+      "file": "mirror-pad-flatten-layout.png",
+      "source": "release-pad-records.json#flatten-layout",
+      "provenance": "LAYOUT TEST: local plan vector; no live trades or external API substitution."
+    },
+    {
+      "file": "mirror-pad-flatten-setup.png",
+      "source": "release-pad-records.json#flatten-setup",
+      "provenance": "Actual missing-authority flatten response from the isolated feature suite."
+    },
+    {
+      "file": "mirror-pad-ambient.png",
+      "source": "release-pad-records.json#ambient",
+      "provenance": "Feature-suite desk record or explicit unavailable-feed state; no substituted price."
+    },
+    {
+      "file": "mirror-pad-journal.png",
+      "source": "release-pad-records.json#journal",
+      "provenance": "Actual empty pad NVS-driver snapshot from the isolated feature suite."
+    },
+    {
+      "file": "mirror-pad-journal-layout.png",
+      "source": "release-pad-records.json#journal-layout",
+      "provenance": "LAYOUT TEST: local failed decision, not an external response, fill, signature or realized PnL."
+    }
+  ]
+}
