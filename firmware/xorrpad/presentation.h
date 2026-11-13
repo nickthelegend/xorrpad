@@ -4,6 +4,7 @@
 #include "padstate.h"
 #include "logic/predict.h"
 #include "logic/ambient.h"
+#include "logic/scan.h"
 #include "logic/perps.h"
 #include "logic/flatten.h"
 #include "logic/presentation.h"
@@ -11,7 +12,7 @@
 #include "logic/fund.h"
 
 inline bool presentationConfirmationVisible(const PadState &pad) {
-  return xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed && !(pad.clearSigning && pad.flatten.review(std::string(pad.signalId.c_str()))),
+  return !padScanVisible(pad,millis()) && xorr::confirmationVisible(pad.ok,pad.pending,pad.factory,pad.killed && !(pad.clearSigning && pad.flatten.review(std::string(pad.signalId.c_str()))),
     pad.updating,pad.errorCode.length(),pad.pairCode.length(),pad.tiltBlocked,pad.tiltAllowed);
 }
 inline bool presentationWalletVisible(const PadState &pad) {
@@ -35,7 +36,7 @@ inline bool presentationPredictVisible(const PadState &p) {
 }
 
 inline bool presentationHome(const PadState &p) {
- return !p.journal.visible && !p.pending && !p.killed && !p.factory && !p.updating && !p.tiltBlocked && !p.liqGuard.fresh(millis()) &&
+ return !p.scan.fresh(millis()) && !p.journal.visible && !p.pending && !p.killed && !p.factory && !p.updating && !p.tiltBlocked && !p.liqGuard.fresh(millis()) &&
   !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview && !p.listening &&
   !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible && !p.predict.enabled && !p.positionsVisible &&
   !p.reply.length() && !p.abilityWidget.length() && (int32_t)(p.receiptUntil-millis())<=0 && (int32_t)(p.keymapUntil-millis())<=0;
@@ -44,7 +45,12 @@ inline bool presentationHome(const PadState &p) {
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if(type=="ambient") {
+  if(type=="scan") {
+    if(xorr::parseScan(d,pad.scan,millis())) {
+      pad.ambient.visible=pad.journal.visible=pad.fund.visible=pad.portfolio.visible=false;
+      pad.predict.positionsVisible=false;pad.reply="";pad.labelUntil=pad.receiptUntil=0;
+    }
+  } else if(type=="ambient") {
     if(!xorr::parseAmbient(d,pad.ambient,millis()))pad.ambient=xorr::Ambient();
   } else if(type=="flatten") {
     if(!xorr::parseFlatten(d,pad.flatten,millis()))pad.flatten=xorr::Flatten();

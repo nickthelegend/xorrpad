@@ -14,6 +14,8 @@ Version four adds the following to every retained v1–v3 and agent-wallet flow:
 | Ambient clock | After 60 s idle on Home: UTC, SOL sparkline, portfolio P/L, funding, NY hours and crew. Device on/off. | `ambient`, `pad_view`; 90 s data expiry, missing feeds unavailable. First complete key/knob gesture only wakes, including first KILL gesture. |
 | Pad journal | Knob press on Home opens the last 32 decisions; Activity syncs them. | `journal_decision`, `journal_begin`, `journal_entry`, `journal_end`, plus existing signal/receipt updates. Only confirmed receipts become fills; no reconstructed PnL. |
 
+| SCAN answers (F8) | Eight-second verdict screen; Markets Last scan and one Activity entry per run. | `scan` and `pad_view`; six displayed market rows plus full checked/unavailable counts, live data or explicit Setup required. Key dismissal cannot accept a proposal. |
+
 [V4-NOTES.md](V4-NOTES.md) specifies each record, priority, persistence and venue
 limitation in detail. Core skips the TFT and uses the authenticated desktop/phone
 mirror and earcons. Core retains the existing external visual-review requirement
@@ -21,8 +23,8 @@ for transaction-byte signing. No proposal, clock, sound, journal or profile
 selection grants trading authority. A pad never trades without trusted YES under
 the existing permissions, caps, clear-sign, session/crew policy and mainnet gate.
 
-The filming add-ons for SCAN answers and remaining legacy mirror corrections are
-separate follow-up scope in the brief, not new claims of this F7 release pass.
+F8 adds SCAN answers. The remaining legacy mirror corrections are
+separate follow-up scope in the brief.
 No external response, balance, quote, fill or successful liquidation is fabricated.
 Missing configuration gives Setup required; a successful empty read stays empty.
 

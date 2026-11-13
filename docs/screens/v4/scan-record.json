@@ -1,0 +1,36 @@
+{
+  "provenance": "Actual live /scan result or provider Setup required from the isolated F8 suite; no financial fixtures.",
+  "record": {
+    "type": "scan",
+    "summary": "Setup required: market candle feeds unavailable — BTC $69,225 is below its 200-day mean $73,137 — dip buying is switched off",
+    "checkedCount": 0,
+    "unavailableCount": 7549,
+    "markets": [
+      {
+        "symbol": "0",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 0"
+      },
+      {
+        "symbol": "7",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 7"
+      },
+      {
+        "symbol": "8",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 8"
+      },
+      {
+        "symbol": "21",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 21"
+      },
+      {
+        "symbol": "42",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 42"
+      },
+      {
+        "symbol": "47",
+        "error": "Setup required: SOLANA_CANDLE_API — no verified candle source for 47"
+      }
+    ],
+    "top": null
+  }
+}

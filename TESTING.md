@@ -1,3 +1,57 @@
+# Firmware 4.0.0 · F8 SCAN verification (2026-11-13)
+
+Required isolated command, run alone after both firmware compiles:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Exit **0**: **285 tests / 276 passed / 9 existing skips / 0 failures /
+0 cancellations**, **1,012,041.018417 ms**. All 282 earlier desk tests remain;
+F8 adds three. [Results, skip reasons, image hashes and captures](docs/v4/F8-RESULTS.json).
+The skips are unavailable Ollama, missing Anthropic/Deepgram credentials,
+missing Electron binary, Meteora RPC 429, an unfunded devnet test wallet,
+two Phoenix account prerequisites and unfunded pm-AMM simulation/faucet setup.
+No skip is counted as a pass.
+
+Final `bash firmware/test/run.sh`: **306 cases / 4,494 assertions / 0 failures**,
+exit **0**. New native coverage checks SCAN bounds, optional counts, top setup,
+invalid records, exact eight-second expiry, millis wrap and consumed dismissal.
+The final desktop run includes **33** distinct native/WASM frame comparisons,
+Fund QR decoding and three checks that SCAN cannot cover KILL, cooldown or
+LIQ GUARD. Real SCAN and physical BASE routes reach the encrypted native padsim,
+Markets and exactly one Activity entry each; first YES only dismisses.
+
+`npm run build:app --prefix desk` exits **0**; the desktop command's pretest also
+builds the final app. The existing chunk-size and dynamic-import warnings remain.
+`firmware-screen.wasm` was rebuilt from the final `ui.h` using
+`EMSDK=/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk` and
+`bash tools/uipreview/build-web-screen.sh`; native/WASM parity passed afterward.
+
+Final `bash firmware/build-unsigned.sh` compiles Pro/Core successfully without
+signing. Both unsigned manifests match the exact local image bytes:
+
+| Variant | Sketch flash bytes | Static RAM bytes | OTA image file bytes |
+| --- | ---: | ---: | ---: |
+| Pro release | 2,029,294 | 69,556 | 2,029,440 |
+| Core release | 2,011,403 | 69,332 | 2,011,552 |
+
+F8's actual live-or-Setup desktop captures at 1440/375 were visually checked;
+the native uipreview frame is `docs/screens/v4/scan.png`, with its public record
+and provenance in `scan-record.json`. No desktop CSS, tokens or art were changed.
+Historical v3 screenshots rewritten by tests were restored with
+`git checkout -- docs/screens/v3`; unrelated regenerated v4 captures were also
+restored. No earlier test was removed or weakened. No keys, `.env` or `.loom/`
+were opened; no firmware was signed/flashed, no production action or push occurred.
+
+The current book contains markets without a verified candle source. SCAN reports
+Setup required and checked/unavailable counts, retaining the real BTC trend-gate
+observation. The pad lists six rows plus totals; the desktop list is expandable.
+Activity keeps the last 100 scans during this process and survives page refresh,
+but not desktop restart. These limits are also recorded in V4-NOTES.md.
+
+---
+
 # Firmware 4.0.0 · F7 release verification (2026-11-13)
 
 Required full desktop command, run alone with no other suite or compile alongside:

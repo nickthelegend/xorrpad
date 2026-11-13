@@ -178,3 +178,12 @@ opens/closes and `scrollJournal(delta)` browses without an action message.
 Snapshots use the real authenticated journal_begin/entry/end protocol;
 `desk/test/pad-journal.test.mjs` checks 32-entry eviction across a new process,
 strict staged snapshot validation and the real HTTP/Activity empty state.
+
+
+F8: `ScanPadSimulator` in `scan.mjs` extends the journal simulator. It receives
+real authenticated `scan` records and delegates parsing, eight-second freshness
+and key dismissal to the production C++ scan state in `ambient-driver`.
+`scanTick(now)` advances only its local presentation clock. The first YES only
+dismisses the answer; KILL retains its safety path. `pad_view` reports SCAN/Home
+for the firmware WASM mirror. `desk/test/pad-scan.test.mjs` exercises both actual
+SCAN routes and checks Markets/Activity at 1440/375 without API interception.

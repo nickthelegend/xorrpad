@@ -572,6 +572,17 @@ static void drawCooldown(GFXcanvas16 &c,const PadState &p) {
   text(c,12,211,1,MUTE,"KILL / NO / PORTFOLIO / reduce-only work");
 }
 
+static void drawScan(GFXcanvas16 &c,const xorr::Scan &s) {
+ text(c,12,12,2,UP,"SCAN");
+ wrap(c,12,43,296,1,INK,ascii(s.summary.c_str()),7);
+ textClip(c,12,103,296,1,MUTE,String(s.checkedCount)+" checked / "+String(s.unavailableCount)+" unavailable");
+ String checked="Markets: ";for(size_t i=0;i<s.markets.size();++i){if(i)checked+=", ";checked+=s.markets[i].symbol.c_str();if(!s.markets[i].error.empty())checked+=" (N/A)";}
+ if(s.markets.empty())checked="Markets unavailable / Setup required";
+ if(s.checkedCount+s.unavailableCount>s.markets.size())checked+=String(" +")+String(unsigned(s.checkedCount+s.unavailableCount-s.markets.size()))+" more";
+ wrap(c,12,120,296,1,MUTE,checked,3);
+ wrap(c,12,158,296,1,INK,s.top.empty()?String("Top setup: none"):String("Top: ")+s.top.c_str(),4);
+ text(c,12,221,1,MUTE,"Any key: dismiss / returns after 8 seconds");
+}
 static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch) {
   highContrastTheme=pad.highContrast;
   c.fillScreen(BG);
@@ -632,6 +643,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     c.fillRect(12,212,int(296*pad.holdProgress),4,WARN);return;
   }
   if(pad.tiltBlocked && !(pad.pending && pad.tiltAllowed) && !pad.fund.visible && !pad.portfolio.visible && !pad.predict.positionsVisible && !(pad.liqGuard.fresh(millis()) && !pad.pending)){drawCooldown(c,pad);return;}
+  if(padScanVisible(pad,millis())){drawScan(c,pad.scan);return;}
   if(pad.pending&&pad.ok){drawConfirm(c,pad,ch);return;}
   if(pad.ok && !pad.listening && pad.liqGuard.fresh(millis())){drawLiqGuard(c,pad.liqGuard);return;}
   if(pad.listening){text(c,12,20,3,SOL,"LISTENING");for(int i=0;i<32;i++){int h=pad.waveform[i];c.drawFastVLine(4+i*10,120-h,2*h+1,UP);}text(c,12,204,1,INK,"Release MIC or knob to send");return;}

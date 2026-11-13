@@ -1,4 +1,4 @@
-# Firmware 4.0.0 — F7 release
+# Firmware 4.0.0 — F8 SCAN answers
 
 MIT · Copyright (c) 2026 Nivesh Gajengi.
 
@@ -6,11 +6,10 @@ Features 1–7 are delivered through F1–F6; F7 packages their release evidence
 V1–V3 and agent-wallet functionality remains. OTA metadata defaults to 4.0.0
 and lists every feature. Pro and Core manifests are explicitly unsigned:
 no production signing step, OTA publication, flashing or push is performed.
-See [4.0.0 release notes](RELEASE-4.0.0.md) and the final F7 section in
+See [4.0.0 release notes](RELEASE-4.0.0.md) and the F8 section in
 [TESTING.md](../../TESTING.md) for current verification rather than historical
-per-feature counts below. The brief's separate filming add-ons (SCAN answers and
-the remaining legacy mirror corrections) are outside F7's Release section;
-they are not claimed as delivered by this release work.
+per-feature counts below. F8 delivers SCAN answers below; the remaining legacy
+mirror corrections are the separate F9 scope.
 
 Select **Predictor** in Device or **Predict on pad** in Markets. If the device has
 stored hardware profiles, the desk selects its Predictor profile/Predict layer.
@@ -491,3 +490,37 @@ reproducible. Setup/empty cases are actual feature-suite snapshots; populated
 financial layouts are clearly labelled local vectors, never API substitutions
 or claimed transactions. Historical v3/per-feature screenshots are restored.
 No production signing, flash, mainnet enablement or push occurs.
+
+
+## F8 — SCAN answers
+
+Both `GET /scan` and the physical SCAN/BASE key publish one public
+`{type:"scan", summary, markets, top, checkedCount, unavailableCount}` record.
+The pad receives up to six market names (available feeds first), with the full
+checked/unavailable counts, verdict in words and top setup's side/market/strategy.
+The panel shows the answer for eight seconds, using a wrap-safe local timer;
+any key dismisses and consumes that gesture. KILL still runs its existing safety
+path. Safety screens retain priority. A pending top-setup proposal returns to
+its existing confirmation screen after dismissal/expiry; otherwise Home resumes.
+SCAN proposals explicitly disable auto-accept and require the existing trusted
+YES, clear-sign, caps and policy checks. Receiving or dismissing an answer never
+accepts, signs or sends a trade.
+
+Markets uses the existing surface/State components for Last scan, including the
+full expandable list of markets and feed errors. Activity reads
+`GET /scan/history`, one uniquely identified record per completed scan including
+Setup states; the latest 100 records survive navigation/refresh during this desk
+process. History is not persisted across desktop restart. The last result remains
+available through `/scan/last`. Missing candle feeds explicitly say Setup required;
+a BTC trend-gate observation alone does not claim market setups were evaluated.
+The current verified Solana book does not provide a configured candle source for
+all symbols. A partial answer labels unavailable markets; no prices are invented.
+
+Core uses the authenticated desktop mirror and Last scan card. `pad_view` adds
+`screen:"scan"`; the WASM mirror consumes the same record until dismissal or
+expiry. Native tests cover parsing, bounds, counts, wrap/expiry and dismissal;
+the encrypted padsim uses the production C++ parser/timer. Browser coverage calls
+both real SCAN routes, checks exactly one Activity row per scan, read-only YES,
+refresh, and 1440/375 layouts. Native/WASM parity adds Setup and pending-top-setup
+frames. `docs/screens/v4/scan-record.json` records live/Setup provenance for the
+native `scan.png` frame and desktop captures. No external API responses are mocked.

@@ -1,5 +1,6 @@
 // MIT · Copyright (c) 2026 Nivesh Gajengi
 #include "../xorrpad/logic/ambient.h"
+#include "../xorrpad/logic/scan.h"
 #include "../xorrpad/logic/accessibility.h"
 #include <iostream>
 #include <fstream>
@@ -7,9 +8,12 @@
 int main(int argc,char **argv){xorr::Journal journal;
  auto load=[&](){if(argc<2)return;std::ifstream f(argv[1]);if(!f.good())return;JsonDocument d;if(deserializeJson(d,f) || !xorr::restoreJournal(d,journal))journal.healthy=false;};
  auto save=[&](){if(argc<2)return;std::string tmp=std::string(argv[1])+".tmp";std::ofstream f(tmp);JsonDocument d;xorr::journalJson(d.to<JsonObject>(),journal);serializeJson(d,f);f.close();if(!f || std::rename(tmp.c_str(),argv[1]))journal.healthy=false;};load();
-xorr::DisplayIdle idle;xorr::AmbientWake wake;bool visible=false;std::string line;
+xorr::Scan scan;xorr::DisplayIdle idle;xorr::AmbientWake wake;bool visible=false;std::string line;
  while(std::getline(std::cin,line)){JsonDocument d,out;if(deserializeJson(d,line))return 2;
   uint32_t now=d["now"] | uint32_t(0);std::string cmd=d["command"] | "";bool consumed=false;
+  if(cmd=="scan")out["valid"]=xorr::parseScan(d["record"],scan,now);
+  if(cmd=="scan_key")out["dismissed"]=scan.dismiss(now);
+  out["scanVisible"]=scan.fresh(now);
   if(cmd=="wake"){idle.wake(now);visible=false;}
   if(cmd=="tick")visible=idle.ambientDue(now,d["home"]==true,d["enabled"]!=false);
   if(cmd=="key"){consumed=wake.key(uint16_t(d["bit"] | 1),d["pressed"]==true,visible);idle.wake(now);visible=false;}

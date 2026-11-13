@@ -55,7 +55,9 @@ export async function scan({ symbols = SYMBOLS } = {}) {
     signals,
     summary: signals.length
       ? `${signals.length} signal(s) across ${new Set(signals.map((s) => s.symbol)).size} market(s)`
-      : gate.uptrend
+      : !markets.some(m => !m.error)
+        ? `Setup required: market candle feeds unavailable — ${gate.reason}`
+        : gate.uptrend
         ? "no setup — none of the six conditions is met on any market right now"
         : `no setup — ${gate.reason}`,
   };

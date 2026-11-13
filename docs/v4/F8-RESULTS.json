@@ -1,0 +1,94 @@
+{
+  "step": "F8",
+  "date": "2026-11-13",
+  "desktop": {
+    "command": "SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk",
+    "runAlone": true,
+    "exitCode": 0,
+    "tests": 285,
+    "pass": 276,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 9,
+    "duration_ms": 1012041.018417,
+    "skips": [
+      "\ufe63 real localhost Ollama model list and provider chat (8.66925ms) # Ollama is not reachable on localhost: fetch failed",
+      "\ufe63 live Anthropic /models and specified default model (0.082208ms) # ANTHROPIC_API_KEY is not set in the environment; no config files read",
+      "\ufe63 live Deepgram Aura PCM streams back through Nova-3 (0.067834ms) # DEEPGRAM_API_KEY is not set in the environment; no config files read",
+      "\ufe63 real Electron safeStorage encrypts keys and only lists last four characters (5.331458ms) # Electron binary is not installed",
+      "\ufe63 Meteora builds a real unsigned swap for an explicit public owner (1771.261041ms) # venue unreachable: failed to get info about account GuV9aqyTiJ3SUoKdvWDGvD19nzMp52qhELJ8BVR4WDWi: Error: 429 :  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"Connection rate limits exceeded\"}, \"id\": \"aa753e80-07cf-44b5-8d29-472f828ed366\" } ",
+      "\ufe63 key \u2192 live devnet signal \u2192 accept \u2192 actual confirmed receipt (funded test wallet required) (129.088667ms) # Setup required: fund DbHsbDBtPHKGzEd4iC9QPPrKYhH68zchpznThZFbjxtD with 0.01 devnet SOL and 1 mUSDC; no transaction sent",
+      "\ufe63 Phoenix unsigned order simulates on real mainnet with sigVerify:false (57.214292ms) # Setup required: PHOENIX_AUTHORITY (registered, enabled, funded trader and SOL fee payer); actual simulation returned \"AccountNotFound\"",
+      "\ufe63 Phoenix reads actual positions and builds a reduce-only close when an account is available (0.507167ms) # Setup required: PHOENIX_AUTHORITY (register and fund this Phoenix trader before opening positions)",
+      "\ufe63 the unsigned pm-AMM swap simulates successfully on real devnet (167.511875ms) # Setup required: PMAMM_TEST_OWNER \u2014 fund a throwaway devnet public key with SOL and mUSDC; airdrop unavailable (HTTP 410: RPC faucet closed on devnet)"
+    ]
+  },
+  "native": {
+    "command": "bash firmware/test/run.sh",
+    "exitCode": 0,
+    "cases": 306,
+    "assertions": 4494,
+    "failures": 0
+  },
+  "build": {
+    "command": "bash firmware/build-unsigned.sh",
+    "exitCode": 0,
+    "output": [
+      "Sketch uses 2029294 bytes (64%) of program storage space. Maximum is 3145728 bytes.",
+      "Global variables use 69556 bytes (21%) of dynamic memory, leaving 258124 bytes for local variables. Maximum is 327680 bytes.",
+      "Unsigned 4.0.0: 2029440 bytes; 08ade7d92860f0e4a737392d226cba0a7b763b4d9eadc180a87d4d2a9d8d4c06",
+      "Sketch uses 2011403 bytes (63%) of program storage space. Maximum is 3145728 bytes.",
+      "Global variables use 69332 bytes (21%) of dynamic memory, leaving 258348 bytes for local variables. Maximum is 327680 bytes.",
+      "Unsigned 4.0.0: 2011552 bytes; 23106de3d4c2ed51e33b1aca8dbbebcbe2ea4e8149ccd2f61d340a7465baee87",
+      "Compiled, not yet flashed. Unsigned manifests require production signing before OTA."
+    ]
+  },
+  "appBuild": {
+    "command": "npm run build:app --prefix desk",
+    "exitCode": 0
+  },
+  "wasm": {
+    "file": "desk/app/public/firmware-screen.wasm",
+    "sha256": "269a87ba41f8f7236f91bae1ddaf9f58e0d860c80b317ae7e54550042db00c57",
+    "parityCases": 33,
+    "safetyPriorityChecks": 3
+  },
+  "captures": [
+    {
+      "file": "scan.png",
+      "width": 640,
+      "height": 480,
+      "sha256": "bf444e7fb10b4722722264b1c70b1b6b7b6d4df251c35e3d4c46687933131595"
+    },
+    {
+      "file": "scan-markets-1440.png",
+      "width": 1440,
+      "height": 960,
+      "sha256": "7fdcfefc4f5baa5627b86c94a53754837a0c369fbe7da5a91f967f967ea3c389"
+    },
+    {
+      "file": "scan-markets-375.png",
+      "width": 375,
+      "height": 960,
+      "sha256": "c607de194085de9181f68ea3d69d9e5a4c12bf118cb30f216f87a4f1a7dcf937"
+    },
+    {
+      "file": "scan-activity-1440.png",
+      "width": 1440,
+      "height": 960,
+      "sha256": "26886c43e1a0434991d52843378e9a6c0da606dee89717b4cdd02e2f149e4409"
+    },
+    {
+      "file": "scan-activity-375.png",
+      "width": 375,
+      "height": 960,
+      "sha256": "1bc0d847f90463e4ddc80c7d982e85099e0c07ab6a842b1bb27566985395eb45"
+    }
+  ],
+  "limits": [
+    "Activity retains the latest 100 scans in the current desk process, not across restart.",
+    "Pad includes up to six market rows and complete checked/unavailable counts.",
+    "Actual verified market book has no configured candle source for all symbols; Setup required is retained.",
+    "No physical hardware flashed or validated; no signing or publishing."
+  ]
+}

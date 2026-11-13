@@ -8,6 +8,16 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [4.0.0] — 2026-11-13
 
+### Added — F8: SCAN answers
+
+- SCAN/BASE and the live scan route publish bounded public pad answers with
+  verdict, checked/unavailable counts and top setup; key dismissal and eight-second
+  expiry retain trusted YES and KILL safety. SCAN proposals require manual consent.
+- Markets shows Last scan using existing components; Activity keeps one entry per
+  completed scan, including honest missing-feed states, across page refresh.
+- Native parser/timer, encrypted padsim, browser and native/WASM parity coverage;
+  actual uipreview and 1440/375 captures. No desktop styles or earlier tests removed.
+
 ### Release — F7
 
 - Device's existing Sounds, Ambient and Tilt guard controls, Markets' Predict on

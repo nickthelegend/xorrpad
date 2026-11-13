@@ -199,6 +199,7 @@ void onPadMessage(JsonVariantConst d) {
   if((type=="fund" && pad.fund.visible) || (type=="portfolio" && pad.portfolio.visible) || (type=="outcome_positions" && pad.predict.positionsVisible)) {
     accessibility.idle.wake(millis());screenHoldUntil=0;
   }
+  if(type=="scan" && pad.scan.fresh(millis())){accessibility.idle.wake(millis());screenHoldUntil=0;}
   if(type=="signal")amountSpoken=false;
   if(type=="config" || type=="ready") {
     if(padlink.secureReady() && !d["sounds"].isNull() && !audio.configure(d["sounds"])) {pad.errorCode="SOUND_SETTINGS";pad.errorFix="Retry desk sound settings";}
@@ -428,6 +429,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   const KeyBind &kb=accessibility.key(r,c);
   const uint16_t bit=uint16_t(1)<<(r*4+c);
   if(!pressed && (dismissedKeys&bit)){dismissedKeys&=~bit;return;}
+  if(pressed && padScanVisible(pad,millis()) && pad.scan.dismiss(millis())){if(kb.role!=ROLE_KILL){dismissedKeys|=bit;return;}}
   if(pressed && pad.journal.visible){pad.journal.visible=false;if(kb.role!=ROLE_KILL){dismissedKeys|=bit;return;}}
   if(pressed && kb.role==ROLE_CONFIRM && pad.pending && !tiltGuard.allows(pad))tradeJournal.result(pad,"blocked",pad.tiltReason.c_str());
   bool walletVisible=presentationWalletVisible(pad);
@@ -864,7 +866,7 @@ void loop() {
   if (!killSwitch.killed && !recording && !padlink.ready() && WiFi.isConnected() && millis() >= nextPoll) {
     nextPoll = millis() + PAD_POLL_MS;
     PadState fresh;
-    if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();fresh.journal=pad.journal;fresh.ambient=pad.ambient;pad = fresh;} else pad.ok = false;
+    if (net.pad(fresh)) {fresh.highContrast=accessibility.highContrast();fresh.journal=pad.journal;fresh.ambient=pad.ambient;fresh.scan=pad.scan;pad = fresh;} else pad.ok = false;
     screenDirty = true;
   }
   if(priceAlerts.tick(padlink.ready() || (padlink.legacy && pad.ok),WiFi.isConnected(),
@@ -891,13 +893,14 @@ void loop() {
   }
   if (pad.ok && chartNow.ok && chartNow.symbol != pad.market) nextChart = 0;
   if(pad.pending || pad.killed || pad.tiltBlocked || pad.liqGuard.fresh(millis()) || pad.fund.visible || pad.portfolio.visible || pad.reply.length() || pad.errorCode.length())pad.journal.visible=false;
+  if(pad.scan.visible && !pad.scan.fresh(millis())){pad.scan.visible=false;screenDirty=true;}
   bool ambient=accessibility.idle.ambientDue(millis(),presentationHome(pad),accessibility.ambientEnabled);
   if(ambient!=pad.ambient.visible){pad.ambient.visible=ambient;screenDirty=true;}
   screen.brightness(ambient?std::min(40,accessibility.brightness(accessibility.idle.last)):accessibility.brightness(millis()));
-  static int lastAmbient=-1,lastJournal=-1,lastSelected=-1;static uint32_t viewEpoch=0;
-  if(padlink.secureReady() && (lastAmbient!=int(ambient) || lastJournal!=int(pad.journal.visible) || lastSelected!=int(pad.journal.selected) || viewEpoch!=padlink.connectionEpoch())){
-    JsonDocument view;view["type"]="pad_view";view["screen"]=pad.journal.visible?"journal":ambient?"ambient":"home";view["selected"]=pad.journal.selected;padlink.send(view);
-    lastJournal=pad.journal.visible;lastSelected=pad.journal.selected;lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
+  static int lastScan=-1,lastAmbient=-1,lastJournal=-1,lastSelected=-1;static uint32_t viewEpoch=0;
+  if(padlink.secureReady() && (lastScan!=int(padScanVisible(pad,millis())) || lastAmbient!=int(ambient) || lastJournal!=int(pad.journal.visible) || lastSelected!=int(pad.journal.selected) || viewEpoch!=padlink.connectionEpoch())){
+    JsonDocument view;view["type"]="pad_view";view["screen"]=padScanVisible(pad,millis())?"scan":pad.journal.visible?"journal":ambient?"ambient":"home";view["selected"]=pad.journal.selected;padlink.send(view);
+    lastScan=padScanVisible(pad,millis());lastJournal=pad.journal.visible;lastSelected=pad.journal.selected;lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
   }
   static uint32_t ambientSecond=0;
   if(ambient && ambientSecond!=millis()/1000){ambientSecond=millis()/1000;screenDirty=true;}

@@ -4,6 +4,7 @@
 #include <vector>
 #include "logic/presentation.h"
 #include "logic/ambient-state.h"
+#include "logic/scan-state.h"
 #include "logic/journal-state.h"
 #include "logic/predict-state.h"
 #include "logic/perps-state.h"
@@ -28,6 +29,7 @@ struct PadPosition {
 
 struct PadState {
   xorr::Ambient ambient;
+  xorr::Scan scan;
   xorr::Journal journal;
   xorr::Flatten flatten;
   bool tiltBlocked=false,tiltAllowed=false;String tiltReason;uint32_t tiltRemaining=0,tiltDuration=0;
@@ -75,6 +77,12 @@ struct PadState {
   String chain, venue, hoursState, hoursNote, nyTime;
   bool   marketOpen = false;
 };
+
+// Same priority predicate for drawing, gesture consumption and confirmation eligibility.
+inline bool padScanVisible(const PadState &p,uint32_t now) {
+ return p.scan.fresh(now) && p.ok && !p.factory && !p.killed && !p.updating && !p.errorCode.length() &&
+  !p.alertsOnly && !p.pairCode.length() && !p.abilityReview && !p.tiltBlocked && !p.listening && !p.liqGuard.fresh(now);
+}
 
 // GET /pad/chart — the market in hand as hourly closes, for the display pod.
 struct ChartState {

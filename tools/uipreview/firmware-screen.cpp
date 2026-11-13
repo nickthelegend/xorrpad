@@ -7,6 +7,11 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"scanSummary")){pad.scan.summary=v;pad.scan.visible=true;return;}
+ if(!strcmp(k,"scanChecked")){pad.scan.checkedCount=atoi(v);return;}
+ if(!strcmp(k,"scanUnavailable")){pad.scan.unavailableCount=atoi(v);return;}
+ if(!strcmp(k,"scanTop")){pad.scan.top=v;return;}
+ if(!strncmp(k,"scanMarket",10)){pad.scan.markets.push_back({v,""});return;}
  if(!strcmp(k,"journalVisible")){pad.journal.visible=atoi(v)!=0;return;}
  if(!strcmp(k,"journalHealthy")){pad.journal.healthy=atoi(v)!=0;return;}
  if(!strcmp(k,"journalSelected")){pad.journal.selected=atoi(v);return;}

@@ -2,6 +2,17 @@
 
 The approved desktop components, tokens and art are retained.
 
+## F8 SCAN captures
+
+`scan-markets-{1440,375}.png` and `scan-activity-{1440,375}.png` show the
+existing desktop components populated by both real SCAN routes. The test checks
+visible-element bounds at both widths. The full market/error list is expandable;
+checked/unavailable counts do not claim missing candle feeds were evaluated.
+`scan-record.json` records the actual public result and its provenance; `scan.png`
+is the exact firmware `ui.h` frame rendered by native uipreview at 2x RGB565.
+Financial data is live or explicitly Setup required. The pad record displays six
+market rows plus full counts; SCAN answers never authorize a trade.
+
 ## F7 release captures
 
 `release-captures.json` lists **14** new browser screenshots from the actual

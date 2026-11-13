@@ -38,6 +38,12 @@ export async function drawFirmware(
     fields.journalVisible=true;fields.journalHealthy=device.journal?.healthy ?? false;fields.journalSelected=device.view.selected || 0;
     device.journal?.entries?.forEach((r,i)=>{for(const k of ['id','time','action','market','size','venue','result','signature','reason'])fields[`journalRow${i}${k[0].toUpperCase()+k.slice(1)}`]=r[k];});
   }
+  if(device?.view?.screen==='scan' && device.scan && now-device.scanAt<8000){
+    fields.scanSummary=device.scan.summary;
+    fields.scanChecked=device.scan.checkedCount;fields.scanUnavailable=device.scan.unavailableCount;
+    fields.scanTop=device.scan.top ? `${device.scan.top.side} ${device.scan.top.symbol} / ${device.scan.top.strategy}` : '';
+    device.scan.markets?.forEach((m,i)=>fields[`scanMarket${i}`]=m.symbol+(m.error?' (unavailable)':''));
+  }
   const tilt=device?.tiltGuard;
   if(tilt) {
     const elapsed=Math.max(0,Math.floor((now-Date.parse(tilt.observedAt))/1000));

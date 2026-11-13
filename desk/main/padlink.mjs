@@ -1,3 +1,4 @@
+import {scanRecord} from './pad-scan.mjs';
 import {journalRecord} from "./pad-journal.mjs";
 import {marketHours} from "./xstocks.mjs";
 import {DEFAULT_SOUNDS,validateSounds} from "../renderer/ui/earcons.mjs";
@@ -288,6 +289,7 @@ export class PadLink extends EventEmitter {
           killed: this.killed.has(p.device),
           flatten:p.flatten,
           ambient:p.ambient,
+          scan:p.scan,scanAt:p.scanAt,
           view:p.view,
           journal:this.journals.get(p.device),
           lastSeen: new Date(p.last).toISOString(),
@@ -999,6 +1001,10 @@ export class PadLink extends EventEmitter {
   forward(e) {
     for (const p of this.peers)
       if (p.device && (!p.secure || p.verified)) {
+        if (e.type === "scan") {
+          p.scan={...scanRecord({summary:e.summary,markets:e.markets,signals:e.top?[e.top]:[]}),checkedCount:e.checkedCount,unavailableCount:e.unavailableCount,at:e.at};p.scanAt=Date.now();
+          this.send(p,p.scan);
+        }
         if (e.type === "signal") this.signal(p, e.signal);
         if (e.type === "receipt")
           this.send(p, {
@@ -1311,7 +1317,7 @@ export class PadLink extends EventEmitter {
       const record=journalRecord(p,m);if(record){this.journals.set(p.device,record);this.signals?.publish({type:'pad_journal',device:p.device,revision:record.revision});}return;
     }
     if(m.type==="pad_view") {
-      if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal','scan'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
       p.view={screen:m.screen,selected:m.selected,observedAt:new Date().toISOString()};return;
     }
     if(m.type==="earcon") {

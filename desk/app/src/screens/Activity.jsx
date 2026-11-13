@@ -15,7 +15,8 @@ export function Activity() {
   const d = useDesk(),
     queue = useRead("/signals"),
     memory = useRead("/memory"),
-    chats = useRead("/chats");
+    chats = useRead("/chats"),
+    scans = useRead("/scan/history", 3000);
   const [filter, setFilter] = useState("all");
   const entries = useMemo(() => {
     const rows = [],
@@ -52,6 +53,7 @@ export function Activity() {
         forward = parse(e.forward);
       if (acted?.executed) receipt(forward?.receipt, e.ts);
     }
+    for (const s of scans.data?.scans || []) rows.push({id:s.id,kind:"scan",at:s.at,title:"SCAN",text:s.summary,detail:s});
     for (const c of chats.data || [])
       rows.push({
         id: c.id,
@@ -64,7 +66,7 @@ export function Activity() {
     return rows.sort(
       (a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0),
     );
-  }, [queue.data, memory.data, chats.data]);
+  }, [queue.data, memory.data, chats.data, scans.data]);
   const visible = entries.filter((e) => filter === "all" || e.kind === filter);
   return (
     <section className="page activity-page">
@@ -94,6 +96,7 @@ export function Activity() {
           ["receipt", "Receipts"],
           ["signal", "Signals"],
           ["chat", "Conversations"],
+          ["scan", "Scans"],
         ].map(([id, name]) => (
           <button
             aria-pressed={filter === id}
@@ -105,15 +108,15 @@ export function Activity() {
         ))}
         <span>Recent on this desk</span>
       </div>
-      {[queue, memory, chats].some((r) => r.loading) && (
+      {[queue, memory, chats, scans].some((r) => r.loading) && (
         <State state={{ loading: true }} />
       )}
-      {[queue, memory, chats]
+      {[queue, memory, chats, scans]
         .filter((r) => r.error)
         .map((r, i) => (
           <State state={r} key={i} />
         ))}
-      {!visible.length && ![queue, memory, chats].some((r) => r.loading) && (
+      {!visible.length && ![queue, memory, chats, scans].some((r) => r.loading) && (
         <div className="activity-empty">
           <Empty
             title="The story starts with your next move."
@@ -178,7 +181,7 @@ export function Activity() {
                     ? "Confirmed receipt"
                     : e.kind === "chat"
                       ? "Conversation"
-                      : "Signal decision"}
+                      : e.kind === "scan" ? "Scan answer" : "Signal decision"}
                 </span>
                 {e.cluster && <span className="badge">{e.cluster}</span>}
               </div>

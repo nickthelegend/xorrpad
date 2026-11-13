@@ -38,7 +38,7 @@ import { SignalQueue, attachEvents } from "./signals.mjs";
 import { Permissions } from "./permissions.mjs";
 import { Executor } from "./executor.mjs";
 import { AgentWallet, NO_AGENT_WALLET, fundRecord } from './agent-wallet.mjs';
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Memory, DEFAULT_LIMITS, NO_MEMORY_LIMITS } from "./memory.mjs";
@@ -64,6 +64,7 @@ import { proposeHedges } from "./hedge.mjs";
 import { marketHours } from "./xstocks.mjs";
 import { route, venues } from "./aggregate.mjs";
 import { backtest } from './backtest.mjs';
+import {scanRecord, readScan} from './pad-scan.mjs';
 import { predictionBacktest } from './prediction-backtest.mjs';
 import { History, RESOLUTIONS, HISTORY_SOURCE } from './history.mjs';
 import { BOOK } from './strategies.mjs';
@@ -110,6 +111,7 @@ export const state = {
   pending: null,            // a signal waiting on YES/NO
   lastFill: null,
   lastScan: null,
+  scanHistory: [],
   // What the last wipe cost, settled at the moment it happened. Kept in the
   // process and never written back — a record of the wipe living inside the
   // store would mean the wipe had not really wiped, which is the one claim
@@ -900,9 +902,8 @@ export function createServer(mem) {
       // Run the measured-edge book across every market. This is the pad's
       // actual trading brain, and it is honest about finding nothing.
       if (url.pathname === "/scan") {
-        const r = await scan();
-        state.lastScan = r;
-        note(`SCAN — ${r.summary}`);
+        const r = await readScan(scan);
+        recordScan(r, signals);
         return send(200, r);
       }
 
@@ -916,6 +917,7 @@ export function createServer(mem) {
 
       // The last book run, whoever ran it. Without this a scan triggered from
       // the physical pad updated the server and never appeared on the desk.
+      if (url.pathname === "/scan/history") return send(200, {scans:state.scanHistory});
       if (url.pathname === "/scan/last")
         return send(200, state.lastScan || { markets: [], signals: [], summary: null });
 
@@ -1143,6 +1145,13 @@ export function createServer(mem) {
 
 /** The deck. Every physical key lands here — and so does every UI click, so a
  *  dead switch never blocks a demo. */
+function recordScan(result, signals) {
+  state.lastScan=result;
+  const record={...scanRecord(result),id:randomUUID(),at:result.at};
+  state.scanHistory.push(record);state.scanHistory=state.scanHistory.slice(-100);
+  note(`SCAN — ${record.summary}`);
+  signals.publish(record);
+}
 async function onKey(mem, id, options = {}, signals, executor) {
   if (!state.armed && ["buy", "sell", "long", "short", "scan", "base"].includes(id))
     return { ok: false, error: "Killed: re-arm on the pad to trade", armed: false };
@@ -1175,13 +1184,12 @@ async function onKey(mem, id, options = {}, signals, executor) {
   }
 
   if (id === "scan") {
-    const r = await scan();
-    state.lastScan = r;
-    note(`SCAN — ${r.summary}`);
+    const r = await readScan(scan);
+    recordScan(r, signals);
     if (r.signals.length) {
       const top = r.signals[0];
       const brief = await mem.recallBrief();
-      const sig = { agent: top.strategy, side: top.side, symbol: top.symbol,
+      const sig = { agent: top.strategy, side: top.side, symbol: top.symbol, manualConfirmation:true,
                     sizeUsd: state.sizeUsd, reason: top.rationale, confidence: top.confidence };
       const proposal = await propose(sig,brief,{price:top.price});
       const {verdict,routing} = proposal;
@@ -1373,7 +1381,7 @@ const ROUTE_METHODS = {
   "/pad/chart": ["GET"],
   "/health": ["GET"], "/pad": ["GET"], "/speak": ["GET"], "/portfolio": ["GET"],
   "/markets": ["GET"], "/memory": ["GET"], "/memory/full": ["GET"], "/log": ["GET"],
-  "/briefing": ["GET"], "/reflect": ["GET"], "/pending": ["GET"], "/scan/last": ["GET"],
+  "/briefing": ["GET"], "/reflect": ["GET"], "/pending": ["GET"], "/scan/last": ["GET"], "/scan/history": ["GET"],
   "/memory/contradictions": ["GET"], "/memory/at": ["GET"], "/memory/diff": ["GET"],
   "/padqr": ["GET"], "/scan": ["GET"], "/chains": ["GET"], "/quote": ["GET"],
   "/voice": ["POST"], "/key": ["POST"], "/arm": ["POST"], "/panic": ["POST"],

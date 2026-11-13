@@ -3,7 +3,7 @@ import {manifestText} from '../desk/main/pad-v2.mjs';
 import {makeDelta, patchText} from '../desk/main/ota.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export const FW_VERSION = '4.0.0';
-export const FW_NOTES = 'Firmware 4.0.0: Predict on pad; perps cockpit and liquidation guard; persistent tilt guard; panic flatten with physical YES; eight synthesized earcons and LED cues; wake-only ambient clock; 32-decision NVS journal; desktop Sounds, Ambient, Tilt guard, Agent state and Activity events';
+export const FW_NOTES = 'Firmware 4.0.0: Predict on pad; perps cockpit and liquidation guard; persistent tilt guard; panic flatten with physical YES; eight synthesized earcons and LED cues; wake-only ambient clock; 32-decision NVS journal; desktop Sounds, Ambient, Tilt guard, Agent state and Activity events; SCAN answers, Last scan card and per-scan Activity';
 // Compile-only releases use these fields without making an installable package.
 export function releaseMetadata(image, {version=FW_VERSION,channel='stable',rolloutPercent=100,notes=FW_NOTES}={}) {
   if(!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version) || version.length>48 || !['stable','beta'].includes(channel) ||

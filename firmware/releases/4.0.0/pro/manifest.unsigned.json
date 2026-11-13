@@ -2,8 +2,8 @@
   "version": "4.0.0",
   "channel": "stable",
   "rolloutPercent": 100,
-  "sha256": "a5d5646346d5d7cf4b3cb1deee19784ce6fa68628c70657f53d695789c8c0796",
-  "size": 2022336,
+  "sha256": "08ade7d92860f0e4a737392d226cba0a7b763b4d9eadc180a87d4d2a9d8d4c06",
+  "size": 2029440,
   "minDeskVersion": "1.0.0",
-  "notes": "Firmware 4.0.0: Predict on pad; perps cockpit and liquidation guard; persistent tilt guard; panic flatten with physical YES; eight synthesized earcons and LED cues; wake-only ambient clock; 32-decision NVS journal; desktop Sounds, Ambient, Tilt guard, Agent state and Activity events"
+  "notes": "Firmware 4.0.0: Predict on pad; perps cockpit and liquidation guard; persistent tilt guard; panic flatten with physical YES; eight synthesized earcons and LED cues; wake-only ambient clock; 32-decision NVS journal; desktop Sounds, Ambient, Tilt guard, Agent state and Activity events; SCAN answers, Last scan card and per-scan Activity"
 }

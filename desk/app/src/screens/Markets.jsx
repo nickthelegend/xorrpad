@@ -31,6 +31,7 @@ export function Markets() {
     venues = useRead("/venues?markets=1", 60000),
     pm = useRead("/pm/markets", 30000),
     queue = useRead("/signals"),
+    scan = useRead("/scan/last", 3000),
     ours = useRead("/pm/ours", 30000);
   const [kind, setKind] = useState("spot"),
     [market, setMarket] = useState("SOL"),
@@ -134,6 +135,19 @@ export function Markets() {
           ))
         )}
       </div>
+      <section className="surface" aria-label="Last scan">
+        <h2>Last scan</h2>
+        <State state={scan} title="Could not read last scan" />
+        {scan.data && (scan.data.summary ? <>
+          <p>{scan.data.summary}</p>
+          <p>Markets checked: {scan.data.markets?.filter(m => !m.error).length || 0} · Unavailable: {scan.data.markets?.filter(m => m.error).length || 0}</p>
+          <details><summary>View markets reviewed ({scan.data.markets?.length || 0})</summary>
+            <pre>{scan.data.markets?.map(m => `${m.symbol}: ${m.error || "Checked"}`).join("\n") || "Setup required: market feeds unavailable"}</pre>
+          </details>
+          <p>{scan.data.signals?.[0] ? `Top setup: ${scan.data.signals[0].side} ${scan.data.signals[0].symbol} · ${scan.data.signals[0].strategy}` : "Top setup: none"}</p>
+          <small>{new Date(scan.data.at).toLocaleString()}</small>
+        </> : <p>Setup required: press SCAN on the pad to read live markets.</p>)}
+      </section>
       <div className="market-terminal">
         <div className="market-main">
           {kind !== "predict" ? (
