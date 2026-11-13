@@ -843,3 +843,21 @@ No private key is needed for these read/compile checks. Existing mainnet public
 position reads do not authorize trading; `XORR_ALLOW_MAINNET` is never enabled by
 this feature. Build logs are `firmware/build/f2-pro.log` and `f2-core.log`, with
 compile-only outputs in `f2-{pro,core}-out`; no signing, flashing or push.
+
+### Firmware 4.0.0 — F7 compile-only release
+
+`bash firmware/build-unsigned.sh` compiles Pro and screenless Core with the
+existing ESP32-S3 16 MB / OPI PSRAM configuration and release/security flags.
+It writes local binaries to `firmware/build/f7-{pro,core}-out/` and public
+image-bound metadata to `firmware/releases/4.0.0/{pro,core}/manifest.unsigned.json`.
+It never invokes the signing step or accepts a signing-key path. These manifests
+have no signature and cannot pass the existing OTA gate; Connect continues to
+require a verified package. Production signing, publishing and flashing remain
+separate operations. The original signed build flow is retained unchanged.
+
+[Release notes](../docs/v4/RELEASE-4.0.0.md) cover all seven features;
+[V4-NOTES](../docs/v4/V4-NOTES.md) describes their records and limits.
+[TESTING](../TESTING.md) records the final isolated suite counts and build sizes.
+Reproduce every release pad frame with `make -B -C tools/uipreview` then
+`node tools/uipreview/capture-v4.mjs`; the committed public inputs identify
+live/Setup snapshots and labelled local layout vectors separately.

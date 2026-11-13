@@ -461,7 +461,7 @@ static void drawPositions(GFXcanvas16 &c, const PadState &pad, uint32_t now) {
     size_t pages=spotPages+perpN;
     size_t page=pad.positionsVisible && perpN?spotPages:(now/12000)%pages;
     if(page>=spotPages){drawPerp(c,pad.perps.positions[page-spotPages]);return;}
-    if(!perpN && !pad.perps.message.empty())textClip(c,12,190,296,1,MUTE,pad.perps.message.c_str());
+    if(!perpN && !pad.perps.message.empty())textClip(c,12,184,296,1,MUTE,pad.perps.message.c_str());
     for(size_t i=page*4;i<pad.positionN && i<(page+1)*4;++i) {
       const auto &position=pad.positions[i]; int y=65+int(i%4)*30;
       textClip(c,12,y,140,1,INK,position.market);

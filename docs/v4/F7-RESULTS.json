@@ -1,0 +1,1484 @@
+{
+  "date": "2026-11-13",
+  "desk": {
+    "command": "SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk",
+    "isolated": true,
+    "exitCode": 0,
+    "tests": 282,
+    "suites": 0,
+    "pass": 273,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 9,
+    "todo": 0,
+    "durationMs": 1036437.206209,
+    "results": [
+      {
+        "name": "developer signature binds exact bytes, capabilities and limits",
+        "status": "passed",
+        "durationMs": 6.696041
+      },
+      {
+        "name": "desk refuses signing, trade and undeclared imports even when developer-signed",
+        "status": "passed",
+        "durationMs": 3.13625
+      },
+      {
+        "name": "both SDK templates execute on the real embedded interpreter",
+        "status": "passed",
+        "durationMs": 534.322542
+      },
+      {
+        "name": "native sandbox traps malicious pointer, memory, fuel, recursion, macro and host flooding",
+        "status": "passed",
+        "durationMs": 19.1935
+      },
+      {
+        "name": "encrypted developer-approved install, two real samples, signed sandbox escape and removal",
+        "status": "passed",
+        "durationMs": 126.294959
+      },
+      {
+        "name": "concurrent agent identity and session status share a fresh read, preserve exclusive approval and reject together on disconnect",
+        "status": "passed",
+        "durationMs": 64.417792
+      },
+      {
+        "name": "agent-wallet authenticates, creates once and returns actual devnet SOL/SPL balances",
+        "status": "passed",
+        "durationMs": 1042.791625
+      },
+      {
+        "name": "balances aggregate raw SPL units, preserve unknown mints and do not double-count wrapped SOL",
+        "status": "passed",
+        "durationMs": 43.576542
+      },
+      {
+        "name": "RPC failure refuses a fabricated partial balance and pricing failure retains honest units",
+        "status": "passed",
+        "durationMs": 22.398042
+      },
+      {
+        "name": "portfolio keeps SOL and USDC plus only the top three other holdings",
+        "status": "passed",
+        "durationMs": 38.558125
+      },
+      {
+        "name": "chats, models, persona and agent tools use real authenticated desk routes",
+        "status": "passed",
+        "durationMs": 183.221958
+      },
+      {
+        "name": "provider defaults, arbitrary compatible URL and URL credential rejection",
+        "status": "passed",
+        "durationMs": 1.124292
+      },
+      {
+        "name": "missing provider keys fail before network access",
+        "status": "passed",
+        "durationMs": 0.33925
+      },
+      {
+        "name": "keys cannot be saved as plaintext in a Node backend",
+        "status": "passed",
+        "durationMs": 3.399375
+      },
+      {
+        "name": "settings persist provider, model and editable persona; reset preserves provider",
+        "status": "passed",
+        "durationMs": 2.911583
+      },
+      {
+        "name": "persona prompt preserves exact decimals, unknown values and fixed trading truth",
+        "status": "passed",
+        "durationMs": 0.318959
+      },
+      {
+        "name": "spoken proposal uses gated size, exact quote values, venue and risk",
+        "status": "passed",
+        "durationMs": 0.142333
+      },
+      {
+        "name": "chat persistence, tool/result metadata, search, rename, delete and Markdown export",
+        "status": "passed",
+        "durationMs": 9.967833
+      },
+      {
+        "name": "chat turn lock rejects overlapping mutations and repairs an interrupted tool pair",
+        "status": "passed",
+        "durationMs": 2.346625
+      },
+      {
+        "name": "agent tools reject gate bypass fields and signing tools",
+        "status": "passed",
+        "durationMs": 0.35625
+      },
+      {
+        "name": "explain_refusal reads the actual gate and queue; no execution receipt appears",
+        "status": "passed",
+        "durationMs": 13.903083
+      },
+      {
+        "name": "Deepgram missing key is actionable for STT and TTS",
+        "status": "passed",
+        "durationMs": 0.257625
+      },
+      {
+        "name": "real localhost Ollama model list and provider chat",
+        "status": "skipped",
+        "durationMs": 11.172,
+        "reason": "Ollama is not reachable on localhost: fetch failed"
+      },
+      {
+        "name": "live Anthropic /models and specified default model",
+        "status": "skipped",
+        "durationMs": 0.155333,
+        "reason": "ANTHROPIC_API_KEY is not set in the environment; no config files read"
+      },
+      {
+        "name": "live Deepgram Aura PCM streams back through Nova-3",
+        "status": "skipped",
+        "durationMs": 0.086958,
+        "reason": "DEEPGRAM_API_KEY is not set in the environment; no config files read"
+      },
+      {
+        "name": "real Electron safeStorage encrypts keys and only lists last four characters",
+        "status": "skipped",
+        "durationMs": 0.957458,
+        "reason": "Electron binary is not installed"
+      },
+      {
+        "name": "authenticated router, venue health, four pad keys, propose and acceptance re-gate",
+        "status": "passed",
+        "durationMs": 14311.6935
+      },
+      {
+        "name": "SOL spot quote on jupiter",
+        "status": "passed",
+        "durationMs": 1185.252458
+      },
+      {
+        "name": "SOL spot quote on meteora",
+        "status": "passed",
+        "durationMs": 0.366166
+      },
+      {
+        "name": "SOL perp quote on phoenix for long and short",
+        "status": "passed",
+        "durationMs": 885.75125
+      },
+      {
+        "name": "SOL perp quote on jupperps for long and short",
+        "status": "passed",
+        "durationMs": 0.14375
+      },
+      {
+        "name": "pm-AMM lists real devnet outcome markets and routes an available outcome",
+        "status": "passed",
+        "durationMs": 580.605125
+      },
+      {
+        "name": "Meteora builds a real unsigned swap for an explicit public owner",
+        "status": "skipped",
+        "durationMs": 1653.380292,
+        "reason": "venue unreachable: failed to get info about account 3aXcTgib1jH1y8bFiwwmRW3JnavKqtNTLJhib3URZMzz: Error: 429 :  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"Connection rate limits exceeded\"}, \"id\": \"f9e28a52-5feb-4cec-9a40-866c7873511c\" } "
+      },
+      {
+        "name": "router reports every failed venue without substituting a quote",
+        "status": "passed",
+        "durationMs": 224.214667
+      },
+      {
+        "name": "router rejects invalid intents before contacting venues",
+        "status": "passed",
+        "durationMs": 1.248833
+      },
+      {
+        "name": "routed proposals retain market, venue, leverage, daily and remembered-rule gates",
+        "status": "passed",
+        "durationMs": 1.862834
+      },
+      {
+        "name": "new builders require explicit owners and never sign or submit",
+        "status": "passed",
+        "durationMs": 0.260208
+      },
+      {
+        "name": "Agent wallet creates once, copies its address, decodes its live QR, shows balances and delivers Fund to a pad at both widths",
+        "status": "passed",
+        "durationMs": 24991.29725
+      },
+      {
+        "name": "Agent selects native pad signer, approves session caps, reports spend and requires explicit blind opt-in",
+        "status": "passed",
+        "durationMs": 8640.501083
+      },
+      {
+        "name": "Activity renders actual clear-sign results, retained events, crew policy and independent native rounds",
+        "status": "passed",
+        "durationMs": 11938.064292
+      },
+      {
+        "name": "Markets saves native-backed pad alerts, preserves other rules, removes and never trades",
+        "status": "passed",
+        "durationMs": 10511.823084
+      },
+      {
+        "name": "D5 built app references every brief route; auth, methods and no-pad states are honest",
+        "status": "passed",
+        "durationMs": 378.545709
+      },
+      {
+        "name": "D5 remaining no-pad reads and writes return actual settings or readable errors",
+        "status": "passed",
+        "durationMs": 16.2415
+      },
+      {
+        "name": "D5 events require WebSocket authentication and begin with an honest empty snapshot",
+        "status": "passed",
+        "durationMs": 6.383667
+      },
+      {
+        "name": "Connect pairs real USB CRC pads, separates attestation, clears trust and fits 375/1440",
+        "status": "passed",
+        "durationMs": 25521.251209
+      },
+      {
+        "name": "Device uses real firmware, channel, hold, profile-layer editing and options routes",
+        "status": "passed",
+        "durationMs": 11920.290917
+      },
+      {
+        "name": "D3 Abilities trusts on pad, installs both signed SDK examples and removes slots",
+        "status": "passed",
+        "durationMs": 14074.051417
+      },
+      {
+        "name": "factory chain and challenge verify identically in firmware, desk and portable XOR verifier",
+        "status": "passed",
+        "durationMs": 400.248042
+      },
+      {
+        "name": "tampered certificate fields and signature fail in all three real verifiers",
+        "status": "passed",
+        "durationMs": 11.799
+      },
+      {
+        "name": "foreign factory, self-signed clone, missing certificate and key substitution fail",
+        "status": "passed",
+        "durationMs": 10.270792
+      },
+      {
+        "name": "fresh challenge, nonce and ECDH keys reject replayed connection proofs",
+        "status": "passed",
+        "durationMs": 13.91425
+      },
+      {
+        "name": "strict certificate schema, encodings, device binding and absent trust fail closed",
+        "status": "passed",
+        "durationMs": 10.45
+      },
+      {
+        "name": "XOR controller resets genuine state on disconnect and consumes only one proof",
+        "status": "passed",
+        "durationMs": 0.841583
+      },
+      {
+        "name": "desk verification UI labels genuine, unverified and legacy devices explicitly",
+        "status": "passed",
+        "durationMs": 0.529458
+      },
+      {
+        "name": "offline factory keygen rejects repo and symlink destinations without opening any key",
+        "status": "passed",
+        "durationMs": 169.661166
+      },
+      {
+        "name": "real encrypted padsim TCP attestation genuine",
+        "status": "passed",
+        "durationMs": 30.446541
+      },
+      {
+        "name": "real encrypted padsim TCP attestation foreign",
+        "status": "passed",
+        "durationMs": 26.277541
+      },
+      {
+        "name": "real encrypted padsim TCP attestation missing",
+        "status": "passed",
+        "durationMs": 26.117958
+      },
+      {
+        "name": "real encrypted padsim USB CRC attestation genuine",
+        "status": "passed",
+        "durationMs": 24.0655
+      },
+      {
+        "name": "real encrypted padsim USB CRC attestation foreign",
+        "status": "passed",
+        "durationMs": 25.237583
+      },
+      {
+        "name": "real encrypted padsim USB CRC attestation missing",
+        "status": "passed",
+        "durationMs": 22.886375
+      },
+      {
+        "name": "backtest routes enforce auth, methods, validation and expose catalog without upstream data",
+        "status": "passed",
+        "durationMs": 134.869291
+      },
+      {
+        "name": "real pool-history HTTP strategy, prediction and agent tool round trips",
+        "status": "passed",
+        "durationMs": 3245.788541
+      },
+      {
+        "name": "real Phoenix fee schedule and historical funding payments",
+        "status": "passed",
+        "durationMs": 900.312625
+      },
+      {
+        "name": "real Jupiter Perps on-chain opening and closing fee schedules",
+        "status": "passed",
+        "durationMs": 315.338292
+      },
+      {
+        "name": "real Jupiter route fees are disclosed or fail explicitly, never assumed zero",
+        "status": "passed",
+        "durationMs": 180.618709
+      },
+      {
+        "name": "real pool candles cache, corrupt cache recovery, no fabricated volume and equity reference",
+        "status": "passed",
+        "durationMs": 68890.540833
+      },
+      {
+        "name": "real history replay accounts for both fees, funding, slippage, sizing, exits and metrics",
+        "status": "passed",
+        "durationMs": 903.218667
+      },
+      {
+        "name": "no look-ahead: delayed real data delays decisions; truncated/future-shifted paths preserve past fills",
+        "status": "passed",
+        "durationMs": 7.834041
+      },
+      {
+        "name": "every book strategy uses real pool data and gate warmup; volume absence is explicit",
+        "status": "passed",
+        "durationMs": 37913.147042
+      },
+      {
+        "name": "prediction exact helpers replay real pool path and disclose counterfactual edge",
+        "status": "passed",
+        "durationMs": 5.42275
+      },
+      {
+        "name": "Pyth symbols, bounded ranges, completed historical time and resolutions",
+        "status": "passed",
+        "durationMs": 18.11875
+      },
+      {
+        "name": "bounded declarative rules reject arbitrary code, unknown operators, warmup and invalid sizing",
+        "status": "passed",
+        "durationMs": 14.241542
+      },
+      {
+        "name": "metrics use net equity, sample returns, elapsed exposure and undefined nulls",
+        "status": "passed",
+        "durationMs": 0.257333
+      },
+      {
+        "name": "prediction model and agent schema enforce required inputs and forbid fee/candle overrides",
+        "status": "passed",
+        "durationMs": 11.13075
+      },
+      {
+        "name": "clear signing transports exact real builder bytes and complete public table evidence",
+        "status": "passed",
+        "durationMs": 5.686709
+      },
+      {
+        "name": "clear signing rejects malformed and oversized message requests",
+        "status": "passed",
+        "durationMs": 0.329166
+      },
+      {
+        "name": "desk blind signing is off by default, validates booleans and survives settings reload",
+        "status": "passed",
+        "durationMs": 0.811041
+      },
+      {
+        "name": "real encrypted pad link delivers clear-sign upload and rejects blind short replayed approvals",
+        "status": "passed",
+        "durationMs": 241.390917
+      },
+      {
+        "name": "crew policy requires distinct identities, real quorum, finite threshold and paired members",
+        "status": "passed",
+        "durationMs": 60.312
+      },
+      {
+        "name": "two real encrypted pads clear review and co-sign the same SDK transaction before release",
+        "status": "passed",
+        "durationMs": 78.687708
+      },
+      {
+        "name": "one pad refusal leaves no quorum and does not release signing",
+        "status": "passed",
+        "durationMs": 61.965916
+      },
+      {
+        "name": "disconnect during crew review invalidates pending approval",
+        "status": "passed",
+        "durationMs": 63.295959
+      },
+      {
+        "name": "crew threshold is strictly above X; offline missing quorum fails closed",
+        "status": "passed",
+        "durationMs": 52.359
+      },
+      {
+        "name": "policy or permission changes while waiting prevent crew release",
+        "status": "passed",
+        "durationMs": 63.869875
+      },
+      {
+        "name": "crew expiry cancels both pending encrypted requests",
+        "status": "passed",
+        "durationMs": 149.911
+      },
+      {
+        "name": "device approval rejects signature/hash/identity/hold substitution",
+        "status": "passed",
+        "durationMs": 0.562
+      },
+      {
+        "name": "native crew driver refuses unreviewed, short, stale, expired and replay approvals",
+        "status": "passed",
+        "durationMs": 3.312834
+      },
+      {
+        "name": "changing persisted crew policy during review invalidates the completed quorum",
+        "status": "passed",
+        "durationMs": 64.044958
+      },
+      {
+        "name": "v2 app is public and bundled; v1 and Classic remain public; writes require auth",
+        "status": "passed",
+        "durationMs": 119.400417
+      },
+      {
+        "name": "profiles persist keymaps and preserve four safety controls",
+        "status": "passed",
+        "durationMs": 7.616375
+      },
+      {
+        "name": "ability installation actually changes bindings and uninstall restores them",
+        "status": "passed",
+        "durationMs": 19.928333
+      },
+      {
+        "name": "missing voice setup never installs fake capability or rebinds safety keys",
+        "status": "passed",
+        "durationMs": 8.908083
+      },
+      {
+        "name": "firmware status cannot claim an unsigned update is ready",
+        "status": "passed",
+        "durationMs": 113.484625
+      },
+      {
+        "name": "loss cooldown uses confirmed realized loss metadata; unknown PnL is not fabricated",
+        "status": "passed",
+        "durationMs": 0.416083
+      },
+      {
+        "name": "executor defaults to phone, persists opt-in mode and refuses disarmed execution before building",
+        "status": "passed",
+        "durationMs": 131.726667
+      },
+      {
+        "name": "fresh permissions and remembered rules veto previously accepted execution without chain access",
+        "status": "passed",
+        "durationMs": 129.422959
+      },
+      {
+        "name": "persisted reserved ledger prevents cap bypass after executor restart",
+        "status": "passed",
+        "durationMs": 64.506125
+      },
+      {
+        "name": "persisted signed ledger prevents cap bypass after executor restart",
+        "status": "passed",
+        "durationMs": 64.184667
+      },
+      {
+        "name": "persisted executed ledger prevents cap bypass after executor restart",
+        "status": "passed",
+        "durationMs": 63.23725
+      },
+      {
+        "name": "persisted open-position reservation blocks another market independently of daily cap",
+        "status": "passed",
+        "durationMs": 62.815542
+      },
+      {
+        "name": "factory verifies a real Ed25519 report, CRC, unit identity and optional public key pin",
+        "status": "passed",
+        "durationMs": 2.444958
+      },
+      {
+        "name": "factory rejects changed payloads, signatures, CRC and incomplete reports",
+        "status": "passed",
+        "durationMs": 1.313917
+      },
+      {
+        "name": "factory returns signed FAIL for every incomplete hardware check",
+        "status": "passed",
+        "durationMs": 1.04925
+      },
+      {
+        "name": "factory serial framing survives fragmented boot output and bounds unterminated records",
+        "status": "passed",
+        "durationMs": 0.5045
+      },
+      {
+        "name": "factory rejects forged signatures even after an attacker recomputes serial CRC",
+        "status": "passed",
+        "durationMs": 0.64175
+      },
+      {
+        "name": "4.0.0 compile-only metadata hashes public bytes but cannot authorize OTA",
+        "status": "passed",
+        "durationMs": 0.864583
+      },
+      {
+        "name": "F7 existing desktop controls persist together, Predict only selects profile, all release screens fit 1440/375",
+        "status": "passed",
+        "durationMs": 15401.726792
+      },
+      {
+        "name": "Fund reaches padsim over fragmented v1 TCP from desktop and pad key",
+        "status": "passed",
+        "durationMs": 21048.004791
+      },
+      {
+        "name": "Fund reaches padsim over encrypted v2 from desktop and pad key",
+        "status": "passed",
+        "durationMs": 20646.260667
+      },
+      {
+        "name": "real mint-pinned stable-pool discovery, USD volume and persistent cache",
+        "status": "passed",
+        "durationMs": 2565.195125
+      },
+      {
+        "name": "real OHLCV pages backward beyond 1000 bars with complete UTC coverage",
+        "status": "passed",
+        "durationMs": 2097.16525
+      },
+      {
+        "name": "30-minute and two-hour bars aggregate only complete real provider groups",
+        "status": "passed",
+        "durationMs": 2062.306375
+      },
+      {
+        "name": "a real missing mint reports secondary Pyth availability separately",
+        "status": "passed",
+        "durationMs": 812.672667
+      },
+      {
+        "name": "concurrent ranges share a real page without truncating the wider request",
+        "status": "passed",
+        "durationMs": 31352.127333
+      },
+      {
+        "name": "keeper routes return actual creator-filtered markets, public evidence and cached chain stats",
+        "status": "passed",
+        "durationMs": 485.41825
+      },
+      {
+        "name": "traction decoder reads an actual successful swap and actual creator fee transfer",
+        "status": "passed",
+        "durationMs": 56.691375
+      },
+      {
+        "name": "traction history scan finds creation and swap totals on a real reference market",
+        "status": "passed",
+        "durationMs": 1005.984708
+      },
+      {
+        "name": "test/loadbearing.test.mjs",
+        "status": "passed",
+        "durationMs": 15333.243958
+      },
+      {
+        "name": "test/memory.test.mjs",
+        "status": "passed",
+        "durationMs": 15113.559625
+      },
+      {
+        "name": "both real CAD web models validate, retain 14 named controls and UV TFT, and stay below 3 MB",
+        "status": "passed",
+        "durationMs": 30.521708
+      },
+      {
+        "name": "real studio movies are six seconds at 1080p, with genuine alpha stills",
+        "status": "passed",
+        "durationMs": 108.009125
+      },
+      {
+        "name": "browser TFT pixels equal the actual firmware native RGB565 frame byte for byte",
+        "status": "passed",
+        "durationMs": 2539.568709
+      },
+      {
+        "name": "all sixteen commissioned art assets retain their dimensions and stay below 400 KB",
+        "status": "passed",
+        "durationMs": 14.370291
+      },
+      {
+        "name": "studio frames keep real CAD bounds inside padding and record genuine price provenance",
+        "status": "passed",
+        "durationMs": 2.6005
+      },
+      {
+        "name": "white key keeps the base action with compiled firmware SCAN label and the actual CAD magnifier in both GLBs",
+        "status": "passed",
+        "durationMs": 1042.466625
+      },
+      {
+        "name": "OTA release verifies real image plus patch signatures in desk and native firmware",
+        "status": "passed",
+        "durationMs": 1814.08
+      },
+      {
+        "name": "OTA both verifiers reject tampered signed channel, rollout, base and patch metadata",
+        "status": "passed",
+        "durationMs": 6351.959334
+      },
+      {
+        "name": "OTA separately signed patch and final image are each mandatory",
+        "status": "passed",
+        "durationMs": 2378.114833
+      },
+      {
+        "name": "OTA native refuses wrong base version/hash and corrupted patch bytes",
+        "status": "passed",
+        "durationMs": 3061.6225
+      },
+      {
+        "name": "OTA SHA256 rollout bucket and 0/100 percent agree across JS and C++",
+        "status": "passed",
+        "durationMs": 21311.775041
+      },
+      {
+        "name": "OTA beta requires opt in; stable can install on both channels",
+        "status": "passed",
+        "durationMs": 2061.866333
+      },
+      {
+        "name": "OTA manifest and generator reject malformed percent, channels, versions and deltas",
+        "status": "passed",
+        "durationMs": 13081.746416
+      },
+      {
+        "name": "OTA patch format rejects bad headers, truncation, opcode, trailing and bound violations",
+        "status": "passed",
+        "durationMs": 683.893083
+      },
+      {
+        "name": "OTA encrypted desk opt in persists across pad reboot and delta saves transfer bytes",
+        "status": "passed",
+        "durationMs": 2167.315333
+      },
+      {
+        "name": "OTA encrypted pad independently refuses beta, rollout and bad base at begin",
+        "status": "passed",
+        "durationMs": 1813.553875
+      },
+      {
+        "name": "OTA desk falls back to full image when previous version does not match",
+        "status": "passed",
+        "durationMs": 1650.474334
+      },
+      {
+        "name": "OTA native rejects malformed patches even with valid patch and release signatures",
+        "status": "passed",
+        "durationMs": 4777.167083
+      },
+      {
+        "name": "OTA encrypted pad refuses patch corruption and independently verifies reconstructed image",
+        "status": "passed",
+        "durationMs": 2260.748542
+      },
+      {
+        "name": "OTA legacy bootstrap preserves the existing full-image signature envelope",
+        "status": "passed",
+        "durationMs": 1222.636333
+      },
+      {
+        "name": "F6 native idle and wake driver consumes YES and a whole knob hold at the exact boundary",
+        "status": "passed",
+        "durationMs": 2681.404208
+      },
+      {
+        "name": "F6 ambient options persist and reject nonboolean input",
+        "status": "passed",
+        "durationMs": 20.884167
+      },
+      {
+        "name": "F6 encrypted pad consumes first input, reports ambient view and saves real Device options",
+        "status": "passed",
+        "durationMs": 5978.89225
+      },
+      {
+        "name": "encrypted BLE TTS uses real Opus at 24kbps with ordered tail and end",
+        "status": "passed",
+        "durationMs": 74.563625
+      },
+      {
+        "name": "USB retains exact PCM fallback bytes",
+        "status": "passed",
+        "durationMs": 41.393
+      },
+      {
+        "name": "BLE rejects PCM, malformed Opus, wrong rate and stream sequence",
+        "status": "passed",
+        "durationMs": 31.125583
+      },
+      {
+        "name": "encrypted crash intake checks hash, persists private bytes and binds acknowledgment",
+        "status": "passed",
+        "durationMs": 63.318167
+      },
+      {
+        "name": "crash rejects gaps, changed identity, oversize and corrupt bytes without saved ack",
+        "status": "passed",
+        "durationMs": 87.907167
+      },
+      {
+        "name": "failed crash persistence never acknowledges deletion",
+        "status": "passed",
+        "durationMs": 36.014417
+      },
+      {
+        "name": "telemetry reaches paired desk with reset, brownout, sensor and link fields",
+        "status": "passed",
+        "durationMs": 75.997584
+      },
+      {
+        "name": "one shared table renders every native PCM sample within one quantization unit of WebAudio input",
+        "status": "passed",
+        "durationMs": 2557.687458
+      },
+      {
+        "name": "sound policy and persistent pad options validate mute detents and UTC quiet boundaries",
+        "status": "passed",
+        "durationMs": 2.153208
+      },
+      {
+        "name": "encrypted pad event reaches real mirror WebAudio; options persist and desktop remains approved",
+        "status": "passed",
+        "durationMs": 11291.487791
+      },
+      {
+        "name": "F4 YES executes only the displayed reduce-only plan, cancellations first, and NO executes nothing",
+        "status": "passed",
+        "durationMs": 20.334166
+      },
+      {
+        "name": "F4 waits for confirmed queue state after each handoff before starting the next leg",
+        "status": "passed",
+        "durationMs": 110.036958
+      },
+      {
+        "name": "F4 stale identities, short holds, changed inventory, permission refusal and cancelled grants cannot trade",
+        "status": "passed",
+        "durationMs": 59.806375
+      },
+      {
+        "name": "F4 refuses opening/partial/invalid plans, preserves Setup/empty, caps and mainnet gate",
+        "status": "passed",
+        "durationMs": 2.144458
+      },
+      {
+        "name": "F4 actual encrypted killed pad gets honest live Setup, refuses YES/ordinary keys, accepts NO and preserves rearm",
+        "status": "passed",
+        "durationMs": 6621.34475
+      },
+      {
+        "name": "F7 authenticated journal assembler rejects partial mixed duplicate and oversized histories",
+        "status": "passed",
+        "durationMs": 1.055125
+      },
+      {
+        "name": "F7 production C++ journal persists exactly 32 decisions across process restart, with all outcomes",
+        "status": "passed",
+        "durationMs": 2218.796458
+      },
+      {
+        "name": "F7 actual encrypted pad syncs NVS driver, knob opens read-only journal, HTTP and Activity show honest state",
+        "status": "passed",
+        "durationMs": 1120.859583
+      },
+      {
+        "name": "liquidation distance is directional, inclusive, unknown-safe and alarms beyond liquidation",
+        "status": "passed",
+        "durationMs": 0.828625
+      },
+      {
+        "name": "API fields retain decimals and missing values; half close rounds down integer lots and micro USD",
+        "status": "passed",
+        "durationMs": 0.308583
+      },
+      {
+        "name": "guard keys bind the encrypted peer, displayed episode, freshness, kill and pending decision",
+        "status": "passed",
+        "durationMs": 0.139958
+      },
+      {
+        "name": "half-close selection cannot switch position, side, venue or size, and the first pad YES only proposes",
+        "status": "passed",
+        "durationMs": 0.267125
+      },
+      {
+        "name": "reduce-only proposals keep all permission gates and cannot auto-accept or build on mainnet by default",
+        "status": "passed",
+        "durationMs": 20.460667
+      },
+      {
+        "name": "actual empty perp feed and guard options reach encrypted padsim and approved desktop",
+        "status": "passed",
+        "durationMs": 10594.759084
+      },
+      {
+        "name": "Predict records bound public data, never invent change, and reject wrong clusters",
+        "status": "passed",
+        "durationMs": 1.501083
+      },
+      {
+        "name": "Predict proposals require live displayed market, encrypted profile, no pending decision and never contain acceptance",
+        "status": "passed",
+        "durationMs": 1.346833
+      },
+      {
+        "name": "manual confirmation survives gate rejection and never auto-accepts",
+        "status": "passed",
+        "durationMs": 0.8865
+      },
+      {
+        "name": "Predictor profile streams live-or-Setup to encrypted padsim; PORTFOLIO and desktop use the actual routes",
+        "status": "passed",
+        "durationMs": 3628.783708
+      },
+      {
+        "name": "native firmware signs actual SDK message after hold, verifies Ed25519 and retains cap across reboot",
+        "status": "passed",
+        "durationMs": 27.860417
+      },
+      {
+        "name": "pad signer mode persists without enabling mainnet or falling back to another wallet",
+        "status": "passed",
+        "durationMs": 1.769166
+      },
+      {
+        "name": "native pad auto policy requires matching destination and charges daily budget",
+        "status": "passed",
+        "durationMs": 8.463625
+      },
+      {
+        "name": "encrypted pad session policy and exact message signature use native firmware, refuse stale responses",
+        "status": "passed",
+        "durationMs": 74.017417
+      },
+      {
+        "name": "pad signer refuses mainnet without explicit acknowledgment before requesting a pad",
+        "status": "passed",
+        "durationMs": 0.715375
+      },
+      {
+        "name": "tilt settings reject malformed limits and desk state cannot replace counters or deadlines",
+        "status": "passed",
+        "durationMs": 0.995
+      },
+      {
+        "name": "close receipt transport preserves known realized PnL and leaves unavailable values null",
+        "status": "passed",
+        "durationMs": 0.203875
+      },
+      {
+        "name": "native tilt driver persists reservations and refuses new exposure across reboot and UTC midnight",
+        "status": "passed",
+        "durationMs": 4205.888708
+      },
+      {
+        "name": "verified native padsim reports actual tilt settings to Agent and Device without desktop restyling",
+        "status": "passed",
+        "durationMs": 6523.320333
+      },
+      {
+        "name": "real TCP lost ACK recovers by re-ACKing authenticated retry, once only",
+        "status": "passed",
+        "durationMs": 310.371125
+      },
+      {
+        "name": "watchdog expires a peer during backend work and reconnect requires fresh session keys",
+        "status": "passed",
+        "durationMs": 56.946417
+      },
+      {
+        "name": "USB to BLE to Wi-Fi policy rejects standby trade inputs and never stores offline input",
+        "status": "passed",
+        "durationMs": 64.077709
+      },
+      {
+        "name": "v1 remains accepted while v2-only transports reject plaintext",
+        "status": "passed",
+        "durationMs": 1.4815
+      },
+      {
+        "name": "replayed pairing offer cannot reset an established pad nonce counter",
+        "status": "passed",
+        "durationMs": 37.364417
+      },
+      {
+        "name": "expired signal queued behind unacknowledged data is discarded",
+        "status": "passed",
+        "durationMs": 49.096125
+      },
+      {
+        "name": "v2 pairing, encrypted real key routes, replay rejection and no plaintext downgrade",
+        "status": "passed",
+        "durationMs": 397.431625
+      },
+      {
+        "name": "v2 encrypted serial replay is rejected by the pad without applying it twice",
+        "status": "passed",
+        "durationMs": 128.308458
+      },
+      {
+        "name": "v2 serial CRC pairing and management routes preserve authentication",
+        "status": "passed",
+        "durationMs": 117.15225
+      },
+      {
+        "name": "v2 kill latch survives simulated reboot and requires desk plus physical hold",
+        "status": "passed",
+        "durationMs": 948.97725
+      },
+      {
+        "name": "v2 OTA sends actual compiled signed release; bad signatures are rejected by desk and pad",
+        "status": "passed",
+        "durationMs": 1141.747625
+      },
+      {
+        "name": "v2 encrypted live devnet signal, matching fingerprint, hold confirmation, and verified historical receipt",
+        "status": "passed",
+        "durationMs": 1593.818375
+      },
+      {
+        "name": "v2 syncs eight three-layer profiles and receives profile and knob state over encrypted USB",
+        "status": "passed",
+        "durationMs": 118.58125
+      },
+      {
+        "name": "CRC IEEE",
+        "status": "passed",
+        "durationMs": 0.5205
+      },
+      {
+        "name": "canonical fingerprint independent of insertion order",
+        "status": "passed",
+        "durationMs": 0.460291
+      },
+      {
+        "name": "fingerprint binds every field",
+        "status": "passed",
+        "durationMs": 0.240417
+      },
+      {
+        "name": "invalid quote fails closed",
+        "status": "passed",
+        "durationMs": 0.117167
+      },
+      {
+        "name": "trusted signal uses the executable route and prediction outcome",
+        "status": "passed",
+        "durationMs": 10.3595
+      },
+      {
+        "name": "X25519 encrypted bidirectional signal and ack",
+        "status": "passed",
+        "durationMs": 2.336084
+      },
+      {
+        "name": "serial encrypted frame CRC",
+        "status": "passed",
+        "durationMs": 0.647084
+      },
+      {
+        "name": "replay rejected",
+        "status": "passed",
+        "durationMs": 0.401417
+      },
+      {
+        "name": "ciphertext tamper rejected",
+        "status": "passed",
+        "durationMs": 0.375542
+      },
+      {
+        "name": "ack tamper rejected",
+        "status": "passed",
+        "durationMs": 0.387041
+      },
+      {
+        "name": "tag tamper rejected",
+        "status": "passed",
+        "durationMs": 0.334542
+      },
+      {
+        "name": "wrong pairing code cannot decrypt",
+        "status": "passed",
+        "durationMs": 0.411333
+      },
+      {
+        "name": "handshake signed by pinned identity",
+        "status": "passed",
+        "durationMs": 0.762375
+      },
+      {
+        "name": "retry exponential and bounded",
+        "status": "passed",
+        "durationMs": 0.471166
+      },
+      {
+        "name": "OTA real Ed25519 accepts correct image and rejects bad signature/hash",
+        "status": "passed",
+        "durationMs": 0.683958
+      },
+      {
+        "name": "pairing transcript requires and binds fresh device challenge",
+        "status": "passed",
+        "durationMs": 0.52
+      },
+      {
+        "name": "lost reliable data survives overtaking ack and heartbeat without premature acknowledgment",
+        "status": "passed",
+        "durationMs": 0.716083
+      },
+      {
+        "name": "lost acknowledgment recovers on duplicate data without replay execution",
+        "status": "passed",
+        "durationMs": 0.4415
+      },
+      {
+        "name": "reliable window, canonical base64, and nonce exhaustion fail closed",
+        "status": "passed",
+        "durationMs": 0.340042
+      },
+      {
+        "name": "reconnect backoff grows to 30 seconds and resets after a healthy connection",
+        "status": "passed",
+        "durationMs": 0.082375
+      },
+      {
+        "name": "framing handles fragmented Unicode, multiple lines, diagnostics and limits",
+        "status": "passed",
+        "durationMs": 0.870834
+      },
+      {
+        "name": "keymap validation preserves all measured controls and every cell",
+        "status": "passed",
+        "durationMs": 0.736542
+      },
+      {
+        "name": "TCP: keymap push/persistence, key and knob use actual desk routes; duplicates do not replay",
+        "status": "passed",
+        "durationMs": 233.874
+      },
+      {
+        "name": "real serialport over a PTY receives keymap and sends a key",
+        "status": "passed",
+        "durationMs": 197.46925
+      },
+      {
+        "name": "voice chunks reach actual voice module; missing key reports Setup required",
+        "status": "passed",
+        "durationMs": 73.7125
+      },
+      {
+        "name": "Wi-Fi NDJSON/WS authenticates and forwards actual queue events to /events",
+        "status": "passed",
+        "durationMs": 81.815375
+      },
+      {
+        "name": "key \u2192 live devnet signal \u2192 accept is gated; missing phone setup cannot produce a receipt",
+        "status": "passed",
+        "durationMs": 692.362958
+      },
+      {
+        "name": "key \u2192 live devnet signal \u2192 accept \u2192 actual confirmed receipt (funded test wallet required)",
+        "status": "skipped",
+        "durationMs": 128.945458,
+        "reason": "Setup required: fund DbHsbDBtPHKGzEd4iC9QPPrKYhH68zchpznThZFbjxtD with 0.01 devnet SOL and 1 mUSDC; no transaction sent"
+      },
+      {
+        "name": "receipt delivery replays a verified historical devnet confirmation, not a new fill",
+        "status": "passed",
+        "durationMs": 122.414958
+      },
+      {
+        "name": "KILL refuses every proposal key at HTTP and pad ingress without creating signals",
+        "status": "passed",
+        "durationMs": 90.851
+      },
+      {
+        "name": "permission per_trade refuses independently",
+        "status": "passed",
+        "durationMs": 1.410416
+      },
+      {
+        "name": "permission per_day refuses independently",
+        "status": "passed",
+        "durationMs": 0.12825
+      },
+      {
+        "name": "permission leverage refuses independently",
+        "status": "passed",
+        "durationMs": 0.068625
+      },
+      {
+        "name": "permission positions refuses independently",
+        "status": "passed",
+        "durationMs": 0.065708
+      },
+      {
+        "name": "permission allowlist refuses independently",
+        "status": "passed",
+        "durationMs": 0.074167
+      },
+      {
+        "name": "permission denylist refuses independently",
+        "status": "passed",
+        "durationMs": 0.055666
+      },
+      {
+        "name": "permission venue refuses independently",
+        "status": "passed",
+        "durationMs": 0.051625
+      },
+      {
+        "name": "permission cooldown refuses independently",
+        "status": "passed",
+        "durationMs": 0.06075
+      },
+      {
+        "name": "permission quiet_hours refuses independently",
+        "status": "passed",
+        "durationMs": 15.338167
+      },
+      {
+        "name": "auto-accept requires venue AND kind; always-ask forces manual acceptance",
+        "status": "passed",
+        "durationMs": 0.287667
+      },
+      {
+        "name": "policy counts executed daily spend, pending reservations and position reservations",
+        "status": "passed",
+        "durationMs": 0.2065
+      },
+      {
+        "name": "quiet hours handle timezone, midnight wrapping, boundaries and a full day",
+        "status": "passed",
+        "durationMs": 0.472125
+      },
+      {
+        "name": "memory veto runs before policy and size clamp cannot be expanded by permissions",
+        "status": "passed",
+        "durationMs": 0.127125
+      },
+      {
+        "name": "policy persists public fields, rejects secrets/invalid values, and fails closed when corrupt",
+        "status": "passed",
+        "durationMs": 5.753667
+      },
+      {
+        "name": "perps routes and Solana Pay enforce auth, owner, methods and fresh unsigned mainnet builds",
+        "status": "passed",
+        "durationMs": 2161.921041
+      },
+      {
+        "name": "Phoenix lists every live API market with mark, funding and leverage",
+        "status": "passed",
+        "durationMs": 806.243959
+      },
+      {
+        "name": "Phoenix quotes both sides using real depth, fees and tier-aware liquidation math",
+        "status": "passed",
+        "durationMs": 127.7625
+      },
+      {
+        "name": "Phoenix builds an actually unsigned open transaction for a public authority",
+        "status": "passed",
+        "durationMs": 1180.827416
+      },
+      {
+        "name": "Phoenix unsigned order simulates on real mainnet with sigVerify:false",
+        "status": "skipped",
+        "durationMs": 58.368208,
+        "reason": "Setup required: PHOENIX_AUTHORITY (registered, enabled, funded trader and SOL fee payer); actual simulation returned \"AccountNotFound\""
+      },
+      {
+        "name": "Phoenix reads actual positions and builds a reduce-only close when an account is available",
+        "status": "skipped",
+        "durationMs": 0.351875,
+        "reason": "Setup required: PHOENIX_AUTHORITY (register and fund this Phoenix trader before opening positions)"
+      },
+      {
+        "name": "Phoenix never signs, requires an on-curve public authority and validates sizing",
+        "status": "passed",
+        "durationMs": 1.091375
+      },
+      {
+        "name": "every catalog mint is allowlisted and ambiguous tickers never select a token",
+        "status": "passed",
+        "durationMs": 4.707708
+      },
+      {
+        "name": "numeric hedge payout is adverse to the actual position for every supported operator",
+        "status": "passed",
+        "durationMs": 0.870667
+      },
+      {
+        "name": "the existing gate can refuse a hedge outcome and caps an explicitly allowed proposal",
+        "status": "passed",
+        "durationMs": 0.995834
+      },
+      {
+        "name": "pm-AMM reads live devnet markets with real price, end time and vault liquidity",
+        "status": "passed",
+        "durationMs": 556.733041
+      },
+      {
+        "name": "pm-AMM quotes YES and NO and builds an unsigned swap for a throwaway public key",
+        "status": "passed",
+        "durationMs": 178.243208
+      },
+      {
+        "name": "the unsigned pm-AMM swap simulates successfully on real devnet",
+        "status": "skipped",
+        "durationMs": 160.252917,
+        "reason": "Setup required: PMAMM_TEST_OWNER \u2014 fund a throwaway devnet public key with SOL and mUSDC; airdrop unavailable (HTTP 410: RPC faucet closed on devnet)"
+      },
+      {
+        "name": "pm-AMM builds unsigned market creation and reads actual owner positions",
+        "status": "passed",
+        "durationMs": 176.572042
+      },
+      {
+        "name": "pm-AMM builds an unsigned claim from a real resolved devnet market",
+        "status": "passed",
+        "durationMs": 250.952417
+      },
+      {
+        "name": "pm-AMM routes enforce auth, methods, setup errors, and return real devnet markets",
+        "status": "passed",
+        "durationMs": 738.012416
+      },
+      {
+        "name": "mUSDC conversion preserves six decimals and refuses rounding or overflow",
+        "status": "passed",
+        "durationMs": 0.870125
+      },
+      {
+        "name": "every registered Solana venue refuses signing and has no signing call",
+        "status": "passed",
+        "durationMs": 12.307458
+      },
+      {
+        "name": "transaction builders require a public wallet address, with the exact setup variable",
+        "status": "passed",
+        "durationMs": 1.406625
+      },
+      {
+        "name": "invalid quote inputs and unknown wallet requests fail without querying a chain",
+        "status": "passed",
+        "durationMs": 0.326959
+      },
+      {
+        "name": "Predict, outcomes, funding and Portfolio frames match native firmware byte for byte; Fund QR decodes",
+        "status": "passed",
+        "durationMs": 13952.332792
+      },
+      {
+        "name": "PORTFOLIO honestly reports no wallet over HTTP and fragmented TCP, then falls back to desk wallet",
+        "status": "passed",
+        "durationMs": 16165.821791
+      },
+      {
+        "name": "encrypted v2 PORTFOLIO uses selected native pad session key even before signing policy approval",
+        "status": "passed",
+        "durationMs": 16757.580917
+      },
+      {
+        "name": "desk price alerts validate bounded public rules and clear list",
+        "status": "passed",
+        "durationMs": 1.363959
+      },
+      {
+        "name": "captured price fixture is a real Jupiter v3 response and pinned CA stays public",
+        "status": "passed",
+        "durationMs": 0.881833
+      },
+      {
+        "name": "live quote renders before 24h reference; reference failure, timeout, empty and stale results stay independent",
+        "status": "passed",
+        "durationMs": 9260.326833
+      },
+      {
+        "name": "session wallet signs a gate-accepted real devnet pm-AMM message once, without submitting",
+        "status": "passed",
+        "durationMs": 816.125375
+      },
+      {
+        "name": "Node wallet creates/imports once, shows only public key and uses ignored 0600 storage",
+        "status": "passed",
+        "durationMs": 64.218333
+      },
+      {
+        "name": "wallet refuses world/group-readable storage and symlinks before reading its key",
+        "status": "passed",
+        "durationMs": 8.057834
+      },
+      {
+        "name": "mainnet signing refuses the exact missing acknowledgement before any key/RPC access",
+        "status": "passed",
+        "durationMs": 1.22025
+      },
+      {
+        "name": "signing capabilities require accepted, unexpired, exact-size policy approval and bind the message",
+        "status": "passed",
+        "durationMs": 1.556
+      },
+      {
+        "name": "phone transaction verifier checks every real Ed25519 signature against the exact message",
+        "status": "passed",
+        "durationMs": 2.817584
+      },
+      {
+        "name": "signals and policy use pad auth; WebSocket headers/subprotocols stream actual queue events",
+        "status": "passed",
+        "durationMs": 179.198958
+      },
+      {
+        "name": "manual state machine publishes each state and rejects terminal transitions",
+        "status": "passed",
+        "durationMs": 12.653042
+      },
+      {
+        "name": "auto-accept traverses auto_accepted and accepted; speech failure waits for operator",
+        "status": "passed",
+        "durationMs": 0.653125
+      },
+      {
+        "name": "refused, failed and expired signals cannot sign; unanswered timer expires",
+        "status": "passed",
+        "durationMs": 63.024834
+      },
+      {
+        "name": "acceptance re-gates, rechecks expiry after gate wait and serializes conflicting answers",
+        "status": "passed",
+        "durationMs": 41.365833
+      },
+      {
+        "name": "panic refuses every waiting/accepted entry and queue requires positive bounded expiry",
+        "status": "passed",
+        "durationMs": 0.894584
+      },
+      {
+        "name": "trusted confirmation binds the displayed quote through the acceptance gate",
+        "status": "passed",
+        "durationMs": 1.729208
+      },
+      {
+        "name": "directory rejects unbounded requests before any upstream call",
+        "status": "passed",
+        "durationMs": 0.499166
+      },
+      {
+        "name": "real Jupiter spot directory quote shares a 15s cache",
+        "status": "passed",
+        "durationMs": 165.267833
+      },
+      {
+        "name": "expanded Jupiter book quotes SOL and HYPE with actual mint decimals",
+        "status": "passed",
+        "durationMs": 416.640334
+      },
+      {
+        "name": "floor text tokens meet WCAG AA",
+        "status": "passed",
+        "durationMs": 1.433041
+      },
+      {
+        "name": "paper text tokens meet WCAG AA",
+        "status": "passed",
+        "durationMs": 0.18375
+      },
+      {
+        "name": "neon text tokens meet WCAG AA",
+        "status": "passed",
+        "durationMs": 0.214958
+      }
+    ]
+  },
+  "native": {
+    "command": "bash firmware/test/run.sh",
+    "exitCode": 0,
+    "cases": 304,
+    "assertions": 4474,
+    "failed": 0
+  },
+  "finalLayoutRegression": {
+    "command": "SIBYL_PY=$PWD/.venv/bin/python node --test --test-concurrency=1 desk/test/model3d.test.mjs desk/test/portfolio-screen.test.mjs",
+    "exitCode": 0,
+    "tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 24113.839333,
+    "frameCases": 31,
+    "note": "After the final ui.h six-pixel Setup-message placement correction; full desk run above preceded that rendering-only correction."
+  },
+  "builds": [
+    {
+      "variant": "pro",
+      "flashBytes": 2022182,
+      "staticRamBytes": 69476,
+      "imageBytes": 2022336,
+      "sha256": "a5d5646346d5d7cf4b3cb1deee19784ce6fa68628c70657f53d695789c8c0796",
+      "signed": false
+    },
+    {
+      "variant": "core",
+      "flashBytes": 2004159,
+      "staticRamBytes": 69252,
+      "imageBytes": 2004304,
+      "sha256": "92fb8fadf01dadb16a7b42dcca692427d35bbfd81cf956182d000b0dcbafb1d1",
+      "signed": false
+    }
+  ],
+  "wasmSha256": "1dbc5f6f1751d3df7daa837d9305a8d1a1717571920df784e44c75a0906bda2f",
+  "appBuildExitCode": 0,
+  "captures": {
+    "desktop": 14,
+    "nativePad": 12,
+    "visualOverflowFindings": 0,
+    "runtimeErrors": 0
+  },
+  "productionSigning": false,
+  "flashed": false,
+  "pushed": false
+}

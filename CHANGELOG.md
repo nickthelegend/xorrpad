@@ -6,6 +6,21 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+## [4.0.0] — 2026-11-13
+
+### Release — F7
+
+- Device's existing Sounds, Ambient and Tilt guard controls, Markets' Predict on
+  pad, Agent's pad-authoritative guard state and Activity's journal/guard events
+  ship together using the approved components, tokens and art.
+- Compile-only Pro/Core release script writes image-bound unsigned OTA manifests
+  with SHA-256, size and all seven feature notes. Unsigned manifests cannot pass
+  existing OTA verification; production signing remains a separate operation.
+- Release browser coverage saves settings together, reloads their stored values,
+  selects Predictor without creating a trade, and captures the actual desktop
+  at 1440/375 with overflow checks. Native uipreview frames cover every new pad
+  screen; release notes document records, Setup states and hardware limits.
+
 ### Added — Firmware 4.0.0 F6: Ambient clock and trade journal
 
 - After 60 seconds idle on Home, a dim UTC clock shows independent SOL reference
@@ -88,7 +103,7 @@ All notable changes to xorrpad are documented here. This file follows
 - Encrypted v4 padsim, native parser/confirmation tests, native/WASM frame parity,
   uipreview and responsive desktop evidence accompany F1. Core can compile with
   `XORR_CORE=1` and uses the desktop/phone for visual review. No release signing,
-  flashing or push is performed. F3–F7 remain future steps.
+  flashing or push is performed. Later F3–F7 entries above complete this scope.
 
 ### Added — Agent wallet W3, part 4
 

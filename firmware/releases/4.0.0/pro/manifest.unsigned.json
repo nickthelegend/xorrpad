@@ -1,0 +1,9 @@
+{
+  "version": "4.0.0",
+  "channel": "stable",
+  "rolloutPercent": 100,
+  "sha256": "a5d5646346d5d7cf4b3cb1deee19784ce6fa68628c70657f53d695789c8c0796",
+  "size": 2022336,
+  "minDeskVersion": "1.0.0",
+  "notes": "Firmware 4.0.0: Predict on pad; perps cockpit and liquidation guard; persistent tilt guard; panic flatten with physical YES; eight synthesized earcons and LED cues; wake-only ambient clock; 32-decision NVS journal; desktop Sounds, Ambient, Tilt guard, Agent state and Activity events"
+}

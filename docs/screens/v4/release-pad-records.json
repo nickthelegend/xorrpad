@@ -1,0 +1,241 @@
+[
+  {
+    "id": "predict",
+    "source": "firmware/build/f1-predict.json",
+    "provenance": "Actual public pm-AMM devnet record from the isolated feature suite; replayed snapshot, not a new trade.",
+    "record": {
+      "type": "predict",
+      "selected": 0,
+      "total": 97,
+      "offset": 0,
+      "enabled": true,
+      "cluster": "devnet",
+      "venue": "pmamm",
+      "markets": [
+        {
+          "market": "RzgP3oiRe2ByFvWA7ht8gExRFYxVWUFtjrV32PyerjQ",
+          "question": "SOL>=91.50 by 2026-11-14 08:00Z",
+          "probability": 0.5,
+          "change24h": null,
+          "closesIn": 104273
+        },
+        {
+          "market": "WB5nBzfiX4HyhMQfAoq6zdxRhsr5ohUoHfU6a6GWMcj",
+          "question": "Florian WirtzLiverpool?",
+          "probability": 0.2804611718596879,
+          "change24h": null,
+          "closesIn": 4010754
+        },
+        {
+          "market": "WCMCgMwmoZ1KHwEHe8XrATvBCnd7hCDQ9RifSr9revF",
+          "question": "ETH<=1840.00 by 2026-11-14 08:00Z",
+          "probability": 0.5,
+          "change24h": null,
+          "closesIn": 104273
+        },
+        {
+          "market": "WWeK2X5yyGmDySqXEZnHSPZTkdn6DEop4pCDiLYqAjF",
+          "question": "SOL<=74.50 by 2026-11-14 08:00Z",
+          "probability": 0.5,
+          "change24h": null,
+          "closesIn": 104273
+        },
+        {
+          "market": "fcLNbKJMg8fUPs9W8cVog6yowU4qhgu1cR34n5GFYN6",
+          "question": "BTC<=70000.00 by 2026-11-20 08:00Z",
+          "probability": 0.39600006440385943,
+          "change24h": null,
+          "closesIn": 622673
+        },
+        {
+          "market": "gz4vh6xQZB2UGQq6DUzwqW5n3Jxg4ak5fuhUViwSjjq",
+          "question": "SOL>=89.50 by 2026-11-15 08:00Z",
+          "probability": 0.5,
+          "change24h": null,
+          "closesIn": 190673
+        }
+      ],
+      "message": "",
+      "observedAt": "2026-11-13T03:02:07.283Z",
+      "sizeUsd": 50
+    }
+  },
+  {
+    "id": "outcome-positions",
+    "source": "firmware/build/f1-outcome-positions.json",
+    "provenance": "Actual missing-owner Setup response from the isolated feature suite.",
+    "record": {
+      "type": "outcome_positions",
+      "cluster": "devnet",
+      "positions": [],
+      "message": "Setup required: connect your devnet outcome wallet and RPC"
+    }
+  },
+  {
+    "id": "perps-positions",
+    "source": "firmware/build/f2-perps.json",
+    "provenance": "Actual missing-authority perp response from the isolated feature suite.",
+    "record": {
+      "type": "perps",
+      "positions": [],
+      "message": "phoenix: Setup required: position feed unavailable or public authority not configured; jupperps: Setup required: position feed unavailable or public authority not configured",
+      "observedAt": "2026-11-13T03:01:41.621Z"
+    }
+  },
+  {
+    "id": "perps-cockpit-layout",
+    "source": "firmware/build/f2-cockpit-layout.json",
+    "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live position claim.",
+    "record": {
+      "type": "perps",
+      "positions": [
+        {
+          "market": "LAYOUT TEST",
+          "venue": "jupperps",
+          "side": "long",
+          "entry": 100,
+          "mark": 100,
+          "leverage": 5,
+          "liq": 95,
+          "distancePct": 5,
+          "nextFunding": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "liq-guard-layout",
+    "source": "firmware/build/f2-liq-layout.json",
+    "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live liquidation claim.",
+    "record": {
+      "type": "liq_guard",
+      "active": true,
+      "id": "native-layout-vector",
+      "market": "LAYOUT TEST",
+      "mark": 100,
+      "liq": 95,
+      "distancePct": 5,
+      "proposal": {
+        "venue": "jupperps",
+        "reduceOnly": true,
+        "reducePct": 50
+      }
+    }
+  },
+  {
+    "id": "cooldown-layout",
+    "source": "firmware/build/f3-cooldown-layout.json",
+    "provenance": "LAYOUT TEST: explicit local countdown vector; no invented trading loss.",
+    "record": {
+      "type": "tilt_state",
+      "blocked": true,
+      "reason": "LAYOUT TEST: trades per hour",
+      "remainingSeconds": 900,
+      "durationSeconds": 1800
+    }
+  },
+  {
+    "id": "cooldown-setup",
+    "source": "firmware/build/f3-cooldown-setup.json",
+    "provenance": "Native missing-UTC Setup state; no invented clock or trading loss.",
+    "record": {
+      "type": "tilt_state",
+      "blocked": true,
+      "reason": "Setup required: UTC time",
+      "remainingSeconds": 0,
+      "durationSeconds": 0
+    }
+  },
+  {
+    "id": "flatten-layout",
+    "source": "firmware/build/f4-flatten-layout.json",
+    "provenance": "LAYOUT TEST: local plan vector; no live trades or external API substitution.",
+    "record": {
+      "type": "flatten",
+      "id": "layout-test",
+      "reduceOnly": true,
+      "state": "awaiting",
+      "orders": 1,
+      "perps": 1,
+      "outcomes": 1,
+      "rows": [
+        "CANCEL $10.00 TEST / phoenix",
+        "CLOSE 100% $10.00 TEST / jupperps",
+        "SELL YES 1 share TEST / pmamm"
+      ],
+      "message": "LAYOUT TEST / no live trades",
+      "remainingMs": 60000,
+      "observedAt": "2026-11-13T00:43:15.429Z",
+      "fingerprint": "a983e5557e7cb36fb4573cd553d1cdba8477419050c56f20690f8e0b6f002c44"
+    }
+  },
+  {
+    "id": "flatten-setup",
+    "source": "firmware/build/f4-flatten-setup.json",
+    "provenance": "Actual missing-authority flatten response from the isolated feature suite.",
+    "record": {
+      "type": "flatten",
+      "id": "670e9309-efe7-4feb-b790-be8bfa78f1af",
+      "reduceOnly": true,
+      "state": "setup",
+      "orders": 0,
+      "perps": 0,
+      "outcomes": 0,
+      "rows": [],
+      "message": "Phoenix: Setup required: PHOENIX_AUTHORITY (registered, funded Phoenix trader public key); Jupiter Perps: Setup required: JUPPERPS_AUTHORITY (funded wallet public key); pm-AMM: Setup required: SOLANA_ADDRESS",
+      "remainingMs": 0,
+      "observedAt": "2026-11-13T03:00:55.013Z",
+      "fingerprint": "0a28fb03b098f99a618773a2468f65e48f4637e956fd201e494cea834c1c5fb3"
+    }
+  },
+  {
+    "id": "ambient",
+    "source": "firmware/build/f6-ambient.json",
+    "provenance": "Feature-suite desk record or explicit unavailable-feed state; no substituted price.",
+    "record": {
+      "type": "ambient",
+      "epoch": 1794538808,
+      "price": null,
+      "closes": [],
+      "pnl": null,
+      "nextFunding": null,
+      "hours": "NY 22:00 / OVERNIGHT",
+      "crew": "Crew: 0 review round(s)",
+      "observedAt": "2026-11-13T03:00:08.038Z"
+    }
+  },
+  {
+    "id": "journal",
+    "source": "firmware/build/f7-journal.json",
+    "provenance": "Actual empty pad NVS-driver snapshot from the isolated feature suite.",
+    "record": {
+      "type": "journal",
+      "version": 1,
+      "revision": 0,
+      "entries": []
+    }
+  },
+  {
+    "id": "journal-layout",
+    "source": "explicit local parser/renderer vector",
+    "provenance": "LAYOUT TEST: local failed decision, not an external response, fill, signature or realized PnL.",
+    "record": {
+      "type": "journal",
+      "version": 1,
+      "revision": 1,
+      "entries": [
+        {
+          "id": "release-layout-only",
+          "time": 0,
+          "action": "BUY",
+          "market": "LAYOUT TEST",
+          "size": "1",
+          "venue": "local layout",
+          "result": "failed",
+          "signature": "",
+          "reason": "LAYOUT TEST: local failure reason wraps within the pad screen."
+        }
+      ]
+    }
+  }
+]

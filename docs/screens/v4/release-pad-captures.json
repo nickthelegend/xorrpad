@@ -1,0 +1,95 @@
+{
+  "renderer": "firmware/xorrpad/ui.h via native uipreview, 2x RGB565",
+  "captures": [
+    {
+      "file": "release-pad-predict.png",
+      "provenance": "Actual public pm-AMM devnet record from the isolated feature suite; replayed snapshot, not a new trade.",
+      "width": 640,
+      "height": 480,
+      "sha256": "3f30e5481028f9f36ad8af2f20bc6f09adde5d15c6bb5a527de8014baa6c9e95"
+    },
+    {
+      "file": "release-pad-outcome-positions.png",
+      "provenance": "Actual missing-owner Setup response from the isolated feature suite.",
+      "width": 640,
+      "height": 480,
+      "sha256": "77243bc72d0e3ecbe668b66244e64cd5b2570bcb62b851a24e795406937937d2"
+    },
+    {
+      "file": "release-pad-perps-positions.png",
+      "provenance": "Actual missing-authority perp response from the isolated feature suite.",
+      "width": 640,
+      "height": 480,
+      "sha256": "d35bfe2cd01f96713a7812006818f2623b5bb961bbf42cd00aa7764ea4d78d4f"
+    },
+    {
+      "file": "release-pad-perps-cockpit-layout.png",
+      "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live position claim.",
+      "width": 640,
+      "height": 480,
+      "sha256": "e850bd7f9b2b1139a2953833a1dcba5a5a5ed09ea4ff73b720e8a93fa7f5ae8a"
+    },
+    {
+      "file": "release-pad-liq-guard-layout.png",
+      "provenance": "LAYOUT TEST: explicit native parser/renderer vector; no live liquidation claim.",
+      "width": 640,
+      "height": 480,
+      "sha256": "d12695145e6128fafee04ff5d346bf4071efe8ebfd9a2f9a047b604d006f10e7"
+    },
+    {
+      "file": "release-pad-cooldown-layout.png",
+      "provenance": "LAYOUT TEST: explicit local countdown vector; no invented trading loss.",
+      "width": 640,
+      "height": 480,
+      "sha256": "389299ff46219404ff264718e70d97bc1cfd4714b8bb2a4b00d546f0c8ffac20"
+    },
+    {
+      "file": "release-pad-cooldown-setup.png",
+      "provenance": "Native missing-UTC Setup state; no invented clock or trading loss.",
+      "width": 640,
+      "height": 480,
+      "sha256": "2df29a7725bea3ef1d67dd5e51664403cea3a3375667178d7c7cce9f2bed9a60"
+    },
+    {
+      "file": "release-pad-flatten-layout.png",
+      "provenance": "LAYOUT TEST: local plan vector; no live trades or external API substitution.",
+      "width": 640,
+      "height": 480,
+      "sha256": "8e7dae12e97c3048056d92e5ff0f3117bca2683ceead00efd57a4f3cddcee9e3"
+    },
+    {
+      "file": "release-pad-flatten-setup.png",
+      "provenance": "Actual missing-authority flatten response from the isolated feature suite.",
+      "width": 640,
+      "height": 480,
+      "sha256": "2c9dae5b9035caf7dd2b8e0848da1b78cf695db371a733bf77c7b07468211e67"
+    },
+    {
+      "file": "release-pad-ambient.png",
+      "provenance": "Feature-suite desk record or explicit unavailable-feed state; no substituted price.",
+      "width": 640,
+      "height": 480,
+      "sha256": "b0388cab3e4ce281e9fd1da6c4bba39ab89a93d28a34b2180ef36a4acc3e1966"
+    },
+    {
+      "file": "release-pad-journal.png",
+      "provenance": "Actual empty pad NVS-driver snapshot from the isolated feature suite.",
+      "width": 640,
+      "height": 480,
+      "sha256": "50c45abbaaad944ae1f9d38d9fb7e1d810958fed6d720c5337133903034db2ef"
+    },
+    {
+      "file": "release-pad-journal-layout.png",
+      "provenance": "LAYOUT TEST: local failed decision, not an external response, fill, signature or realized PnL.",
+      "width": 640,
+      "height": 480,
+      "sha256": "ea7d885a1ae48a6c384fdf9c0bed8062bcbf260ca8666a6e59b65ce3ea14b5f1"
+    }
+  ],
+  "visualReview": {
+    "imagesInspected": 12,
+    "overflow": 0,
+    "clipping": 0,
+    "notes": "All frames inspected after moving perp Setup text above the profile footer. Long public errors retain intentional bounded ellipses. Layout vectors are labelled."
+  }
+}

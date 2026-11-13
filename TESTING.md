@@ -1,3 +1,75 @@
+# Firmware 4.0.0 · F7 release verification (2026-11-13)
+
+Required full desktop command, run alone with no other suite or compile alongside:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Exit **0**: **282 tests / 273 passed / 9 existing skips / 0 failures /
+0 cancellations**, **1,036,437.206209 ms**. No v1–v3, agent-wallet or v4 test
+was removed or weakened. [Every result and skip reason](docs/v4/F7-RESULTS.json).
+The nine skips are unavailable Ollama, absent Anthropic/Deepgram credentials,
+missing Electron binary, Meteora RPC 429, an unfunded pad test wallet, two
+Phoenix authority/account prerequisites and unfunded pm-AMM devnet simulation
+with its faucet closed. No skip is presented as a pass or fabricated receipt.
+
+`bash firmware/test/run.sh` exits **0**: **304 cases / 4,474 assertions /
+0 failures**. The F7 metadata and combined settings browser tests are included
+in the full 282 count. The browser saves Sounds, Ambient and Tilt guard together,
+reloads stored values and verifies encrypted delivery. Predict on pad selects
+Predictor and creates no signal. All permissions, caps, mainnet and YES gates
+remain unchanged; approved desktop source/components/styles/art are preserved.
+
+Visual inspection then found a two-pixel collision between the new perp Setup
+message and the profile footer. Moving that message up six pixels is the only
+`ui.h` change. After it, WASM, the app, native uipreview and both firmware images
+are rebuilt. The affected CAD/native/WASM suite is rerun separately: **7 tests /
+7 passed / 0 failures / 0 skips**, **24,113.839333 ms**, including all **31**
+frame cases and actual Fund QR decoding. This focused run validates the final
+rendering correction and is not added to the full-suite total. The earlier
+full run and the final rendering regression are distinguished in the results JSON.
+
+Both final Arduino CLI compiles exit **0**, via `bash firmware/build-unsigned.sh`:
+`esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,CDCOnBoot=cdc`,
+`--jobs 4`, C/C++ flags `XORR_RELEASE=1`, `CORE_DEBUG_LEVEL=0` and
+`CONFIG_BT_NIMBLE_SM_SC_ONLY=1`; Core additionally sets `XORR_CORE=1`.
+Flash limit is 3,145,728 bytes; static RAM limit is 327,680 bytes.
+
+| Variant | Sketch flash bytes | Static RAM bytes | OTA image file bytes |
+| --- | ---: | ---: | ---: |
+| Pro release | 2,022,182 | 69,476 | 2,022,336 |
+| Core release | 2,004,159 | 69,252 | 2,004,304 |
+
+Image-file size includes Arduino binary padding/checksum bytes and differs from
+the sketch report. Both committed unsigned manifests match their actual image
+file size/SHA-256 and contain all seven feature notes. Their absent signatures
+are deliberately rejected by the existing OTA gate. No signing step is run.
+Local binaries remain ignored under `firmware/build/f7-{pro,core}-out/`.
+
+Final WASM SHA-256: `1dbc5f6f1751d3df7daa837d9305a8d1a1717571920df784e44c75a0906bda2f`.
+Rebuild command: `EMSDK='/Volumes/Extreme SSD/.xorrpad-toolcache/emsdk' bash tools/uipreview/build-web-screen.sh`.
+`npm run build:app --prefix desk` exits **0** after the final WASM rebuild.
+
+[Release captures](docs/screens/v4/README.md): **14** real desktop PNGs at
+1440/375 and **12** native uipreview PNGs covering every new pad screen, each
+visually inspected for clipping/overflow. Browser document/control bounds and
+runtime errors are also checked: **0** findings. Native capture inputs and
+SHA-256 hashes are committed; local layout vectors are explicitly labelled,
+while financial captures use actual reads or honest Setup/unavailable/empty
+states. No external API response or financial result is mocked.
+
+`git checkout -- docs/screens/v3` restores rewritten historical PNGs; earlier
+per-feature v4 PNGs are also restored. Logs: `firmware/build/f7-{native,desk,
+app-build,arduino,wasm,uipreview,release-frames,final-parity}.log`.
+No production signing key is opened; no production package is signed, no board
+is flashed, no mainnet permission is enabled, and nothing is pushed. Physical
+NVS/power-loss, acoustics/LED timing and panel readability remain board checks.
+
+Historical verification reports below are retained unchanged.
+
+---
+
 # MODEL-3D-FIX verification
 
 Completed 2026-11-12: **152 tests, 143 passed, 9 skipped, 0 failed**, exit 0,

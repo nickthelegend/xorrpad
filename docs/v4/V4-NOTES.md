@@ -1,11 +1,16 @@
-# Firmware 4.0.0 — F1–F3: Predict, perps and tilt guard
+# Firmware 4.0.0 — F7 release
 
 MIT · Copyright (c) 2026 Nivesh Gajengi.
 
-F1, F2 and F3 are delivered. V1–V3 and agent-wallet functionality remains.
-F4 flatten, F5 full earcon suite, F6 ambient clock and F7 journal
-remain planned. OTA generation defaults to 4.0.0 with F1–F3 notes; no manifest
-is signed with any existing key and no OTA is published.
+Features 1–7 are delivered through F1–F6; F7 packages their release evidence.
+V1–V3 and agent-wallet functionality remains. OTA metadata defaults to 4.0.0
+and lists every feature. Pro and Core manifests are explicitly unsigned:
+no production signing step, OTA publication, flashing or push is performed.
+See [4.0.0 release notes](RELEASE-4.0.0.md) and the final F7 section in
+[TESTING.md](../../TESTING.md) for current verification rather than historical
+per-feature counts below. The brief's separate filming add-ons (SCAN answers and
+the remaining legacy mirror corrections) are outside F7's Release section;
+they are not claimed as delivered by this release work.
 
 Select **Predictor** in Device or **Predict on pad** in Markets. If the device has
 stored hardware profiles, the desk selects its Predictor profile/Predict layer.
@@ -452,3 +457,37 @@ The journal/KILL telemetry exception is covered in the final full run; ordinary
 trade keys remain blocked. Exact commands, duration, sizes, hash, captures and
 public evidence locations are in TESTING.md. Approved desktop styling and all
 existing signing/YES/permission gates are retained. No push or board flash.
+
+## F7 — Release integration and evidence
+
+Device's existing options form saves `sounds`, `ambient`, `tiltGuard` and
+`liqGuardPct` together through authenticated `/pad/options`. The release browser
+scenario reloads the actual stored values and verifies encrypted pad delivery.
+Markets' existing Predict on pad button selects the Predictor profile via
+`/desk/profiles`; that selection creates no proposal, signature or trade.
+Agent reads pad-authoritative tilt state and Activity reads the bounded journal
+and actual liquidation events. No desktop component, stylesheet, design token
+or commissioned asset is replaced or restyled.
+
+`firmware/build-unsigned.sh` compiles both release variants and
+`prepare-release.mjs` derives public metadata from the resulting image bytes.
+The existing signed generator shares the same validated metadata and complete
+4.0.0 feature notes. Unsigned manifests deliberately lack a signature and fail
+the existing OTA verifier. Nothing in this release workflow can bypass consent
+or produce an installable verified package without the separate signing step.
+
+The final isolated desk run passes **273/282 tests**, with **9 existing setup /
+provider skips** and **0 failures / cancellations**. Native tests pass **304
+cases / 4,474 assertions**. Visual review found a two-pixel collision between
+the perp Setup message and the profile footer; moving only that message up six
+pixels fixes it. WASM and both firmware images are rebuilt after this final
+`ui.h` change; the subsequent **7/7** CAD/pixel checks include all **31** frame
+cases and actual Fund QR decoding. Full-suite and focused results are reported
+separately in TESTING.md, rather than added together.
+
+All **14** desktop captures and **12** release pad frames are visually inspected
+for clipping/overflow. Committed public records make native uipreview captures
+reproducible. Setup/empty cases are actual feature-suite snapshots; populated
+financial layouts are clearly labelled local vectors, never API substitutions
+or claimed transactions. Historical v3/per-feature screenshots are restored.
+No production signing, flash, mainnet enablement or push occurs.

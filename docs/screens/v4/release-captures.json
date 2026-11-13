@@ -1,0 +1,167 @@
+{
+  "captures": [
+    {
+      "file": "release-device-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-ambient-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-sounds-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-tilt-guard-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-device-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-ambient-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-sounds-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-tilt-guard-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": false,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-markets-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-markets-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-agent-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-agent-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-activity-1440.png",
+      "width": 1440,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 1440,
+        "document": 1440,
+        "controls": []
+      }
+    },
+    {
+      "file": "release-activity-375.png",
+      "width": 375,
+      "height": 960,
+      "fullPage": true,
+      "bounds": {
+        "viewport": 375,
+        "document": 375,
+        "controls": []
+      }
+    }
+  ],
+  "runtimeErrors": [],
+  "apiMocks": false,
+  "provenance": "Real local desk, verified encrypted native padsim; public live reads or explicit Setup/empty states. No trades accepted or submitted.",
+  "visualReview": {
+    "imagesInspected": 14,
+    "horizontalOverflow": 0,
+    "clippedControls": 0,
+    "method": "Inspected all full-page pixels in vertical tiles and all viewport captures; retained approved fixed navigation and scroll boundaries."
+  }
+}
