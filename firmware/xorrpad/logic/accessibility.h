@@ -4,6 +4,7 @@
 namespace xorr {
 struct DisplayIdle {
   uint32_t last=0;
+  bool ambientDue(uint32_t now,bool home,bool enabled=true)const{return enabled && home && uint32_t(now-last)>=60000;}
   void wake(uint32_t now){last=now;}
   bool blank(uint32_t now)const{return uint32_t(now-last)>=600000;}
   int brightness(uint32_t now,int value,bool night)const {

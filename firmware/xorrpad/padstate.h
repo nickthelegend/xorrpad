@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "logic/presentation.h"
+#include "logic/ambient-state.h"
 #include "logic/predict-state.h"
 #include "logic/perps-state.h"
 #include "logic/flatten-state.h"
@@ -25,6 +26,7 @@ struct PadPosition {
 };
 
 struct PadState {
+  xorr::Ambient ambient;
   xorr::Flatten flatten;
   bool tiltBlocked=false,tiltAllowed=false;String tiltReason;uint32_t tiltRemaining=0,tiltDuration=0;
   xorr::Predict predict;

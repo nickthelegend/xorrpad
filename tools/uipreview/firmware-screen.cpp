@@ -7,6 +7,14 @@ static GFXcanvas16 canvas(ui::W,ui::H);
 extern "C" {
 void screen_reset(){pad=PadState();chart=ChartState();}
 void screen_set(const char *k,const char *v){
+ if(!strcmp(k,"ambientVisible")){pad.ambient.visible=atoi(v)!=0;return;}
+ if(!strcmp(k,"ambientEpoch")){pad.ambient.epoch=strtoull(v,nullptr,10);return;}
+ if(!strcmp(k,"ambientPrice")){pad.ambient.price=strlen(v)?atof(v):NAN;return;}
+ if(!strcmp(k,"ambientPnl")){pad.ambient.pnl=strlen(v)?atof(v):NAN;return;}
+ if(!strcmp(k,"ambientFunding")){pad.ambient.nextFunding=strlen(v)?atof(v):NAN;return;}
+ if(!strcmp(k,"ambientHours")){pad.ambient.hours=v;return;}
+ if(!strcmp(k,"ambientCrew")){pad.ambient.crew=v;return;}
+ if(!strncmp(k,"ambientClose",12) && pad.ambient.closes.size()<24){pad.ambient.closes.push_back(atof(v));return;}
  if(!strcmp(k,"flattenId")){pad.flatten.id=v;return;}
  if(!strcmp(k,"flattenState")){pad.flatten.state=v;return;}
  if(!strcmp(k,"flattenMessage")){pad.flatten.message=v;return;}

@@ -777,6 +777,8 @@ void loop() {
   pad.highContrast=accessibility.highContrast();
   screen.brightness(accessibility.brightness(millis()));
   auto event=knob.tick();
+  bool ambientKnob=accessibility.ambientWake.knob(knob.down(),event!=Knob::None,event==Knob::Click || event==Knob::TalkEnd,pad.ambient.visible);
+  if(ambientKnob){pad.ambient.visible=false;accessibility.idle.wake(millis());event=Knob::None;screenDirty=true;}
   bool wakeKnob=event!=Knob::None && accessibility.idle.blank(millis());
   if(event!=Knob::None){accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));screenDirty=true;}
   if(wakeKnob && event!=Knob::TalkEnd)event=Knob::None;
@@ -873,6 +875,16 @@ void loop() {
     screenDirty = true;
   }
   if (pad.ok && chartNow.ok && chartNow.symbol != pad.market) nextChart = 0;
+  bool ambient=accessibility.idle.ambientDue(millis(),presentationHome(pad),accessibility.ambientEnabled);
+  if(ambient!=pad.ambient.visible){pad.ambient.visible=ambient;screenDirty=true;}
+  screen.brightness(ambient?std::min(40,accessibility.brightness(accessibility.idle.last)):accessibility.brightness(millis()));
+  static int lastAmbient=-1;static uint32_t viewEpoch=0;
+  if(padlink.secureReady() && (lastAmbient!=int(ambient) || viewEpoch!=padlink.connectionEpoch())){
+    JsonDocument view;view["type"]="pad_view";view["screen"]=ambient?"ambient":"home";view["selected"]=0;padlink.send(view);
+    lastAmbient=ambient;viewEpoch=padlink.connectionEpoch();
+  }
+  static uint32_t ambientSecond=0;
+  if(ambient && ambientSecond!=millis()/1000){ambientSecond=millis()/1000;screenDirty=true;}
   if (screenDirty && millis() >= screenHoldUntil) {
     screenDirty = false;
     screen.draw(pad, chartNow);

@@ -677,7 +677,7 @@ export function createServer(mem) {
       // price. A dead feed still answers 200 — with no closes and the reason —
       // so the screen can say why instead of freezing on a stale line.
       if (url.pathname === "/pad/chart" && req.method === "GET") {
-        const sym = state.market;
+        const sym = url.searchParams.get("symbol") || state.market;
         const hours = Math.min(Math.max(Number(url.searchParams.get("hours")) || 48, 12), 168);
         try {
           const ref = MARKETS[sym]?.binance;

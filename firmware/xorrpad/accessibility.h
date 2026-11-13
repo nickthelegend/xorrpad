@@ -11,25 +11,29 @@ class Accessibility {
   uint16_t suppressed=0;
 public:
   xorr::DisplayIdle idle;
+  xorr::AmbientWake ambientWake;
+  bool ambientEnabled=true;
   bool speakAmounts()const{return speak;}
   bool highContrast()const{return contrast;}
   int brightness(uint32_t now)const{return idle.brightness(now,level,night);}
   bool patch(JsonVariantConst d,bool persist=true) {
+    if(!d["ambient"].isNull()){if(!d["ambient"].is<bool>())return false;}
     const char *flags[]={"night","highContrast","speakAmounts","leftHanded"};
     for(auto flag:flags)if(!d[flag].isNull() && !d[flag].is<bool>())return false;
     if(!d["brightness"].isNull() && (!d["brightness"].is<int>() || d["brightness"].as<int>()<1 || d["brightness"].as<int>()>255))return false;
     uint8_t nextLevel=d["brightness"] | int(level);
     bool nextNight=d["night"] | night,nextContrast=d["highContrast"] | contrast,
       nextSpeak=d["speakAmounts"] | speak,nextLeft=d["leftHanded"] | left;
-    bool changed=nextLevel!=level || nextNight!=night || nextContrast!=contrast || nextSpeak!=speak || nextLeft!=left;
+    bool nextAmbient=d["ambient"] | ambientEnabled;
+    bool changed=nextAmbient!=ambientEnabled || nextLevel!=level || nextNight!=night || nextContrast!=contrast || nextSpeak!=speak || nextLeft!=left;
     if(persist && changed) {
-      JsonDocument doc;doc["brightness"]=nextLevel;doc["night"]=nextNight;doc["highContrast"]=nextContrast;
+      JsonDocument doc;doc["ambient"]=nextAmbient;doc["brightness"]=nextLevel;doc["night"]=nextNight;doc["highContrast"]=nextContrast;
       doc["speakAmounts"]=nextSpeak;doc["leftHanded"]=nextLeft;
       String json;serializeJson(doc,json);Preferences prefs;
       if(!prefs.begin("xorrui",false))return false;
       bool ok=prefs.putString("settings",json)==json.length();prefs.end();if(!ok)return false;
     }
-    level=nextLevel;night=nextNight;contrast=nextContrast;speak=nextSpeak;left=nextLeft;return true;
+    ambientEnabled=nextAmbient;level=nextLevel;night=nextNight;contrast=nextContrast;speak=nextSpeak;left=nextLeft;return true;
   }
   void begin() {
     Preferences prefs;
@@ -56,6 +60,8 @@ public:
   // A wake/dismiss gesture cannot also accept a trade that was hidden.
   bool keyEvent(uint8_t r,uint8_t c,bool pressed,PadState &pad) {
     uint16_t bit=uint16_t(1)<<(r*4+c);
+    bool ambientConsumed=ambientWake.key(bit,pressed,pad.ambient.visible);
+    if(ambientConsumed){pad.ambient.visible=false;idle.wake(millis());return true;}
     if(!pressed){bool consumed=suppressed&bit;suppressed&=~bit;return consumed;}
     bool hidden=idle.blank(millis()) || pad.errorCode.length() || (!pad.pending && pad.reply.length());
     idle.wake(millis());pad.errorCode="";pad.reply="";

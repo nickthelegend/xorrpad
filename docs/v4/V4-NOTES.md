@@ -355,3 +355,30 @@ F5 acceptance: complete desktop **274 tests / 265 passed / 9 existing skips /
 unsigned Pro/Core compiles pass. The approved desktop styling, all previous
 features and the existing YES/permission/signing gates are retained. Earlier
 screenshots are restored. No push or board flash.
+
+## F6 — Ambient desk clock
+
+After exactly 60 seconds without physical input on Home, the pad shows a quiet
+UTC clock, an independent SOL reference price and up to 24 hourly closes, the
+remembered book's unrealized P/L, the earliest venue-reported funding time,
+existing NY hours and crew review-round count. Book P/L is change against known
+cost basis, not an invented 24-hour return; missing basis is Setup required.
+The existing perp readers currently supply no next funding timestamp, so the
+countdown honestly says unavailable. Missing SOL data stays unavailable. The
+clock extrapolates desk UTC for at most 90 seconds; an interrupted link replaces
+stale financial values with Setup required. The clock stays dimly visible instead
+of blanking; disabling Ambient restores the existing display idle policy.
+
+`/pad/options` adds boolean `ambient` (default true), persisted on desk and in
+`xorrui` NVS. `{type:"ambient",epoch,price,closes,pnl,nextFunding,hours,crew}`
+uses only live existing reads; SOL uses `/pad/chart?symbol=SOL&hours=24`, independent
+of the market in hand. The first key press consumes both down and up, including
+YES, NO and KILL; the next KILL still requires its original 2-second hold. A knob
+turn or press only wakes; holding that first press cannot start recording and
+its release cannot cycle the control. Every proposal, warning and wallet view
+keeps its priority. Screen transitions report authenticated `pad_view` records
+for the mirror; they carry no trading authority. Core uses the same state and
+mirror with its existing earcons. Native tests and the padsim production C++
+driver cover boundaries, clock wrap and complete wake gestures. Native/WASM
+parity adds two honest missing-feed clock frames. The preview capture is a real
+desk record or an explicit unavailable-data state, never a substituted quote.

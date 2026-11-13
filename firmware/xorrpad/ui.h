@@ -524,6 +524,25 @@ static void drawOutcomePositions(GFXcanvas16 &c,const xorr::Predict &p,uint32_t 
  * firmware keeps: a pending decision outranks everything, and an unreachable
  * desk outranks a stale price.
  */
+inline void drawAmbient(GFXcanvas16 &c,const xorr::Ambient &a) {
+ c.fillScreen(BG);bool fresh=a.fresh(millis());
+ text(c,12,10,1,MUTE,"DESK CLOCK / UTC");
+ uint64_t now=a.epoch+uint32_t(millis()-a.receivedAt)/1000;
+ char clock[12];snprintf(clock,sizeof clock,"%02u:%02u",unsigned(now/3600%24),unsigned(now/60%60));
+ text(c,12,30,5,INK,fresh?clock:"--:--");
+ textClip(c,12,82,296,2,SOL,fresh && std::isfinite(a.price)?String("SOL $")+String(float(a.price)):String("SOL unavailable"));
+ if(fresh && a.closes.size()>1){
+  double lo=*std::min_element(a.closes.begin(),a.closes.end()),hi=*std::max_element(a.closes.begin(),a.closes.end());
+  for(size_t i=1;i<a.closes.size();i++)c.drawLine(12+(i-1)*296/(a.closes.size()-1),132-int((a.closes[i-1]-lo)/std::max(hi-lo,0.001)*25),12+i*296/(a.closes.size()-1),132-int((a.closes[i]-lo)/std::max(hi-lo,0.001)*25),SOL);
+ }
+ textClip(c,12,145,296,1,INK,fresh && std::isfinite(a.pnl)?String("Book P/L $")+String(float(a.pnl)):String("Book P/L: Setup required"));
+ String funding="Funding: unavailable";
+ if(fresh && std::isfinite(a.nextFunding) && a.nextFunding>double(now)) {uint32_t left=a.nextFunding-now;funding=String("Funding in ")+String(left/60)+"m "+String(left%60)+"s";}
+ textClip(c,12,161,296,1,MUTE,funding);
+ textClip(c,12,178,296,1,MUTE,fresh?String(a.hours.c_str()):String("Setup required: refresh desk link"));
+ textClip(c,12,195,296,1,MUTE,fresh?String(a.crew.c_str()):String("Crew: unavailable"));
+ text(c,12,223,1,MUTE,"First key / turn wakes only");
+}
 static void drawCooldown(GFXcanvas16 &c,const PadState &p) {
   text(c,12,14,3,WARN,"Cooldown");
   textClip(c,12,52,296,1,INK,p.tiltReason);
@@ -628,6 +647,7 @@ static void drawFrame(GFXcanvas16 &c, const PadState &pad, const ChartState &ch)
     textClip(c,12,224,296,1,MUTE,pad.profile+" / "+pad.layer);
     return;
   }
+  else if(pad.ambient.visible){drawAmbient(c,pad.ambient);return;}
   else if(pad.predict.enabled && (int32_t)(pad.keymapUntil-millis())<=0) {drawPredict(c,pad);return;}
   else if (pad.positionsVisible || (pad.positionCount >= 0 && (millis()/6000)%2 == 1)) {
     drawPositions(c,pad,millis());

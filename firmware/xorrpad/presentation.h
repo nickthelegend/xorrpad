@@ -3,6 +3,7 @@
 #include <cmath>
 #include "padstate.h"
 #include "logic/predict.h"
+#include "logic/ambient.h"
 #include "logic/perps.h"
 #include "logic/flatten.h"
 #include "logic/presentation.h"
@@ -33,10 +34,19 @@ inline bool presentationPredictVisible(const PadState &p) {
     (int32_t)(p.keymapUntil-millis())<=0;
 }
 
+inline bool presentationHome(const PadState &p) {
+ return !p.pending && !p.killed && !p.factory && !p.updating && !p.tiltBlocked && !p.liqGuard.fresh(millis()) &&
+  !p.errorCode.length() && !p.pairCode.length() && !p.alertsOnly && !p.abilityReview && !p.listening &&
+  !p.fund.visible && !p.portfolio.visible && !p.predict.positionsVisible && !p.predict.enabled && !p.positionsVisible &&
+  !p.reply.length() && !p.abilityWidget.length() && (int32_t)(p.receiptUntil-millis())<=0 && (int32_t)(p.keymapUntil-millis())<=0;
+}
+
 // Thin wire-to-screen adapter. Only desk-supplied values become market data.
 inline void presentationMessage(JsonVariantConst d, PadState &pad, ChartState &chart) {
   String type = d["type"] | "";
-  if(type=="flatten") {
+  if(type=="ambient") {
+    if(!xorr::parseAmbient(d,pad.ambient,millis()))pad.ambient=xorr::Ambient();
+  } else if(type=="flatten") {
     if(!xorr::parseFlatten(d,pad.flatten,millis()))pad.flatten=xorr::Flatten();
   } else if(type=="perps") {
     if(!xorr::parsePerps(d,pad.perps,millis())){pad.perps=xorr::Perps();pad.perps.message="Setup required: refresh perp positions";}

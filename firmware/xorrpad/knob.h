@@ -11,6 +11,7 @@ public:
     pinMode(KNOB_A,INPUT_PULLUP);pinMode(KNOB_B,INPUT_PULLUP);pinMode(KNOB_SW,INPUT_PULLUP);
     encoder.begin((digitalRead(KNOB_A)<<1)|digitalRead(KNOB_B));
   }
+  bool down()const{return digitalRead(KNOB_SW)==LOW;}
   Event tick() {
     int turn=encoder.sample((digitalRead(KNOB_A)<<1)|digitalRead(KNOB_B));
     auto e=button.sample(digitalRead(KNOB_SW)==LOW,millis());

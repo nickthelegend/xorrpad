@@ -394,6 +394,7 @@ export function DeviceControls({
               const form = new FormData(e.currentTarget);
               run(async () => {
                 await d.api("/pad/options", {
+                  ambient: form.get("ambient") === "true",
                   brightness: Number(form.get("brightness")),
                   liqGuardPct: Number(form.get("liqGuardPct")),
                   tiltGuard: {dailyLossUsd:Number(form.get("dailyLossUsd")),maxTradesHour:Number(form.get("maxTradesHour")),losingCloses:Number(form.get("losingCloses")),cooldownMinutes:Number(form.get("cooldownMinutes"))},
@@ -420,6 +421,9 @@ export function DeviceControls({
               <input name="liqGuardPct" type="number" min="0.1" max="100" step="0.1" defaultValue={options.data.liqGuardPct} required />
             </Field>
             <p>Within this distance, YES proposes a 50% reduce-only close for review. Missing venue liquidation prices stay unavailable.</p>
+            <h3>Ambient</h3>
+            <p>After 60 seconds idle on Home, show the UTC clock, SOL and book P/L. The first key press or knob turn only wakes the pad. Missing feeds stay unavailable.</p>
+            <Field label="Ambient desk clock"><select name="ambient" defaultValue={String(options.data.ambient !== false)}><option value="true">On</option><option value="false">Off</option></select></Field>
             <h3>Sounds</h3>
             <p>Synthesized earcons on the speaker and 3D mirror. Quiet hours use UTC; equal start/end silences all day. The mirror needs a click or key press to enable browser audio.</p>
             <Field label="Sound volume (%)"><input name="soundVolume" type="number" min="0" max="100" step="1" defaultValue={options.data.sounds?.volume ?? 80} required /></Field>

@@ -32,6 +32,8 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
   const hashes=[];
   const address='11111111111111111111111111111111',uri=`solana:${address}?label=xorrpad%20agent`;
   for(const state of [
+   {ok:"1",ambientVisible:"1"},
+   {ok:"1",ambientVisible:"1",ambientEpoch:"1800000000",ambientHours:"NY hours: unavailable",ambientCrew:"Crew: unavailable"},
    {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"setup",flattenMessage:"Setup required: public authorities not configured"},
    {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"awaiting",flattenOrders:"1",flattenPerps:"1",flattenOutcomes:"1",flattenRemaining:"60000",flattenRow0:"LAYOUT TEST CANCEL",flattenRow1:"LAYOUT TEST CLOSE 100%",flattenRow2:"LAYOUT TEST SELL YES"},
    {ok:"1",killed:"1",flattenId:"layout-test",flattenState:"refused",flattenMessage:"Latch remains on"},
@@ -69,6 +71,6 @@ test('Predict, outcomes, funding and Portfolio frames match native firmware byte
    },state);
    assert.equal(createHash('sha256').update(Buffer.from(bytes)).digest('hex'),hash);
   }
-  assert.equal(new Set(hashes).size,22,'each screen state renders a distinct actual frame');
+  assert.equal(new Set(hashes).size,24,'each screen state renders a distinct actual frame');
  } finally {await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });

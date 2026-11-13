@@ -2441,3 +2441,8 @@ Native/WASM frame parity and actual Fund QR decoding pass with the unchanged
 WASM. Final sound screenshots at 1440/375 are visually reviewed; regenerated
 v3 and earlier v4 screenshots are restored. No other suite or compile ran
 alongside this complete desktop run.
+
+F6 ambient targeted validation: native 300 cases / 4,390 assertions / 0 failures;
+three desk ambient checks exercise the native gate, persistent options, encrypted
+padsim wake and Device form at 1440/375. Native/WASM parity adds clock Setup states.
+Final F6/F7 full-suite and unsigned Pro/Core results are recorded below.

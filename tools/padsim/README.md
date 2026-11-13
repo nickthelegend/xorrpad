@@ -164,3 +164,9 @@ Build `earcon-driver` with `bash firmware/test/run.sh` before running
 `desk/test/pad-earcons.test.mjs`; this compares every native PCM sample to the
 browser synthesis input and verifies actual WebAudio playback, mute, settings,
 state reload and screenshots. Explicit audio events never fabricate a trade.
+
+F6: `AmbientPadSimulator` in `ambient.mjs` extends the existing flatten/tilt/
+signing simulator. Its `idle(now)` and physical `key`/`knob` gestures delegate
+to `firmware/build/ambient-driver` (production C++ idle and wake gates). Tests
+advance its public monotonic clock explicitly; no external API is intercepted.
+`pad_view` records expose Home/Ambient to the mirror without action authority.

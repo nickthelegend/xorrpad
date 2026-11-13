@@ -1,3 +1,4 @@
+import {marketHours} from "./xstocks.mjs";
 import {DEFAULT_SOUNDS,validateSounds} from "../renderer/ui/earcons.mjs";
 import {DEFAULT_TILT,validateTilt,tiltState,tiltReceipt} from "./tilt-guard.mjs";
 import {guardRecord,guardKey} from './perps-cockpit.mjs';
@@ -172,6 +173,7 @@ export class PadLink extends EventEmitter {
     liqGuardPct: 10,
     tiltGuard: {...DEFAULT_TILT},
     sounds: {...DEFAULT_SOUNDS},
+    ambient: true,
     brightness: 220,
     night: false,
     highContrast: false,
@@ -279,6 +281,8 @@ export class PadLink extends EventEmitter {
           profile: p.profileState,
           killed: this.killed.has(p.device),
           flatten:p.flatten,
+          ambient:p.ambient,
+          view:p.view,
           lastSeen: new Date(p.last).toISOString(),
           status: this.getStatus(p),
           perps:p.perps,
@@ -538,6 +542,18 @@ export class PadLink extends EventEmitter {
         read("/pad"),
         read("/pad/chart"),
       ]);
+      if(Number(p.firmware?.split('.')[0])>=4){
+        if(!this.ambientAt || Date.now()-this.ambientAt>=60000){
+          this.ambientAt=Date.now();this.ambientChart=read("/pad/chart?symbol=SOL&hours=24").catch(()=>({closes:[],price:null}));
+        }
+        const sol=await this.ambientChart;
+        const funding=(p.perps?.positions || []).map(r=>r.nextFunding).filter(n=>Number.isFinite(n) && n>Date.now()/1000);
+        const hours=marketHours();
+        p.ambient={type:'ambient',epoch:Math.floor(Date.now()/1000),price:sol.price ?? null,closes:sol.closes?.slice(-24) || [],
+          pnl:pad.unrealised ?? null,nextFunding:funding.length?Math.min(...funding):null,
+          hours:`NY ${hours.nyTime} / ${hours.state}`,crew:`Crew: ${(this.crewStatus?.() || []).length} review round(s)`,observedAt:new Date().toISOString()};
+        this.send(p,p.ambient);
+      }
       this.send(p, {
         type: "pulse",
         market: pad.market,
@@ -586,6 +602,7 @@ export class PadLink extends EventEmitter {
     for (const k of [
       "legacyV1",
       "allowBlindSigning",
+      "ambient",
       "night",
       "highContrast",
       "speakAmounts",
@@ -1275,6 +1292,10 @@ export class PadLink extends EventEmitter {
     if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
+    if(m.type==="pad_view") {
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p || !['home','ambient','journal'].includes(m.screen) || !Number.isInteger(m.selected) || m.selected<0 || m.selected>31)throw Error('invalid pad view');
+      p.view={screen:m.screen,selected:m.selected,observedAt:new Date().toISOString()};return;
+    }
     if(m.type==="earcon") {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p || typeof m.audible!=="boolean" || !Number.isInteger(m.volume) || m.volume<0 || m.volume>100 || !['accept','refuse','fill','alert','liq_alarm','kill','cooldown','tick'].includes(m.kind))throw Error("verified earcon required");
       this.signals?.publish({type:"pad_earcon",device:p.device,kind:m.kind,id:m.id,audible:m.audible,sounds:{...this.options.sounds,volume:m.volume}});return;
