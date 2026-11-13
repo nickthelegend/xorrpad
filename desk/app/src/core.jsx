@@ -185,6 +185,7 @@ export function Provider({ children }) {
       ws.onmessage = (e) => {
         try {
           const next = JSON.parse(e.data);
+          if(next.type==="pad_earcon")window.dispatchEvent(new CustomEvent("pad-earcon",{detail:next}));
           setEvent(next);
           if (next.type === "flatten" || next.type === "liq_guard" || next.type === "clear_approval" || (next.type === "pad_signer" && next.operation === "session_signature" && next.signalId))
             setPadEvents((previous) => [...previous, { ...next, recordId: crypto.randomUUID() }].slice(-100));

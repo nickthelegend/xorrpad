@@ -6,6 +6,7 @@
 #include <cstring>
 #include <string>
 #include <opus.h>
+#include "earcons.h"
 
 namespace xorr {
 constexpr int voiceRate = 16000, voiceFrame = 320, voiceBitrate = 24000;
@@ -32,18 +33,6 @@ inline int voiceVolume(int current, int steps) {
 }
 inline int16_t voiceScale(int16_t sample, int volume) {
   return int32_t(sample)*std::clamp(volume,0,100)/100;
-}
-enum class Chime { Accept, Refuse, Fill, Error, Kill, LiqAlarm };
-struct Cue { int hz, ms; };
-inline std::array<Cue,2> chime(Chime kind) {
-  switch(kind) {
-    case Chime::Accept: return {{{1000,40},{1400,60}}};
-    case Chime::Refuse: return {{{700,50},{450,70}}};
-    case Chime::Fill: return {{{1400,50},{1900,90}}};
-    case Chime::LiqAlarm: return {{{1800,140},{650,180}}};
-    case Chime::Kill: return {{{350,100},{180,160}}};
-    default: return {{{250,60},{250,100}}};
-  }
 }
 // The same library and frame accumulator run on the ESP32 and in native tests.
 class VoiceEncoder {

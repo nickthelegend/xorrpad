@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDesk, useRead, State, Empty, Field } from "../core";
 
+function utcMinute(value){const [h,m]=String(value).split(":").map(Number);return h*60+m;}
+function utcClock(value){return `${String(Math.floor(value/60)).padStart(2,"0")}:${String(value%60).padStart(2,"0")}`;}
+
 async function encoded(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = "";
@@ -394,6 +397,7 @@ export function DeviceControls({
                   brightness: Number(form.get("brightness")),
                   liqGuardPct: Number(form.get("liqGuardPct")),
                   tiltGuard: {dailyLossUsd:Number(form.get("dailyLossUsd")),maxTradesHour:Number(form.get("maxTradesHour")),losingCloses:Number(form.get("losingCloses")),cooldownMinutes:Number(form.get("cooldownMinutes"))},
+                  sounds: {volume:Number(form.get("soundVolume")),mute:form.get("soundMute")==="true",knobTick:form.get("knobTick")==="true",quietHours:form.get("quietEnabled")==="true"?{startMinute:utcMinute(form.get("quietStart")),endMinute:utcMinute(form.get("quietEnd"))}:null},
                   night: form.get("night") === "true",
                 });
                 d.refresh();
@@ -416,6 +420,12 @@ export function DeviceControls({
               <input name="liqGuardPct" type="number" min="0.1" max="100" step="0.1" defaultValue={options.data.liqGuardPct} required />
             </Field>
             <p>Within this distance, YES proposes a 50% reduce-only close for review. Missing venue liquidation prices stay unavailable.</p>
+            <h3>Sounds</h3>
+            <p>Synthesized earcons on the speaker and 3D mirror. Quiet hours use UTC; equal start/end silences all day. The mirror needs a click or key press to enable browser audio.</p>
+            <Field label="Sound volume (%)"><input name="soundVolume" type="number" min="0" max="100" step="1" defaultValue={options.data.sounds?.volume ?? 80} required /></Field>
+            {[["soundMute","Mute",options.data.sounds?.mute],["knobTick","Knob detent tick",options.data.sounds?.knobTick],["quietEnabled","Quiet hours (UTC)",!!options.data.sounds?.quietHours]].map(([name,label,value])=>(<Field key={name} label={label}><select name={name} defaultValue={String(!!value)}><option value="false">Off</option><option value="true">On</option></select></Field>))}
+            <Field label="Quiet start (UTC)"><input name="quietStart" type="time" defaultValue={utcClock(options.data.sounds?.quietHours?.startMinute ?? 1320)} required /></Field>
+            <Field label="Quiet end (UTC)"><input name="quietEnd" type="time" defaultValue={utcClock(options.data.sounds?.quietHours?.endMinute ?? 420)} required /></Field>
             <h3>Tilt guard</h3>
             <p>Limits are saved on the pad. Zero disables a limit; active cooldowns cannot be cleared from the desk. Realized loss uses confirmed close PnL only.</p>
             {[["dailyLossUsd","Daily loss limit (USD)",0,1000000000,0.01],["maxTradesHour","Max trades per hour",0,1000,1],["losingCloses","Consecutive losing closes",0,1000,1],["cooldownMinutes","Cooldown (minutes)",1,10080,1]].map(([name,label,min,max,step])=>(

@@ -1,3 +1,4 @@
+import {DEFAULT_SOUNDS,validateSounds} from "../renderer/ui/earcons.mjs";
 import {DEFAULT_TILT,validateTilt,tiltState,tiltReceipt} from "./tilt-guard.mjs";
 import {guardRecord,guardKey} from './perps-cockpit.mjs';
 import {predictRecord, outcomePositionsRecord, predictProposal} from "./pad-predict.mjs";
@@ -170,6 +171,7 @@ export class PadLink extends EventEmitter {
     holdThreshold: 100,
     liqGuardPct: 10,
     tiltGuard: {...DEFAULT_TILT},
+    sounds: {...DEFAULT_SOUNDS},
     brightness: 220,
     night: false,
     highContrast: false,
@@ -568,6 +570,7 @@ export class PadLink extends EventEmitter {
   setOptions(value) {
     const next = { ...this.options, ...value };
     next.tiltGuard=validateTilt(next.tiltGuard);
+    next.sounds=validateSounds(next.sounds);
     for (const k of Object.keys(next))
       if (!(k in this.options)) throw Error("unknown pad setting");
     if (
@@ -705,7 +708,7 @@ export class PadLink extends EventEmitter {
   killedInput(p,m) {
     const id=p.sessionRequest?.signalId || p.sessionRequest?.flattenSignal || p.clearReview?.id;
     const review=['session_state','session_signature','clear_approval'].includes(m.type) && this.flatten?.allows(id,this.signals?.get(id)?.proposal,p.device);
-    return m.type==='ping' || m.type==='tilt_state' || review || (m.type==='key' && ['flatten:yes','flatten:no'].includes(m.action));
+    return m.type==='ping' || m.type==='tilt_state' || m.type==='earcon' || review || (m.type==='key' && ['flatten:yes','flatten:no'].includes(m.action));
   }
   sessionPeer(device,signalId) {
     for(const p of this.peers)if(p.clearReview && Date.now()>=p.clearReview.expiresAt)p.clearReview=null;
@@ -1272,6 +1275,10 @@ export class PadLink extends EventEmitter {
     if (["key", "knob", "voice", "signal_state", "clear_approval", "session_state", "session_signature", "crew_approval", "price_alerts_state"].includes(m.type) &&
         (Date.now() - p.last >= 15000 || this.preferred(p.device) !== p))
       throw Error("inactive transport: nothing will execute");
+    if(m.type==="earcon") {
+      if(!p.secure || !p.verified || this.preferred(p.device)!==p || typeof m.audible!=="boolean" || !Number.isInteger(m.volume) || m.volume<0 || m.volume>100 || !['accept','refuse','fill','alert','liq_alarm','kill','cooldown','tick'].includes(m.kind))throw Error("verified earcon required");
+      this.signals?.publish({type:"pad_earcon",device:p.device,kind:m.kind,id:m.id,audible:m.audible,sounds:{...this.options.sounds,volume:m.volume}});return;
+    }
     if(m.type==="tilt_state") {
       if(!p.secure || !p.verified || this.preferred(p.device)!==p)throw Error("verified tilt state required");
       p.tiltGuard=tiltState(m);this.signals?.publish({type:"pad_tilt",device:p.device,tiltGuard:p.tiltGuard});return;

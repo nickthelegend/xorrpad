@@ -292,3 +292,66 @@ F4 acceptance: complete desk **271 tests / 262 passed / 9 existing skips /
 0 failures**. All 22 native/WASM frame cases, CAD parity, app build, WASM rebuild
 and final unsigned Pro/Core compiles pass. See TESTING.md for exact sizes, command,
 run duration, prerequisites and public log locations. No push or board flash.
+
+
+## F5 — Sound design
+
+`firmware/xorrpad/logic/earcons-table.h` is the single parameter source for
+all eight synthesized earcons. The Arduino compiler includes it as an X macro;
+the desktop imports its raw text at build time. Two sine notes per event use
+3 ms raised-cosine edges, signed 16-bit mono PCM at 16 kHz and bounded peaks.
+No recorded sound asset is shipped. The existing `Chime::Error` name maps to
+wire event `alert`, retaining every earlier caller and native voice test.
+
+`GET/POST /pad/options` gains `sounds` (complete object):
+
+```json
+{"volume":80,"mute":false,"knobTick":false,"quietHours":null}
+```
+
+Volume is an integer 0–100. `quietHours` is null or
+`{"startMinute":1320,"endMinute":420}` in UTC. Start is inclusive and end is
+exclusive; midnight wrapping works; equal endpoints silence the full day.
+The Device form accepts HH:MM UTC. Mute, zero volume and quiet hours silence
+alarms as well as speech and routine cues. Configured quiet hours with an
+unavailable pad UTC clock stay silent. The LED and safety controls remain live.
+Sound settings persist in the pad's `xorrsound` NVS namespace and desk options;
+identical pad configurations avoid repeated flash writes. The preexisting voice
+profile volume knob still changes local playback gain.
+
+Every scheduled cue emits an authenticated notification
+`{type:"earcon",id,kind,audible,volume}`. Kinds are `accept`, `refuse`, `fill`,
+`alert`, `liq_alarm`, `kill`, `cooldown`, `tick`. The desk validates it from the
+current verified transport and publishes `pad_earcon` with device and sound
+settings. This is a sound notification and carries no trade authority. Secure
+transport replay checks remain in force. The mirror listens only to its selected
+device, uses WebAudio buffers from the same PCM formula and needs an initial
+click/key gesture under browser autoplay rules. Muted/unsynced-clock pad events
+stay silent on the mirror; events before unlock are discarded, never replayed
+later. Older firmware without these notifications does not gain mirror sound.
+
+I2S playback emits at most 128 samples (8 ms) per loop, without blocking for
+an entire earcon. A detent never interrupts another cue; safety alarms take
+priority over routine cues. KILL remains a deliberate 2 s hold, and acceptance
+sound on a trusted decision occurs when its existing tap/hold gate emits YES.
+No audio callback signs, creates or accepts a trade. GPIO 48 retains a green
+fill pulse, adds a red alarm pulse while KILL/LIQ GUARD is active, and breathes
+amber while cooling. Warnings remain visible with mute or quiet hours enabled.
+
+Native tests render every cue to PCM and check exact duration, peak, silent
+edges and distinct samples. `earcon-driver` exposes the production synthesis
+and policy to the desk's sample-by-sample parity test. Browser verification
+observes actual AudioBufferSourceNode playback from an encrypted padsim event,
+checks volume and mute, saves the real Device form and reloads simulator state.
+These are explicit local audio/policy vectors, not fabricated prices or fills.
+The native uipreview frame uses the actual missing-UTC discipline state. No new
+pad screen or `ui.h` change is needed for F5; the existing WASM is preserved.
+Physical speaker timbre, acoustic loudness and LED appearance require a board.
+
+
+F5 acceptance: complete desktop **274 tests / 265 passed / 9 existing skips /
+0 failures / 0 cancellations**; native **296 passed / 4,286 assertions /
+0 failures**. App build, unchanged native/WASM parity, uipreview and final
+unsigned Pro/Core compiles pass. The approved desktop styling, all previous
+features and the existing YES/permission/signing gates are retained. Earlier
+screenshots are restored. No push or board flash.

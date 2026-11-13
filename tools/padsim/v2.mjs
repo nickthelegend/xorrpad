@@ -1,3 +1,4 @@
+import {DEFAULT_SOUNDS,validateSounds,soundAllowed} from "../../desk/renderer/ui/earcons.mjs";
 import {otaEligible, verifyPatch, applyDelta} from "../../desk/main/ota.mjs";
 import { attestationText } from "../../desk/renderer/ui/device-attestation.mjs";
 /** Stateful v2 protocol endpoint, with real cryptography and disk-backed kill state. */
@@ -30,6 +31,7 @@ export class PadSimulatorV2 extends PadSimulator {
   } = {}) {
     super(options);
     Object.assign(this, { serial, code, stateFile, identity, exchange, certificate });
+    this.sounds={...DEFAULT_SOUNDS};this.earcons=[];
     this.killed = false;
     this.threshold = 100;
     this.holding = null;
@@ -38,6 +40,7 @@ export class PadSimulatorV2 extends PadSimulator {
     try {
       const saved=JSON.parse(readFileSync(stateFile, "utf8"));
       this.killed = saved.killed === true;
+      if(saved.sounds)this.sounds=validateSounds(saved.sounds);
       this.otaChannel = saved.otaChannel === 'beta' ? 'beta' : 'stable';
     } catch (e) {
       if (stateFile && e.code !== "ENOENT") throw e;
@@ -202,6 +205,11 @@ export class PadSimulatorV2 extends PadSimulator {
     this.history.push(m);
     if(m.type==='fund')this.fund=m;
     if(m.type==='portfolio')this.portfolio=m;
+    if(['config','ready'].includes(m.type) && m.sounds){this.sounds=validateSounds(m.sounds);this.persist();}
+    if(m.type==='receipt')this.chime('fill');
+    if(m.type==='error')this.chime('alert');
+    if(m.type==='kill_sync' && !this.killed)this.chime('kill');
+    if(m.type==='liq_guard' && m.active && (!this.liqGuard?.active || this.liqGuard?.proposal?.positionId!==m.proposal?.positionId))this.chime('liq_alarm');
     this.emit("message", m);
     if (m.type === "ready") {
       this.verified = true;
@@ -240,6 +248,10 @@ export class PadSimulatorV2 extends PadSimulator {
     }
     if (m.type.startsWith("ota_")) this.update(m);
   }
+  chime(kind,minute){
+    this.earcons.push({kind,audible:soundAllowed(kind,this.sounds,minute)});
+    if(this.verified)this.send({type:'earcon',id:this.device+':earcon:'+ ++this.seq,kind,audible:soundAllowed(kind,this.sounds,minute),volume:this.sounds.volume});
+  }
   key(
     action,
     {
@@ -264,6 +276,7 @@ export class PadSimulatorV2 extends PadSimulator {
       )
         throw Error("hold-to-confirm requires 800ms");
     }
+    if(["yes","no"].includes(action))this.chime(action==="yes"?"accept":"refuse");
     this.send({
       type: "key",
       id,
@@ -297,11 +310,12 @@ export class PadSimulatorV2 extends PadSimulator {
     this.killed = true;
     this.signal = null;
     this.persist();
+    this.chime("kill");
     this.send({ type: "kill", id: this.device + ":" + ++this.seq });
   }
   persist() {
     if (this.stateFile)
-      writeFileSync(this.stateFile, JSON.stringify({ killed: this.killed, otaChannel:this.otaChannel }), {
+      writeFileSync(this.stateFile, JSON.stringify({ killed: this.killed, otaChannel:this.otaChannel, sounds:this.sounds }), {
         mode: 0o600,
       });
   }

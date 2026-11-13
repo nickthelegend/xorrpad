@@ -6,6 +6,19 @@ All notable changes to xorrpad are documented here. This file follows
 
 ## [Unreleased]
 
+### Added — Firmware 4.0.0 F5: Synthesized earcons
+
+- One shared parameter table drives 16 kHz PCM on MAX98357A I2S and WebAudio
+  in the 3D mirror: accept, refuse, fill, alert, liquidation alarm, KILL,
+  cooldown and optional detent tick (off by default).
+- `/pad/options` sound volume, mute and UTC quiet hours persist on the desk and
+  pad. The existing Device form exposes them without stylesheet or art changes.
+  Quiet hours silence all cues, including alarms; LED warnings remain active.
+- Bounded playback keeps key scanning responsive. GPIO 48 pulses green on fills,
+  red for KILL/LIQ GUARD and breathes amber during cooldown. Native PCM renders,
+  cross-runtime sample comparison and encrypted browser/padsim tests verify sound
+  and settings without submitting a trade.
+
 ### Added — Firmware 4.0.0 F4: Panic flatten
 
 - The unchanged two-second KILL latch requests one live Flatten all plan. The

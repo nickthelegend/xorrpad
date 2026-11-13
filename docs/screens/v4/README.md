@@ -54,3 +54,20 @@ F4 evidence:
 Public inputs are in `firmware/build/f4-flatten-{setup,layout}.json`. A plan
 layout is not proof of a funded live close; venue/signing prerequisites and
 unsupported inventory cases are documented in `docs/v4/V4-NOTES.md`.
+
+
+F5 evidence:
+
+- `sounds-device-{1440,375}.png`: the real Device sound controls on the local
+  desk with a verified encrypted v4 padsim. The browser saves volume 45%, mute
+  off, detent tick on and 22:00–07:00 UTC quiet hours. No stylesheet, tokens,
+  artwork, market data or trade outcome is changed or invented.
+- `sounds-cooldown-setup.png`: actual native `ui.h` rendering of the production
+  tilt driver's missing-UTC state after enabling an hourly limit with no clock.
+  No reservation, close or financial fill is injected. Sound is silent in
+  configured quiet hours without UTC, while the existing Setup screen and LED
+  remain available. The input is `firmware/build/f5-sound-cooldown-setup.json`.
+
+F5 adds sound and LED behavior to existing screens; `ui.h` and its shipped WASM
+are unchanged. PCM/browser evidence is in `desk/test/pad-earcons.test.mjs` and
+`firmware/test/earcons.cpp`. Acoustic and LED hardware measurements are pending.

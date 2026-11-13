@@ -1,3 +1,4 @@
+import {unlockEarcons,mirrorEarcon} from "./earcons.js";
 import React, {
   lazy,
   Suspense,
@@ -108,6 +109,14 @@ export function PadModel({
       clearInterval(t);
     };
   }, [device?.device, d.api]);
+  useEffect(() => {
+    const unlock=()=>unlockEarcons();
+    const play=e=>{if(e.detail.device===device?.device)mirrorEarcon(e.detail);};
+    window.addEventListener("pointerdown",unlock);
+    window.addEventListener("keydown",unlock);
+    window.addEventListener("pad-earcon",play);
+    return ()=>{window.removeEventListener("pointerdown",unlock);window.removeEventListener("keydown",unlock);window.removeEventListener("pad-earcon",play);};
+  },[device?.device]);
   const poster = (
     <img
       className="model-poster"

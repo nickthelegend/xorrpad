@@ -154,3 +154,13 @@ After its unchanged `kill(2000)`, the encrypted desk sends a `flatten` record.
 through `pressConfirm()` / `confirm()` after a desk request. The native signing
 review is available only for the executing plan's granted child ID. Run
 `SIBYL_PY=$PWD/.venv/bin/python node --test --test-concurrency=1 desk/test/pad-flatten.test.mjs`.
+
+
+F5: `PadSimulatorV2` persists `sounds` from authenticated config, exposes
+`chime(kind)` and records whether local policy makes it audible. Notifications
+use the real encrypted link, and the desktop's 3D mirror plays WebAudio from the
+production shared table. The F3 extension also emits a cooldown transition.
+Build `earcon-driver` with `bash firmware/test/run.sh` before running
+`desk/test/pad-earcons.test.mjs`; this compares every native PCM sample to the
+browser synthesis input and verifies actual WebAudio playback, mute, settings,
+state reload and screenshots. Explicit audio events never fabricate a trade.

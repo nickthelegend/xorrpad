@@ -22,4 +22,10 @@ inline LedColor statusLed(uint32_t now,bool killed,bool error,bool pending,bool 
   float breath=(1-std::cos(float(now%3000)*6.283185307f/3000))*.5f;
   return ledScale({47,91,255},(5+35*breath)/255.f);
 }
+// Sound event lights remain visible when audio is muted or quiet.
+inline LedColor soundStatusLed(uint32_t now,bool cooldown,bool killed,bool error,bool pending,bool fill,float hold=-1,bool liqGuard=false) {
+ if(killed || liqGuard)return ledScale({100,0,0},(now/180)%2?1.f:.15f);
+ if(cooldown){float breath=(1-std::cos(float(now%2400)*6.283185307f/2400))*.5f;return ledScale({100,63,0},.15f+.85f*breath);}
+ return statusLed(now,false,error,pending,fill,hold,false);
+}
 }

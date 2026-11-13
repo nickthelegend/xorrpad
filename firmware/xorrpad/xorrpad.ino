@@ -137,15 +137,15 @@ uint32_t   nextPoll = 0;
 uint8_t    keyR = 0, keyG = 20, keyB = 0;   // colour of the last key that owned the light
 
 inline void led(uint8_t r, uint8_t g, uint8_t b) {
-  if(killSwitch.killed)rgbLedWrite(STATUS_LED,100,0,0);
+  if(killSwitch.killed)rgbLedWrite(STATUS_LED,(millis()/180)%2?100:15,0,0);
   else rgbLedWrite(STATUS_LED,r,g,b);
 }
 
 // One language, ordered by urgency. KILL always wins.
 void ledFromState() {
   uint32_t now=millis();
-  if(!killSwitch.killed && pad.alertsOnly && (int32_t)(pad.alertUntil-now)>0){led(0,100,40);return;}
-  auto color=xorr::statusLed(now,killSwitch.killed,pad.errorCode.length(),
+  if(!killSwitch.killed && !pad.tiltBlocked && !pad.liqGuard.fresh(now) && pad.alertsOnly && (int32_t)(pad.alertUntil-now)>0){led(0,100,40);return;}
+  auto color=xorr::soundStatusLed(now,pad.tiltBlocked,killSwitch.killed,pad.errorCode.length(),
     pad.ok && pad.pending,(int32_t)(pad.receiptUntil-now)>0,-1,pad.liqGuard.fresh(now));
   led(color.r,color.g,color.b);
 }
@@ -198,6 +198,7 @@ void onPadMessage(JsonVariantConst d) {
   }
   if(type=="signal")amountSpoken=false;
   if(type=="config" || type=="ready") {
+    if(padlink.secureReady() && !d["sounds"].isNull() && !audio.configure(d["sounds"])) {pad.errorCode="SOUND_SETTINGS";pad.errorFix="Retry desk sound settings";}
     if(padlink.secureReady() && !accessibility.patch(d)) {
       pad.errorCode="UI_SETTINGS";pad.errorFix="Retry desk display settings";
     }
@@ -386,7 +387,7 @@ void sendKey(const KeyBind &kb) {
   if(kb.role==ROLE_CONFIRM && !tiltGuard.allows(pad) && !presentationLiqVisible(pad)){audio.chime(xorr::Chime::Refuse);return;}
   keyR = kb.r; keyG = kb.g; keyB = kb.b;
   pad.lastKeyLabel=kb.label;pad.labelUntil=millis()+1800;screenDirty=true;
-  if(sendLinkedKey(kb.id)){audio.chime(kb.role==ROLE_REFUSE?xorr::Chime::Refuse:xorr::Chime::Accept);return;}
+  if(sendLinkedKey(kb.id)){if(kb.role!=ROLE_CONFIRM)audio.chime(kb.role==ROLE_REFUSE?xorr::Chime::Refuse:xorr::Chime::Accept);return;}
   if(!padlink.legacy){pad.lastKeyLabel="offline: nothing will execute";pad.labelUntil=millis()+4000;return;}
   if((kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE) && pad.signalId.length()){
     pad.lastKeyLabel="Signal link offline";pad.labelUntil=millis()+4000;return;
@@ -447,7 +448,7 @@ void onKey(uint8_t r, uint8_t c, bool pressed) {
   if(clearSigning.active && (kb.role==ROLE_CONFIRM || kb.role==ROLE_REFUSE)){
     bool safe=padlink.secureReady() && !padlink.blePairing && (!killSwitch.killed || (!killSwitch.requested && pad.flatten.review(std::string(pad.signalId.c_str())))) && !ota.busy && health.displayUp && millis()>=screenHoldUntil;
     if(kb.role==ROLE_CONFIRM)clearSigning.key(pressed,padlink.connectionEpoch(),safe && tiltGuard.allows(pad) && presentationConfirmationVisible(pad));
-    else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result))padlink.send(result);}
+    else if(pressed){JsonDocument result;if(clearSigning.answer(false,padlink.connectionEpoch(),safe,pad,result)){padlink.send(result);audio.chime(xorr::Chime::Refuse);}}
     return;
   }
   if (pressed)   // diagnostic: raw position + current mapping, for remapping
@@ -639,6 +640,10 @@ void setup() {
   screen.brightness(accessibility.brightness(millis()));
   screenHoldUntil = millis() + 3000;
   bool audioOK = audio.begin();
+  audio.onChime=[&](xorr::Chime kind){
+    if(!padlink.secureReady())return;
+    JsonDocument d;d["type"]="earcon";d["id"]=padlink.eventId();d["kind"]=xorr::earcon(kind).name;d["audible"]=audio.sounds.allowed(kind,audio.utcMinute());d["volume"]=audio.volume;padlink.send(d);
+  };
   factory.hardware(health.displayUp, audioOK);
   if (!audioOK) if (!XORR_RELEASE) Serial.println("!! audio init failed");
   recBuf = (int16_t *)ps_malloc(REC_CAP * sizeof(int16_t));
@@ -729,6 +734,7 @@ bool serviceFactoryReset() {
 }
 
 void loop() {
+  audio.tick();
   telnet.usbDebug = usbDebugAllowed();
   if (!factory.active && serviceFactoryReset()) { delay(1); return; }
   if (factory.active) {
@@ -758,7 +764,7 @@ void loop() {
   showKillState();
   tiltGuard.tick(padlink,pad);
   static bool wasCooling=false;
-  if(pad.tiltBlocked && !wasCooling){accessibility.idle.wake(millis());screenHoldUntil=0;screenDirty=true;audio.chime(xorr::Chime::Refuse);}
+  if(pad.tiltBlocked && !wasCooling){accessibility.idle.wake(millis());screenHoldUntil=0;screenDirty=true;audio.chime(xorr::Chime::Cooldown);}
   wasCooling=pad.tiltBlocked;
   profiles.refresh(pad.pending || recording);
   pad.profile=profiles.name();pad.layer=profiles.layerName();
@@ -774,6 +780,7 @@ void loop() {
   bool wakeKnob=event!=Knob::None && accessibility.idle.blank(millis());
   if(event!=Knob::None){accessibility.idle.wake(millis());screen.brightness(accessibility.brightness(millis()));screenDirty=true;}
   if(wakeKnob && event!=Knob::TalkEnd)event=Knob::None;
+  if(event==Knob::Turn)audio.chime(xorr::Chime::Tick);
   if(clearSigning.active && pad.pending && event==Knob::Turn){clearSigning.page(knob.delta,pad);event=Knob::None;}
   if(killSwitch.killed && pad.flatten.visible() && event==Knob::Turn){
     unsigned pages=std::max(size_t(1),(pad.flatten.rows.size()+3)/4);
@@ -786,7 +793,7 @@ void loop() {
     knobControl.cycle();pad.lastKeyLabel=String(knobControl.name())+" "+String(knobControl.values[knobControl.mode],0);pad.labelUntil=millis()+1800;
   }
   else if(event==Knob::Turn) {
-    if(profiles.voice){audio.volume=xorr::voiceVolume(audio.volume,knob.delta);pad.lastKeyLabel="Volume "+String(audio.volume)+"%";pad.labelUntil=millis()+1800;}
+    if(profiles.voice){audio.volume=xorr::voiceVolume(audio.volume,knob.delta);audio.sounds.volume=audio.volume;pad.lastKeyLabel="Volume "+String(audio.volume)+"%";pad.labelUntil=millis()+1800;}
     else if(presentationPredictVisible(pad)) {
       pad.predict.scroll(knob.delta);pad.labelUntil=0;
       JsonDocument d;d["type"]="knob";d["id"]=padlink.eventId();d["mode"]="predict";d["delta"]=knob.delta;padlink.send(d);
@@ -824,7 +831,7 @@ void loop() {
     if(!tiltGuard.accept(decisionConfirm.signal().id)){decisionConfirm.reset();screenDirty=true;return;}
     JsonDocument d;d["type"]="key";d["id"]=padlink.eventId();d["action"]="yes";d["edge"]="down";
     d["signalId"]=decisionConfirm.signal().id;d["fingerprint"]=xorr::fingerprint(decisionConfirm.signal());
-    d["heldMs"]=decisionConfirm.heldMs(millis());padlink.send(d);
+    d["heldMs"]=decisionConfirm.heldMs(millis());padlink.send(d);audio.chime(xorr::Chime::Accept);
   }
   int abilityChime=-1;
   abilities.tick(padlink.connectionEpoch(),padlink.secureReady(),health.displayUp && !padlink.blePairing && !accessibility.idle.blank(millis()) && !killSwitch.killed && !ota.busy && !pad.pending && !recording && !pad.listening && !clearSigning.active && !pad.errorCode.length() && !pad.pairCode.length() && !killSwitch.requested,pad,abilityChime);
@@ -845,7 +852,7 @@ void loop() {
   }
   if(priceAlerts.tick(padlink.ready() || (padlink.legacy && pad.ok),WiFi.isConnected(),
       !killSwitch.killed && !ota.busy && !recording && !pad.pending && !clearSigning.active,pad)){
-    accessibility.idle.wake(millis());audio.chime(xorr::Chime::Fill);screenDirty=true;
+    accessibility.idle.wake(millis());audio.chime(xorr::Chime::Error);screenDirty=true;
   }
   ledFromState();
 

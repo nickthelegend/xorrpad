@@ -25,7 +25,7 @@ export class TiltPadSimulator extends PredictPadSimulator {
    if(['config','ready','status','receipt'].includes(m.type))await this.reportTilt();
   }).catch(e=>this.emit('protocol_error',e));});
  }
- async reportTilt(){const s=await this.tiltDriver.call({command:'status'});this.tilt=s;if(this.verified)this.send({type:'tilt_state',...s});return s;}
+ async reportTilt(){const s=await this.tiltDriver.call({command:'status'});if(s.blocked && !this.tilt?.blocked)this.chime('cooldown');this.tilt=s;if(this.verified)this.send({type:'tilt_state',...s});return s;}
  async reserve(id,reduceOnly=false){await this.tiltWork;const s=await this.tiltDriver.call({command:'accept',id,reduceOnly});await this.reportTilt();if(!s.ok)throw Error('Tilt guard: '+s.reason);}
  async key(action,options={}) {
   await this.tiltWork;

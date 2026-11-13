@@ -2381,3 +2381,63 @@ No CSS, tokens or commissioned art are changed. `docs/screens/v3` and earlier
 v4 captures are restored after the tests. No existing key files are opened, no
 production release is signed/flashed, no live trade is submitted and nothing is
 pushed. Venue-specific Setup limitations are in `docs/v4/V4-NOTES.md`.
+
+## Firmware 4 F5 — Synthesized earcons (2026-11-13)
+
+`bash firmware/test/run.sh` exits **0**: **296 test cases / 296 passed /
+4,286 assertions / 0 failures**. All prior native cases remain unchanged.
+New production PCM cases render accept, refuse, fill, alert, liquidation alarm,
+KILL, cooldown and tick and verify exact sample length, bounded nonzero peak,
+silent edges and distinct sample vectors. Policy cases cover default-off tick,
+zero volume, mute, both UTC quiet-hour shapes, exact boundaries, all-day silence,
+unknown UTC and atomic settings rejection. LED cases cover amber breathing and
+alarm priority. `earcon-driver` compiles with warnings treated as errors.
+
+The focused `desk/test/pad-earcons.test.mjs` run exits **0**, **3 passed**. It
+compares every native PCM sample with the WebAudio input to within one signed
+16-bit quantization unit, observes real AudioBufferSourceNode playback in a
+browser from the authenticated encrypted pad link, verifies gain/mute and
+persistent options, saves the real Device form and reloads simulator state.
+No external API response, quote, fill, wallet balance or trade is fabricated.
+The complete suite below additionally regenerates its final 1440/375 evidence.
+
+`npm run build:app --prefix desk` and `make -C tools/uipreview` exit **0**.
+Existing bundle-size / Device import warnings remain. The uipreview capture
+uses the production native tilt driver's honest missing-UTC state with an hourly
+limit enabled; no trade is accepted. See `docs/screens/v4/README.md`.
+
+Final unsigned Arduino CLI compile-only checks exit **0** using the existing
+ESP32-S3 16 MB / OPI PSRAM FQBN, `--jobs 4`, and
+`CONFIG_BT_NIMBLE_SM_SC_ONLY=1` for C/C++. Core additionally sets `XORR_CORE=1`,
+`XORR_RELEASE=1` and `CORE_DEBUG_LEVEL=0`. The final Core check reuses the existing
+`firmware/build/f4-core` cache and writes its output to `f5-core-out`.
+
+| Build | Flash bytes / 3,145,728 | Static RAM bytes / 327,680 |
+| --- | ---: | ---: |
+| Pro | 2,007,138 | 69,364 |
+| Core release | 1,986,943 | 69,068 |
+
+F5 does not change `ui.h` or `firmware-screen.wasm`; the shipped WASM SHA-256
+remains `69a2151f505efd2bfb470ba9f3756a2fe97104da5bb849c7ee1c3105faa481b4`.
+No signing step, board flash or push is performed. Physical acoustic/LED checks
+remain hardware work. Logs: `firmware/build/f5-{native,focused,app-build,pro,core,uipreview,desk}.log`.
+
+
+Final complete desktop suite, run alone:
+
+```sh
+SIBYL_PY=$PWD/.venv/bin/python npm test --prefix desk
+```
+
+Exit **0**: **274 tests / 265 passed / 9 existing skips / 0 failures /
+0 cancellations**, **1,009,605.932 ms**. All v1–v3, agent-wallet and F1–F4 cases
+that ran pass, including encrypted OTA, Opus/TTS, trusted confirmation, KILL /
+re-arm, flatten, liquidation guard, prediction, native signing, persistent tilt,
+permissions, session caps and real provider routes. All three F5 cases pass in
+this complete run. The nine existing skips retain unavailable provider/Electron
+setup, upstream Meteora rate limits, unfunded devnet accounts and missing Phoenix
+trading authorities. No test is removed or weakened, and no external API is mocked.
+Native/WASM frame parity and actual Fund QR decoding pass with the unchanged
+WASM. Final sound screenshots at 1440/375 are visually reviewed; regenerated
+v3 and earlier v4 screenshots are restored. No other suite or compile ran
+alongside this complete desktop run.
